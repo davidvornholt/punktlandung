@@ -1,13 +1,18 @@
 import { defineConfig } from 'drizzle-kit';
 
-import { env } from './src/shared/env.ts';
+// Bewusst von src/shared/env.ts entkoppelt: Migrationen laufen auch im
+// Deploy-Container, wo nur DATABASE_URL gesetzt ist (kein Auth-Env).
+// Die db:*-Skripte laden .env.local via `bun --env-file`.
+const databaseUrl = process.env.DATABASE_URL;
+if (databaseUrl === undefined || databaseUrl === '') {
+  throw new Error('DATABASE_URL ist nicht gesetzt.');
+}
 
-// Aufruf über die db:*-Skripte, die .env.local via `bun --env-file` laden.
 export default defineConfig({
   out: './drizzle',
   schema: './src/shared/db/schema.ts',
   dialect: 'postgresql',
   dbCredentials: {
-    url: env.DATABASE_URL,
+    url: databaseUrl,
   },
 });
