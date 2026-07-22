@@ -7,8 +7,8 @@ import {
   YAxis,
 } from 'recharts';
 
-import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import type { VerlaufsEintrag } from '../services/verlauf-berechnung.ts';
+import { erstelleVerlaufTextmodell } from './verlauf-textmodell.ts';
 
 const chartHoehe = 280;
 const chartRand = { top: 8, right: 8, bottom: 0, left: -16 } as const;
@@ -26,18 +26,15 @@ const datumKurz = (iso: string): string => {
  * Die Verlaufslinie: alle Noten als Notenpunkte (Akzentlinie) und der
  * laufende gewichtete Gesamtschnitt (Primärlinie). Farben kommen
  * ausschließlich aus den Theme-Variablen, da Utility-Klassen auf
- * SVG-Attribute nicht wirken. Die Textalternative steht in der figcaption.
+ * SVG-Attribute nicht wirken. Die vollständige Textalternative folgt als
+ * für Screenreader zugängliche Datentabelle.
  */
 export const Verlaufslinie = ({
   eintraege,
 }: {
   readonly eintraege: ReadonlyArray<VerlaufsEintrag>;
 }) => {
-  const letzter = eintraege.at(-1);
-  const beschreibung =
-    letzter === undefined
-      ? 'Noch keine Noten für die Verlaufslinie.'
-      : `Verlauf aller ${eintraege.length} Noten in Notenpunkten; aktueller gewichteter Gesamtschnitt: ${formatNote(letzter.schnitt, 'punkte')}.`;
+  const textmodell = erstelleVerlaufTextmodell(eintraege);
 
   return (
     <figure>
@@ -81,9 +78,32 @@ export const Verlaufslinie = ({
         </ResponsiveContainer>
       </div>
       <figcaption className="mt-2 text-ink-faint text-sm">
-        {beschreibung} Dünne Linie: Einzelnoten, kräftige Linie: laufender
-        Schnitt.
+        {textmodell.zusammenfassung} Dünne Linie: Einzelnoten, kräftige Linie:
+        laufender Schnitt.
       </figcaption>
+      <div className="sr-only">
+        <table>
+          <caption>Notenverlauf als Datentabelle</caption>
+          <thead>
+            <tr>
+              <th scope="col">Datum</th>
+              <th scope="col">Fach</th>
+              <th scope="col">Einzelwert in Notenpunkten</th>
+              <th scope="col">Laufender Schnitt in Notenpunkten</th>
+            </tr>
+          </thead>
+          <tbody>
+            {textmodell.zeilen.map((zeile) => (
+              <tr key={zeile.kennung}>
+                <td>{zeile.datum}</td>
+                <td>{zeile.fach}</td>
+                <td>{zeile.punkte}</td>
+                <td>{zeile.schnitt}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 };

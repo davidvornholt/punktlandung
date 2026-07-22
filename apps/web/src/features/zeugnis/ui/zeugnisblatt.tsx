@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
 import { zeugnisQueryOptions } from '../server/zeugnis-fns.ts';
 import type { Zeugnis } from '../services/zeugnis-service.ts';
 
@@ -59,10 +60,25 @@ const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
 
 /** Das Zeugnisblatt: formale Vorschau eines Halbjahreszeugnisses. */
 export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
-  const { data: zeugnis } = useQuery(zeugnisQueryOptions(termId));
+  const zeugnisAbfrage = useQuery(zeugnisQueryOptions(termId));
+  const zeugnis = zeugnisAbfrage.data;
 
-  if (zeugnis === undefined) {
-    return <p className="mt-6 text-ink-muted">Zeugnis wird berechnet …</p>;
+  if (zeugnisAbfrage.isPending) {
+    return (
+      <div className="mt-6">
+        <Ladehinweis text="Zeugnis wird berechnet …" />
+      </div>
+    );
+  }
+  if (zeugnisAbfrage.isError || zeugnis === undefined) {
+    return (
+      <div className="mt-6">
+        <AbfrageFehler
+          onWiederholen={() => zeugnisAbfrage.refetch()}
+          text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
+        />
+      </div>
+    );
   }
 
   return (

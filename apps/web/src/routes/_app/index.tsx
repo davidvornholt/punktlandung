@@ -6,11 +6,41 @@ import { verlaufQueryOptions } from '#/features/noten/server/noten-fns.ts';
 import { Verlaufslinie } from '#/features/noten/ui/verlaufslinie.tsx';
 import { zuSechser } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
+import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { seitentitel } from '#/shared/ui/seitentitel.ts';
 import { StatKarte } from '#/shared/ui/stat-karte.tsx';
 
 const Uebersicht = () => {
-  const { data: verlauf } = useQuery(verlaufQueryOptions);
-  const letzter = verlauf?.at(-1);
+  const verlaufAbfrage = useQuery(verlaufQueryOptions);
+  if (verlaufAbfrage.isPending) {
+    return (
+      <>
+        <h1 className="font-display text-3xl text-ink tracking-tight">
+          Übersicht
+        </h1>
+        <div className="mt-6">
+          <Ladehinweis text="Übersicht wird geladen …" />
+        </div>
+      </>
+    );
+  }
+  if (verlaufAbfrage.isError) {
+    return (
+      <>
+        <h1 className="font-display text-3xl text-ink tracking-tight">
+          Übersicht
+        </h1>
+        <div className="mt-6">
+          <AbfrageFehler
+            onWiederholen={() => verlaufAbfrage.refetch()}
+            text="Die Übersicht konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+          />
+        </div>
+      </>
+    );
+  }
+  const verlauf = verlaufAbfrage.data;
+  const letzter = verlauf.at(-1);
 
   return (
     <>
@@ -29,17 +59,14 @@ const Uebersicht = () => {
             letzter === undefined ? '—' : formatNote(letzter.schnitt, 'punkte')
           }
         />
-        <StatKarte
-          label="Anzahl Noten"
-          wert={verlauf === undefined ? '—' : `${verlauf.length}`}
-        />
+        <StatKarte label="Anzahl Noten" wert={`${verlauf.length}`} />
         <HeuteGelernt />
       </div>
       <section className="mt-8">
         <h2 className="font-display text-2xl text-ink tracking-tight">
           Verlaufslinie
         </h2>
-        {verlauf !== undefined && verlauf.length > 0 ? (
+        {verlauf.length > 0 ? (
           <div className="mt-4 border border-border bg-surface p-4 shadow-card">
             <Verlaufslinie eintraege={verlauf} />
           </div>
@@ -67,4 +94,5 @@ const Uebersicht = () => {
 
 export const Route = createFileRoute('/_app/')({
   component: Uebersicht,
+  head: () => ({ meta: [{ title: seitentitel('Übersicht') }] }),
 });

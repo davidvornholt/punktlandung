@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { fachschnitt } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
+import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
 import { leiseKnopfKlasse } from '#/shared/ui/form-klassen.ts';
 import { deleteNoteFn, notenQueryOptions } from '../server/noten-fns.ts';
 import type { NoteMitFach } from '../services/noten-service.ts';
@@ -58,7 +60,7 @@ export const Notenliste = ({
   readonly term: { readonly id: string; readonly system: Notensystem };
 }) => {
   const queryClient = useQueryClient();
-  const { data: noten } = useQuery(notenQueryOptions(term.id));
+  const notenAbfrage = useQuery(notenQueryOptions(term.id));
   const loeschen = useMutation({
     mutationFn: (id: string) => deleteNoteFn({ data: { id } }),
     onSuccess: () =>
@@ -68,8 +70,23 @@ export const Notenliste = ({
       ]),
   });
 
-  if (noten === undefined) {
-    return <p className="mt-6 text-ink-muted">Noten werden geladen …</p>;
+  const noten = notenAbfrage.data;
+  if (notenAbfrage.isPending) {
+    return (
+      <div className="mt-6">
+        <Ladehinweis text="Notenliste wird geladen …" />
+      </div>
+    );
+  }
+  if (notenAbfrage.isError || noten === undefined) {
+    return (
+      <div className="mt-6">
+        <AbfrageFehler
+          onWiederholen={() => notenAbfrage.refetch()}
+          text="Die Notenliste konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+        />
+      </div>
+    );
   }
   if (noten.length === 0) {
     return (
@@ -124,11 +141,30 @@ export const Notenliste = ({
                 )}
                 <button
                   className={`${leiseKnopfKlasse} ml-auto`}
-                  onClick={() => loeschen.mutate(note.id)}
+                  disabled={
+                    loeschen.isPending && loeschen.variables === note.id
+                  }
+                  onClick={() => {
+                    loeschen.reset();
+                    loeschen.mutate(note.id);
+                  }}
                   type="button"
                 >
-                  Löschen
+                  {loeschen.isPending && loeschen.variables === note.id
+                    ? 'Wird gelöscht …'
+                    : 'Löschen'}
                 </button>
+                {loeschen.isError && loeschen.variables === note.id ? (
+                  <p
+                    className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
+                    role="alert"
+                  >
+                    {aktionsfehlerText(
+                      loeschen.error,
+                      'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
+                    )}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>

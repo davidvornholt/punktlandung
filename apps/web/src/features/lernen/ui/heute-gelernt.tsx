@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
+import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
 import {
   eingabeKlasse,
   labelKlasse,
@@ -11,17 +14,19 @@ import {
   logLerntagFn,
 } from '../server/lernen-fns.ts';
 
-const heutigesDatum = () =>
-  new Date().toISOString().slice(0, '0000-00-00'.length);
-
 /** Kompakte Lernen-Kachel: „Heute gelernt" plus kleine Statistikleiste. */
 export const HeuteGelernt = () => {
   const queryClient = useQueryClient();
-  const { data: statistik } = useQuery(lernStatistikQueryOptions);
+  const statistikAbfrage = useQuery(lernStatistikQueryOptions);
   const eintragen = useMutation({
     mutationFn: (minutes: number | null) =>
       logLerntagFn({
-        data: { day: heutigesDatum(), subjectId: null, minutes, notiz: null },
+        data: {
+          day: berlinKalenderdatum(),
+          subjectId: null,
+          minutes,
+          notiz: null,
+        },
       }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['lern-statistik'] }),
@@ -32,26 +37,42 @@ export const HeuteGelernt = () => {
       <h2 className="text-ink-faint text-xs uppercase tracking-widest">
         Lerntage
       </h2>
-      <dl className="mt-2 flex gap-6">
-        <div>
-          <dt className="text-ink-muted text-sm">Diesen Monat</dt>
-          <dd className="font-display text-3xl text-ink tracking-tight">
-            {statistik?.tageDiesenMonat ?? '—'}
-          </dd>
+      {statistikAbfrage.isPending ? (
+        <div className="mt-2">
+          <Ladehinweis text="Lerntage werden geladen …" />
         </div>
-        <div>
-          <dt className="text-ink-muted text-sm">Serie</dt>
-          <dd className="font-display text-3xl text-ink tracking-tight">
-            {statistik === undefined ? '—' : `${statistik.serie} Tage`}
-          </dd>
+      ) : null}
+      {statistikAbfrage.isError ? (
+        <div className="mt-3">
+          <AbfrageFehler
+            onWiederholen={() => statistikAbfrage.refetch()}
+            text="Die Lernstatistik konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+          />
         </div>
-      </dl>
+      ) : null}
+      {statistikAbfrage.data === undefined ? null : (
+        <dl className="mt-2 flex gap-6">
+          <div>
+            <dt className="text-ink-muted text-sm">Diesen Monat</dt>
+            <dd className="font-display text-3xl text-ink tracking-tight">
+              {statistikAbfrage.data.tageDiesenMonat}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted text-sm">Serie</dt>
+            <dd className="font-display text-3xl text-ink tracking-tight">
+              {statistikAbfrage.data.serie} Tage
+            </dd>
+          </div>
+        </dl>
+      )}
       <form
         className="mt-3 flex flex-wrap items-end gap-3"
         onSubmit={(ereignis) => {
           ereignis.preventDefault();
           const roh =
             `${new FormData(ereignis.currentTarget).get('minuten') ?? ''}`.trim();
+          eintragen.reset();
           eintragen.mutate(roh === '' ? null : Number(roh));
         }}
       >
@@ -72,12 +93,23 @@ export const HeuteGelernt = () => {
           disabled={eintragen.isPending}
           type="submit"
         >
-          Heute gelernt
+          {eintragen.isPending ? 'Wird eingetragen …' : 'Heute gelernt'}
         </button>
       </form>
       {eintragen.isSuccess ? (
         <p className="mt-2 text-ink-muted text-sm" role="status">
           Eingetragen — der heutige Lerntag zählt.
+        </p>
+      ) : null}
+      {eintragen.isError ? (
+        <p
+          className="mt-3 border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
+          role="alert"
+        >
+          {aktionsfehlerText(
+            eintragen.error,
+            'Der Lerntag konnte nicht eingetragen werden. Die Minuten bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
+          )}
         </p>
       ) : null}
     </section>
