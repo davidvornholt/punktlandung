@@ -1,0 +1,14 @@
+services:
+  db:
+    image: docker.io/library/postgres:17-alpine
+    environment:
+      POSTGRES_USER: punktlandung
+      POSTGRES_PASSWORD: punktlandung
+      POSTGRES_DB: punktlandung_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:

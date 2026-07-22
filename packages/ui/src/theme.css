@@ -1,0 +1,104 @@
+/*
+ * Punktlandung theme — Refined Heritage.
+ * Single source of design values. Semantic names only; see /DESIGN.md.
+ */
+
+:root {
+  /* Warm neutrals — cream ground, warm ink. Never pure white or black. */
+  --pl-background: oklch(0.965 0.012 85);
+  --pl-surface: oklch(0.985 0.009 88);
+  --pl-surface-sunken: oklch(0.945 0.014 84);
+  --pl-ink: oklch(0.26 0.02 55);
+  --pl-ink-muted: oklch(0.45 0.022 58);
+  /* Dunkel genug für WCAG-AA-Kontrast (4,5:1) auf background und surface. */
+  --pl-ink-faint: oklch(0.51 0.02 62);
+
+  /* Primary accent — forest green with depth and dignity. */
+  --pl-primary: oklch(0.42 0.09 155);
+  --pl-primary-strong: oklch(0.35 0.09 155);
+  --pl-on-primary: oklch(0.97 0.012 85);
+  --pl-primary-subtle: oklch(0.93 0.025 152);
+
+  /* Warm secondary accent — aged brass, for contrast moments only. */
+  --pl-accent: oklch(0.58 0.11 75);
+  --pl-accent-subtle: oklch(0.92 0.035 80);
+
+  /* Judgement colors for grades and deltas. */
+  --pl-positive: oklch(0.5 0.1 155);
+  --pl-critical: oklch(0.5 0.15 30);
+  --pl-critical-subtle: oklch(0.93 0.03 30);
+
+  /* Hairlines and material depth. */
+  --pl-border: oklch(0.87 0.018 82);
+  --pl-border-strong: oklch(0.76 0.022 78);
+  --pl-shadow-card: 0 1px 2px oklch(0.3 0.02 60 / 0.08);
+  --pl-shadow-featured: 0 2px 12px oklch(0.3 0.02 60 / 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Warm anthracite ground; depth from lightness steps, not glow. */
+    --pl-background: oklch(0.22 0.012 60);
+    --pl-surface: oklch(0.26 0.014 60);
+    --pl-surface-sunken: oklch(0.19 0.011 60);
+    --pl-ink: oklch(0.93 0.015 85);
+    --pl-ink-muted: oklch(0.75 0.018 80);
+    /* Hell genug für WCAG-AA-Kontrast auf den dunklen Flächen. */
+    --pl-ink-faint: oklch(0.68 0.016 75);
+
+    /* Brightened emerald so the accent keeps its dignity on dark ground. */
+    --pl-primary: oklch(0.68 0.1 155);
+    --pl-primary-strong: oklch(0.76 0.1 152);
+    --pl-on-primary: oklch(0.2 0.02 60);
+    --pl-primary-subtle: oklch(0.31 0.035 155);
+
+    --pl-accent: oklch(0.72 0.1 78);
+    --pl-accent-subtle: oklch(0.31 0.03 78);
+
+    --pl-positive: oklch(0.7 0.1 155);
+    --pl-critical: oklch(0.68 0.13 32);
+    --pl-critical-subtle: oklch(0.3 0.04 30);
+
+    --pl-border: oklch(0.33 0.014 62);
+    --pl-border-strong: oklch(0.42 0.016 65);
+    --pl-shadow-card: none;
+    --pl-shadow-featured: none;
+  }
+}
+
+@theme {
+  /* Default palette off — semantic tokens below are the only colors. */
+  --color-*: initial;
+  /* Square corners everywhere: the radius scale does not exist. */
+  --radius-*: initial;
+
+  --font-display: "Spectral", "Iowan Old Style", Georgia, serif;
+  --font-sans:
+    "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+
+  /* The single easing curve; JS reads the same values from motion.ts. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --shadow-card: var(--pl-shadow-card);
+  --shadow-featured: var(--pl-shadow-featured);
+}
+
+@theme inline {
+  --color-background: var(--pl-background);
+  --color-surface: var(--pl-surface);
+  --color-surface-sunken: var(--pl-surface-sunken);
+  --color-ink: var(--pl-ink);
+  --color-ink-muted: var(--pl-ink-muted);
+  --color-ink-faint: var(--pl-ink-faint);
+  --color-primary: var(--pl-primary);
+  --color-primary-strong: var(--pl-primary-strong);
+  --color-on-primary: var(--pl-on-primary);
+  --color-primary-subtle: var(--pl-primary-subtle);
+  --color-accent: var(--pl-accent);
+  --color-accent-subtle: var(--pl-accent-subtle);
+  --color-positive: var(--pl-positive);
+  --color-critical: var(--pl-critical);
+  --color-critical-subtle: var(--pl-critical-subtle);
+  --color-border: var(--pl-border);
+  --color-border-strong: var(--pl-border-strong);
+}
