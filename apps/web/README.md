@@ -34,6 +34,12 @@ bun run dev
 
 Die `db:*`-Skripte laden `.env.local` selbst (`bun --env-file`); Drizzle Kit liest die Verbindung aus `src/shared/env.ts`.
 
+## Fach- und Zeugnislogik
+
+Fachname, Kürzel, Archivstatus und alle Gewichtungen werden je Schuljahr historisiert und von dessen beiden Halbjahre gemeinsam verwendet. Noten müssen innerhalb des inklusiven Halbjahr-Zeitraums liegen; ein belegtes Halbjahr darf weder das Notensystem noch das Schuljahr wechseln und darf vorhandene Noten nicht durch eine Zeitraumänderung ausschließen.
+
+Die Jahresvorschau für ein vollständiges Sechser-Schuljahr wertet alle erfassten Leistungen beider Halbjahre unter den für das Schuljahr verkündeten Gewichtungen aus. Sie ist eine nicht bindende Orientierung: Die offizielle Zeugnisnote in Baden-Württemberg ist eine pädagogisch-fachliche Gesamtwertung und keine rein mathematische Note.
+
 ## Produktion
 
 `bun run build` erzeugt `dist/client` (statische Assets) und `dist/server/server.js` (SSR-Fetch-Handler). `bun run start` startet `scripts/serve.ts`: Bun.serve bedient die statischen Assets und reicht alles andere an den SSR-Handler weiter. `/api/healthz` antwortet ohne Datenbankzugriff und dient als Container-Healthcheck.

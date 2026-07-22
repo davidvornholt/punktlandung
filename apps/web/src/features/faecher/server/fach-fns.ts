@@ -7,6 +7,7 @@ import {
   FachAktualisierung,
   FachEingabe,
   FachKennung,
+  FaecherAbfrage,
 } from '../schemas/fach-schema.ts';
 import {
   archiveFach,
@@ -15,9 +16,9 @@ import {
   updateFach,
 } from '../services/fach-service.ts';
 
-export const listFaecherFn = createServerFn({ method: 'GET' }).handler(() =>
-  runtime.runPromise(listFaecher),
-);
+export const listFaecherFn = createServerFn({ method: 'GET' })
+  .inputValidator(Schema.standardSchemaV1(FaecherAbfrage))
+  .handler(({ data }) => runtime.runPromise(listFaecher(data.schoolYear)));
 
 export const createFachFn = createServerFn({ method: 'POST' })
   .inputValidator(Schema.standardSchemaV1(FachEingabe))
@@ -29,9 +30,12 @@ export const updateFachFn = createServerFn({ method: 'POST' })
 
 export const archiveFachFn = createServerFn({ method: 'POST' })
   .inputValidator(Schema.standardSchemaV1(FachKennung))
-  .handler(({ data }) => runtime.runPromise(archiveFach(data.id)));
+  .handler(({ data }) =>
+    runtime.runPromise(archiveFach(data.id, data.schoolYear)),
+  );
 
-export const faecherQueryOptions = queryOptions({
-  queryKey: ['faecher'],
-  queryFn: () => listFaecherFn(),
-});
+export const faecherQueryOptions = (schoolYear: string) =>
+  queryOptions({
+    queryKey: ['faecher', schoolYear],
+    queryFn: () => listFaecherFn({ data: { schoolYear } }),
+  });

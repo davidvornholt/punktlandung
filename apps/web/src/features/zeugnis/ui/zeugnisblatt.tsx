@@ -3,15 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { zeugnisQueryOptions } from '../server/zeugnis-fns.ts';
 import type { Zeugnis } from '../services/zeugnis-service.ts';
 
-const Jahreszeugnis = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
-  zeugnis.jahreszeugnis === null ? null : (
+const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
+  zeugnis.jahresvorschau === null ? null : (
     <section className="mt-8">
       <h3 className="font-display text-ink text-xl tracking-tight">
-        Jahreszeugnis {zeugnis.schoolYear}
+        Jahresvorschau {zeugnis.schoolYear}
       </h3>
       <p className="mt-1 text-ink-muted text-sm">
-        Ganze Noten aus allen Noten beider Halbjahre; bei ,5 rundet die Vorschau
-        zur schlechteren Note.
+        Nicht bindende Orientierung aus allen Leistungen beider Halbjahre unter
+        den verkündeten Gewichtungen. Die offizielle Zeugnisnote ist eine
+        pädagogisch-fachliche Gesamtwertung und keine rein mathematische Note.
       </p>
       <table className="mt-3 w-full border-collapse">
         <thead>
@@ -26,12 +27,12 @@ const Jahreszeugnis = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
               className="py-2 text-ink-faint text-xs uppercase tracking-widest"
               scope="col"
             >
-              Jahresnote
+              Vorschau
             </th>
           </tr>
         </thead>
         <tbody>
-          {zeugnis.jahreszeugnis.map((zeile) => (
+          {zeugnis.jahresvorschau.map((zeile) => (
             <tr className="border-border border-b" key={zeile.fachId}>
               <th
                 className="py-2 pr-3 text-left font-normal text-ink"
@@ -131,7 +132,7 @@ export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
           </p>
         </div>
       ) : null}
-      <Jahreszeugnis zeugnis={zeugnis} />
+      <Jahresvorschau zeugnis={zeugnis} />
     </article>
   );
 };

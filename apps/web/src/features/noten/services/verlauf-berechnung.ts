@@ -1,10 +1,21 @@
+import type {
+  Fachgewichtung,
+  Leistung,
+  Leistungsart,
+  Wertungsbereich,
+} from '#/shared/noten/notenwert.ts';
+import { fachschnitt } from '#/shared/noten/notenwert.ts';
+
 export type VerlaufsNote = {
   readonly datum: string;
   /** Auf Notenpunkte (0–15) normalisierter Wert. */
   readonly punkte: number;
-  /** Effektives Gewicht: Einzelgewicht × Artgewicht des Fachs. */
   readonly gewicht: number;
+  readonly fachStandId: string;
   readonly fachKuerzel: string;
+  readonly kind: Leistungsart;
+  readonly area: Wertungsbereich;
+  readonly gewichtung: Fachgewichtung;
 };
 
 export type VerlaufsEintrag = {
@@ -27,15 +38,38 @@ const runde = (wert: number): number =>
 export const berechneVerlauf = (
   noten: ReadonlyArray<VerlaufsNote>,
 ): ReadonlyArray<VerlaufsEintrag> => {
-  let summe = 0;
-  let gewichte = 0;
+  const proFach = new Map<
+    string,
+    {
+      readonly leistungen: Array<Leistung>;
+      readonly gewichtung: Fachgewichtung;
+    }
+  >();
   return noten.map((note) => {
-    summe += note.punkte * note.gewicht;
-    gewichte += note.gewicht;
+    const fach = proFach.get(note.fachStandId) ?? {
+      leistungen: [],
+      gewichtung: note.gewichtung,
+    };
+    fach.leistungen.push({
+      value: note.punkte,
+      weight: note.gewicht,
+      kind: note.kind,
+      area: note.area,
+    });
+    proFach.set(note.fachStandId, fach);
+    const fachSchnitte = [...proFach.values()].flatMap(
+      ({ leistungen, gewichtung }) => {
+        const schnitt = fachschnitt(leistungen, gewichtung);
+        return schnitt === null ? [] : [schnitt];
+      },
+    );
+    const gesamt =
+      fachSchnitte.reduce((summe, wert) => summe + wert, 0) /
+      fachSchnitte.length;
     return {
       datum: note.datum,
       punkte: runde(note.punkte),
-      schnitt: runde(summe / gewichte),
+      schnitt: runde(gesamt),
       fachKuerzel: note.fachKuerzel,
     };
   });

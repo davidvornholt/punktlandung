@@ -4,7 +4,7 @@ import {
   primaerKnopfKlasse,
   sekundaerKnopfKlasse,
 } from '#/shared/ui/form-klassen.ts';
-import type { FachEingabe } from '../schemas/fach-schema.ts';
+import type { FachFelder } from '../schemas/fach-schema.ts';
 import { fachGrenzen } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
 
@@ -16,7 +16,7 @@ const gewichtsFelder = [
   { name: 'sonstigeWeight', label: 'Sonstige' },
 ] as const;
 
-const liesWerte = (form: HTMLFormElement): FachEingabe => {
+const liesWerte = (form: HTMLFormElement): FachFelder => {
   const daten = new FormData(form);
   const text = (name: string) => `${daten.get(name) ?? ''}`.trim();
   const gewicht = (name: string) => {
@@ -46,7 +46,7 @@ export const FachForm = ({
   readonly titel: string;
   readonly fach: Fach | null;
   readonly beschaeftigt: boolean;
-  readonly onSpeichern: (werte: FachEingabe) => void;
+  readonly onSpeichern: (werte: FachFelder) => void;
   readonly onAbbrechen: () => void;
 }) => (
   <form

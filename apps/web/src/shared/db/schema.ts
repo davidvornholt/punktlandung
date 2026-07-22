@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 /** Notensystem eines Halbjahrs: Unterstufe 1–6, Kursstufe 0–15 Punkte. */
@@ -54,18 +55,72 @@ export const subject = pgTable('subject', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const term = pgTable('term', {
-  id: text('id').primaryKey(),
-  /** Anzeigename, z. B. "10.2" oder "K1.1". */
-  label: text('label').notNull(),
-  /** Schuljahr, z. B. "2026/27". */
-  schoolYear: text('school_year').notNull(),
-  /** 1 oder 2 innerhalb des Schuljahrs. */
-  half: integer('half').notNull(),
-  system: gradeSystem('system').notNull(),
-  startsOn: date('starts_on').notNull(),
-  endsOn: date('ends_on').notNull(),
+/**
+ * Vollständiger, unveränderlich historisierbarer Fachstand eines Schuljahrs.
+ * `subject` bleibt die stabile Identität und dient bestehenden Installationen
+ * bis zur ersten atomaren Materialisierung als Legacy-Ausgangsstand.
+ */
+export const schoolYearSubject = pgTable(
+  'school_year_subject',
+  {
+    schoolYear: text('school_year').notNull(),
+    subjectId: text('subject_id')
+      .notNull()
+      .references(() => subject.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    shortName: text('short_name').notNull(),
+    writtenShare: integer('written_share'),
+    klausurWeight: numeric('klausur_weight', { precision: 4, scale: 2 })
+      .notNull()
+      .default('1'),
+    testWeight: numeric('test_weight', { precision: 4, scale: 2 })
+      .notNull()
+      .default('1'),
+    muendlichWeight: numeric('muendlich_weight', { precision: 4, scale: 2 })
+      .notNull()
+      .default('1'),
+    gfsWeight: numeric('gfs_weight', { precision: 4, scale: 2 })
+      .notNull()
+      .default('1'),
+    sonstigeWeight: numeric('sonstige_weight', { precision: 4, scale: 2 })
+      .notNull()
+      .default('1'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    archived: boolean('archived').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    unique('school_year_subject_school_year_subject_id_unique').on(
+      table.schoolYear,
+      table.subjectId,
+    ),
+  ],
+);
+
+/** Markiert auch einen leeren Schuljahr-Fachstand als vollständig fixiert. */
+export const schoolYearSubjectSet = pgTable('school_year_subject_set', {
+  schoolYear: text('school_year').primaryKey(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+export const term = pgTable(
+  'term',
+  {
+    id: text('id').primaryKey(),
+    /** Anzeigename, z. B. "10.2" oder "K1.1". */
+    label: text('label').notNull(),
+    /** Schuljahr, z. B. "2026/27". */
+    schoolYear: text('school_year').notNull(),
+    /** 1 oder 2 innerhalb des Schuljahrs. */
+    half: integer('half').notNull(),
+    system: gradeSystem('system').notNull(),
+    startsOn: date('starts_on').notNull(),
+    endsOn: date('ends_on').notNull(),
+  },
+  (table) => [
+    unique('term_school_year_half_unique').on(table.schoolYear, table.half),
+  ],
+);
 
 export const grade = pgTable('grade', {
   id: text('id').primaryKey(),
@@ -87,63 +142,21 @@ export const grade = pgTable('grade', {
 });
 
 /** Lerntage: ein Eintrag pro Tag und (optional) Fach. */
-export const studyDay = pgTable('study_day', {
-  id: text('id').primaryKey(),
-  day: date('day').notNull(),
-  subjectId: text('subject_id').references(() => subject.id, {
-    onDelete: 'set null',
-  }),
-  minutes: integer('minutes'),
-  note: text('note'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});
-
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').notNull().default(false),
-  image: text('image'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
-  expiresAt: timestamp('expires_at').notNull(),
-  token: text('token').notNull().unique(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
-export const account = pgTable('account', {
-  id: text('id').primaryKey(),
-  accountId: text('account_id').notNull(),
-  providerId: text('provider_id').notNull(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  idToken: text('id_token'),
-  accessTokenExpiresAt: timestamp('access_token_expires_at'),
-  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-  scope: text('scope'),
-  password: text('password'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
-export const verification = pgTable('verification', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
-  value: text('value').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+export const studyDay = pgTable(
+  'study_day',
+  {
+    id: text('id').primaryKey(),
+    day: date('day').notNull(),
+    subjectId: text('subject_id').references(() => subject.id, {
+      onDelete: 'set null',
+    }),
+    minutes: integer('minutes'),
+    note: text('note'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    unique('study_day_day_subject_unique')
+      .on(table.day, table.subjectId)
+      .nullsNotDistinct(),
+  ],
+);

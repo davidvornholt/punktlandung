@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
-
+import { begrenzeIsoDatum } from '#/shared/datum/zeitraum.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import {
   eingabeKlasse,
@@ -40,7 +40,12 @@ export const Eintragsleiste = ({
   term,
   faecher,
 }: {
-  readonly term: { readonly id: string; readonly system: Notensystem };
+  readonly term: {
+    readonly id: string;
+    readonly system: Notensystem;
+    readonly startsOn: string;
+    readonly endsOn: string;
+  };
   readonly faecher: ReadonlyArray<{
     readonly id: string;
     readonly name: string;
@@ -110,7 +115,13 @@ export const Eintragsleiste = ({
           Datum
           <input
             className={eingabeKlasse}
-            defaultValue={heutigesDatum()}
+            defaultValue={begrenzeIsoDatum(
+              heutigesDatum(),
+              term.startsOn,
+              term.endsOn,
+            )}
+            max={term.endsOn}
+            min={term.startsOn}
             name="datum"
             required={true}
             type="date"

@@ -32,3 +32,23 @@ export class UngueltigerNotenwert extends Data.TaggedError(
       : `${this.wert} ist kein gültiger Wert: Noten liegen zwischen 1,00 und 6,00.`;
   }
 }
+
+export class NoteAusserhalbHalbjahr extends Data.TaggedError(
+  'NoteAusserhalbHalbjahr',
+)<{
+  readonly datum: string;
+  readonly startsOn: string;
+  readonly endsOn: string;
+}> {
+  override get message(): string {
+    return `Das Notendatum ${this.datum} liegt nicht im Halbjahr vom ${this.startsOn} bis ${this.endsOn}.`;
+  }
+}
+
+export class FachNichtImSchuljahr extends Data.TaggedError(
+  'FachNichtImSchuljahr',
+)<{ readonly fachId: string; readonly schoolYear: string }> {
+  override get message(): string {
+    return `Das Fach ${this.fachId} gehört nicht zum Schuljahr ${this.schoolYear}. Wähle ein Fach aus diesem Schuljahr.`;
+  }
+}

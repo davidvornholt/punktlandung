@@ -13,8 +13,16 @@ describe('aktuellesHalbjahr', () => {
     expect(aktuellesHalbjahr(halbjahre, '2027-03-01')?.id).toBe('neu');
   });
 
-  it('fällt außerhalb aller Zeiträume auf das zuletzt begonnene zurück', () => {
+  it('wählt in einer Lücke das zuletzt begonnene statt des künftigen', () => {
+    expect(aktuellesHalbjahr(halbjahre, '2027-01-30')?.id).toBe('alt');
+  });
+
+  it('fällt nach allen Zeiträumen auf das zuletzt begonnene zurück', () => {
     expect(aktuellesHalbjahr(halbjahre, '2027-08-15')?.id).toBe('neu');
+  });
+
+  it('liefert vor dem ersten Halbjahr null', () => {
+    expect(aktuellesHalbjahr(halbjahre, '2026-09-01')).toBeNull();
   });
 
   it('liefert null ohne Halbjahre', () => {

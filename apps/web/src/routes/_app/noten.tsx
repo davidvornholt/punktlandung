@@ -14,10 +14,20 @@ const heutigesDatum = () =>
 
 const NotenSeite = () => {
   const { data: halbjahre } = useQuery(halbjahreQueryOptions);
-  const { data: faecher } = useQuery(faecherQueryOptions);
   const [gewaehltesId, setGewaehltesId] = useState<string | null>(null);
 
-  if (halbjahre === undefined || faecher === undefined) {
+  const vorgabe =
+    halbjahre === undefined
+      ? null
+      : aktuellesHalbjahr(halbjahre, heutigesDatum());
+  const halbjahr =
+    halbjahre?.find((eintrag) => eintrag.id === gewaehltesId) ?? vorgabe;
+  const { data: faecher } = useQuery({
+    ...faecherQueryOptions(halbjahr?.schoolYear ?? ''),
+    enabled: halbjahr !== null,
+  });
+
+  if (halbjahre === undefined || (halbjahr !== null && faecher === undefined)) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">Noten</h1>
@@ -25,10 +35,6 @@ const NotenSeite = () => {
       </>
     );
   }
-
-  const vorgabe = aktuellesHalbjahr(halbjahre, heutigesDatum());
-  const halbjahr =
-    halbjahre.find((eintrag) => eintrag.id === gewaehltesId) ?? vorgabe;
 
   return (
     <>
@@ -53,7 +59,7 @@ const NotenSeite = () => {
               wert={halbjahr.id}
             />
           </div>
-          {faecher.length === 0 ? (
+          {(faecher ?? []).length === 0 ? (
             <div className="mt-6 border border-border bg-surface-sunken p-8">
               <p className="text-ink">Noch keine Fächer.</p>
               <p className="mt-2 text-ink-muted">
@@ -69,7 +75,7 @@ const NotenSeite = () => {
             <>
               <div className="mt-4">
                 <Eintragsleiste
-                  faecher={faecher}
+                  faecher={faecher ?? []}
                   key={halbjahr.id}
                   term={halbjahr}
                 />

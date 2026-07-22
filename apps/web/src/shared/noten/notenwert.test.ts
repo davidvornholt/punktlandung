@@ -18,14 +18,16 @@ const leistung = (
 });
 
 describe('zuPunkten / zuSechser', () => {
-  it('amtliche Umrechnung: Note 1 = 14 Punkte, Note 4 = 5 Punkte', () => {
+  it('hält beide Systeme einschließlich ihrer Endpunkte in 0–15', () => {
+    expect(zuPunkten(0, 'punkte')).toBe(0);
+    expect(zuPunkten(15, 'punkte')).toBe(15);
     expect(zuPunkten(1, 'sechser')).toBe(14);
     expect(zuPunkten(4, 'sechser')).toBe(5);
-    expect(zuPunkten(11, 'punkte')).toBe(11);
+    expect(zuPunkten(6, 'sechser')).toBe(0);
   });
 
-  it('Umrechnung ist invertierbar', () => {
-    for (const note of [1, 1.5, 2.25, 3, 4.75, 6]) {
+  it('Umrechnung ist außerhalb des geklemmten Endpunkts invertierbar', () => {
+    for (const note of [1, 1.5, 2.25, 3, 4.75]) {
       expect(zuSechser(zuPunkten(note, 'sechser'))).toBeCloseTo(note);
     }
   });

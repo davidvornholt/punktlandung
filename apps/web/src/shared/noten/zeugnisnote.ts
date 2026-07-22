@@ -10,6 +10,7 @@ const noteSchlechteste = 6;
 const viertelstufenProNote = 4;
 const halbeNote = 0.5;
 const grenzfallToleranz = 0.1;
+const grenzfallSkala = 1_000_000;
 const rundungsFaktor = 100;
 
 /**
@@ -32,13 +33,18 @@ export type Jahresnote = {
 };
 
 /**
- * Jahreszeugnisnote: nur ganze Noten. Bei ,5 rundet die Vorschau bewusst
- * pessimistisch zur schlechteren Note und markiert den Grenzfall.
+ * Jahresvorschau: nur ganze Noten. Bei ,5 rundet sie bewusst pessimistisch zur
+ * schlechteren Note und markiert den Grenzfall.
  */
 export const jahresnote = (schnitt: number): Jahresnote => {
   const note = clamp(Math.round(schnitt), noteBeste, noteSchlechteste);
-  const abstand = Math.abs(schnitt - Math.trunc(schnitt) - halbeNote);
-  return { note, grenzfall: abstand <= grenzfallToleranz };
+  const skaliert = Math.round(schnitt * grenzfallSkala);
+  const rest = skaliert % grenzfallSkala;
+  const abstand = Math.abs(rest - halbeNote * grenzfallSkala);
+  return {
+    note,
+    grenzfall: abstand <= grenzfallToleranz * grenzfallSkala,
+  };
 };
 
 const restViertelUnter = 1;

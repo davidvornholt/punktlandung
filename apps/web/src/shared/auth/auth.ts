@@ -5,8 +5,8 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start';
 import { drizzle } from 'drizzle-orm/node-postgres';
 
 import { pool } from '#/shared/db/pool.ts';
-import { account, session, user, verification } from '#/shared/db/schema.ts';
 import { env } from '#/shared/env.ts';
+import { account, session, user, verification } from './auth-schema.ts';
 
 const schema = { account, session, user, verification };
 const db = drizzle(pool, { schema });

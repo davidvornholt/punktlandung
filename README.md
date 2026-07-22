@@ -2,7 +2,7 @@
 
 > Built on [davidvornholt/standards](https://github.com/davidvornholt/standards).
 
-Persönlicher Notenüberblick für ein Gymnasium in Baden-Württemberg — ein Zeugnisheft, das erwachsen geworden ist. Noten je Halbjahr erfassen (Sechsersystem 1–6 oder Kursstufen-Notenpunkte 0–15), gewichtete Fachschnitte und die Verlaufslinie verfolgen, die Zeugnisvorschau samt Jahreszeugnis und Grenzfällen im Blick behalten, Lerntage zählen. Bewusst Single-User: Anmeldung nur über ein freigeschaltetes GitHub-Konto.
+Persönlicher Notenüberblick für ein Gymnasium in Baden-Württemberg — ein Zeugnisheft, das erwachsen geworden ist. Noten je Halbjahr erfassen (Sechsersystem 1–6 oder Kursstufen-Notenpunkte 0–15), gewichtete Fachschnitte und die Verlaufslinie verfolgen, die Zeugnisvorschau samt nicht bindender Jahresvorschau und Grenzfällen im Blick behalten, Lerntage zählen. Bewusst Single-User: Anmeldung nur über ein freigeschaltetes GitHub-Konto.
 
 ## Stack
 

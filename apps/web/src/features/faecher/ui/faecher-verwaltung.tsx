@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import {
+  eingabeKlasse,
+  labelKlasse,
   leiseKnopfKlasse,
   primaerKnopfKlasse,
 } from '#/shared/ui/form-klassen.ts';
-import type { FachEingabe } from '../schemas/fach-schema.ts';
+import type { FachFelder } from '../schemas/fach-schema.ts';
 import {
   archiveFachFn,
   createFachFn,
@@ -18,37 +20,81 @@ import { FachForm } from './fach-form.tsx';
 const gewichtszeile = (fach: Fach): string =>
   `Klausur ${fach.klausurWeight} · Test ${fach.testWeight} · Mündlich ${fach.muendlichWeight} · GFS ${fach.gfsWeight} · Sonstige ${fach.sonstigeWeight}`;
 
-export const FaecherVerwaltung = () => {
+export const FaecherVerwaltung = ({
+  schoolYears,
+}: {
+  readonly schoolYears: ReadonlyArray<string>;
+}) => {
   const queryClient = useQueryClient();
-  const { data: faecher } = useQuery(faecherQueryOptions);
+  const [schoolYear, setSchoolYear] = useState(schoolYears[0] ?? '');
+  const { data: faecher } = useQuery({
+    ...faecherQueryOptions(schoolYear),
+    enabled: schoolYear !== '',
+  });
   const [bearbeitung, setBearbeitung] = useState<Fach | 'neu' | null>(null);
 
   const abschluss = {
     onSuccess: () => {
       setBearbeitung(null);
-      return queryClient.invalidateQueries({ queryKey: ['faecher'] });
+      return queryClient.invalidateQueries({
+        queryKey: ['faecher', schoolYear],
+      });
     },
   };
   const anlegen = useMutation({
-    mutationFn: (werte: FachEingabe) => createFachFn({ data: werte }),
+    mutationFn: (werte: FachFelder) =>
+      createFachFn({ data: { ...werte, schoolYear } }),
     ...abschluss,
   });
   const aendern = useMutation({
-    mutationFn: (werte: FachEingabe & { readonly id: string }) =>
-      updateFachFn({ data: werte }),
+    mutationFn: (werte: FachFelder & { readonly id: string }) =>
+      updateFachFn({ data: { ...werte, schoolYear } }),
     ...abschluss,
   });
   const archivieren = useMutation({
-    mutationFn: (id: string) => archiveFachFn({ data: { id } }),
+    mutationFn: (id: string) => archiveFachFn({ data: { id, schoolYear } }),
     ...abschluss,
   });
+
+  if (schoolYear === '') {
+    return (
+      <section className="border border-border bg-surface-sunken p-6">
+        <h2 className="font-display text-2xl text-ink tracking-tight">
+          Fächer
+        </h2>
+        <p className="mt-2 text-ink-muted">
+          Lege zuerst ein Halbjahr an. Danach verwaltest du die Fächer für das
+          zugehörige Schuljahr.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section>
       <div className="flex items-end justify-between gap-4">
-        <h2 className="font-display text-2xl text-ink tracking-tight">
-          Fächer
-        </h2>
+        <div>
+          <h2 className="font-display text-2xl text-ink tracking-tight">
+            Fächer {schoolYear}
+          </h2>
+          <label className={`${labelKlasse} mt-3 max-w-xs`}>
+            Schuljahr
+            <select
+              className={eingabeKlasse}
+              onChange={(ereignis) => {
+                setBearbeitung(null);
+                setSchoolYear(ereignis.currentTarget.value);
+              }}
+              value={schoolYear}
+            >
+              {schoolYears.map((jahr) => (
+                <option key={jahr} value={jahr}>
+                  {jahr}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         {bearbeitung === null ? (
           <button
             className={primaerKnopfKlasse}

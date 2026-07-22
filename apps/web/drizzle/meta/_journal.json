@@ -8,6 +8,13 @@
       "when": 1784738851477,
       "tag": "0000_lucky_loa",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784746557636,
+      "tag": "0001_acoustic_white_queen",
+      "breakpoints": true
     }
   ]
 }
