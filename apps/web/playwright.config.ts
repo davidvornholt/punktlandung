@@ -2,5 +2,5 @@ import { createA11yPlaywrightConfig } from '@davidvornholt/a11y-testing/playwrig
 
 export default createA11yPlaywrightConfig({
   baseUrl: 'http://127.0.0.1:3000',
-  webServerCommand: 'bun --env-file=.env.local run start',
+  webServerCommand: 'bun --env-file=.env.a11y run start',
 });

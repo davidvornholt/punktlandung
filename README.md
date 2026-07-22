@@ -28,7 +28,7 @@ bun run check       # standards check + turbo lint, check-types, test, build, te
 bun run check:fix   # dito, mit Auto-Fixes
 ```
 
-Details und Umgebungswerte: `apps/web/README.md`. Entwicklungs-Datenbank: `docker compose up -d db`.
+Details und Umgebungswerte: `apps/web/README.md`. Entwicklungs-Datenbank: `bun run db:up` in `apps/web`.
 
 ## Deployment
 

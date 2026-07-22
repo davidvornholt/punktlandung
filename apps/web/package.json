@@ -16,6 +16,8 @@
     "lint:fix": "biome check --write --error-on-warnings .",
     "test": "bun test",
     "test:a11y": "playwright test --config playwright.config.ts",
+    "db:up": "podman start punktlandung-db || podman run -d --name punktlandung-db -e POSTGRES_USER=punktlandung -e POSTGRES_PASSWORD=punktlandung -e POSTGRES_DB=punktlandung_dev -p 127.0.0.1:15432:5432 -v punktlandung-db-data:/var/lib/postgresql/data docker.io/library/postgres:17-alpine",
+    "db:down": "podman stop punktlandung-db",
     "db:generate": "bun --env-file=.env.local run drizzle-kit generate",
     "db:migrate": "bun --env-file=.env.local run drizzle-kit migrate",
     "db:push": "bun --env-file=.env.local run drizzle-kit push",

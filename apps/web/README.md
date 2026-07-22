@@ -20,7 +20,7 @@ Alle Werte werden serverseitig über `src/shared/env.ts` (t3-env) validiert; der
 
 ```sh
 # 1. Datenbank starten (Repo-Wurzel)
-docker compose up -d db
+bun run db:up
 
 # 2. .env.local aus secrets/dev.yaml erzeugen (oder von Hand pflegen)
 just dev-env-generate
