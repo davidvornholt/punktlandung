@@ -118,6 +118,7 @@ export const FaecherVerwaltung = ({
             <select
               className={eingabeKlasse}
               onChange={(ereignis) => {
+                fokus.merkeAusloeser(ereignis.currentTarget);
                 setBearbeitung(null);
                 setSchoolYear(ereignis.currentTarget.value);
               }}

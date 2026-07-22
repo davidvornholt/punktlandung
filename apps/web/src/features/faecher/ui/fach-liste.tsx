@@ -1,5 +1,7 @@
 import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
 import { leiseKnopfKlasse } from '#/shared/ui/form-klassen.ts';
+import type { ListenMutation } from '#/shared/ui/listen-mutation.ts';
+import { listenMutationsanzeige } from '#/shared/ui/listen-mutation.ts';
 import type { Fach } from '../services/fach-service.ts';
 
 const gewichtszeile = (fach: Fach): string =>
@@ -9,12 +11,14 @@ const FachZeile = ({
   fach,
   archivFehler,
   wirdArchiviert,
+  wirdArchivierungAusgefuehrt,
   onArchivieren,
   onBearbeiten,
 }: {
   readonly fach: Fach;
   readonly archivFehler: unknown | null;
   readonly wirdArchiviert: boolean;
+  readonly wirdArchivierungAusgefuehrt: boolean;
   readonly onArchivieren: () => void;
   readonly onBearbeiten: (ausloeser: HTMLButtonElement) => void;
 }) => (
@@ -43,7 +47,7 @@ const FachZeile = ({
       </button>
       <button
         className={leiseKnopfKlasse}
-        disabled={wirdArchiviert}
+        disabled={wirdArchivierungAusgefuehrt}
         onClick={onArchivieren}
         type="button"
       >
@@ -71,28 +75,22 @@ export const FachListe = ({
   onBearbeiten,
 }: {
   readonly faecher: ReadonlyArray<Fach>;
-  readonly archivierung: {
-    readonly error: unknown;
-    readonly isError: boolean;
-    readonly isPending: boolean;
-    readonly variables: string | undefined;
-  };
+  readonly archivierung: ListenMutation<string>;
   readonly onArchivieren: (id: string) => void;
   readonly onBearbeiten: (fach: Fach, ausloeser: HTMLButtonElement) => void;
 }) => (
   <ul className="mt-4 space-y-3">
     {faecher.map((fach) => {
-      const istZiel = archivierung.variables === fach.id;
+      const anzeige = listenMutationsanzeige(archivierung, fach.id);
       return (
         <FachZeile
-          archivFehler={
-            archivierung.isError && istZiel ? archivierung.error : null
-          }
+          archivFehler={anzeige.fehler}
           fach={fach}
           key={fach.id}
           onArchivieren={() => onArchivieren(fach.id)}
           onBearbeiten={(ausloeser) => onBearbeiten(fach, ausloeser)}
-          wirdArchiviert={archivierung.isPending && istZiel}
+          wirdArchiviert={anzeige.laeuft}
+          wirdArchivierungAusgefuehrt={anzeige.gesperrt}
         />
       );
     })}

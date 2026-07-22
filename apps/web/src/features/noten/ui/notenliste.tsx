@@ -6,6 +6,7 @@ import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
 import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
 import { leiseKnopfKlasse } from '#/shared/ui/form-klassen.ts';
+import { listenMutationsanzeige } from '#/shared/ui/listen-mutation.ts';
 import { deleteNoteFn, notenQueryOptions } from '../server/noten-fns.ts';
 import type { NoteMitFach } from '../services/noten-service.ts';
 import { bereichLabel, leistungsartLabel } from './leistungsart-label.ts';
@@ -121,52 +122,51 @@ export const Notenliste = ({
             </p>
           </div>
           <ul className="mt-3 divide-y divide-border">
-            {gruppe.noten.map((note) => (
-              <li
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
-                key={note.id}
-              >
-                <span className="font-display text-ink text-lg">
-                  {formatNote(note.wert, term.system)}
-                </span>
-                <span className="text-ink-muted text-sm">
-                  {leistungsartLabel[note.kind]} · {bereichLabel[note.area]}
-                  {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
-                </span>
-                <span className="text-ink-faint text-sm">
-                  {datumAnzeige(note.datum)}
-                </span>
-                {note.notiz === null ? null : (
-                  <span className="text-ink-faint text-sm">{note.notiz}</span>
-                )}
-                <button
-                  className={`${leiseKnopfKlasse} ml-auto`}
-                  disabled={
-                    loeschen.isPending && loeschen.variables === note.id
-                  }
-                  onClick={() => {
-                    loeschen.reset();
-                    loeschen.mutate(note.id);
-                  }}
-                  type="button"
+            {gruppe.noten.map((note) => {
+              const anzeige = listenMutationsanzeige(loeschen, note.id);
+              return (
+                <li
+                  className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
+                  key={note.id}
                 >
-                  {loeschen.isPending && loeschen.variables === note.id
-                    ? 'Wird gelöscht …'
-                    : 'Löschen'}
-                </button>
-                {loeschen.isError && loeschen.variables === note.id ? (
-                  <p
-                    className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
-                    role="alert"
+                  <span className="font-display text-ink text-lg">
+                    {formatNote(note.wert, term.system)}
+                  </span>
+                  <span className="text-ink-muted text-sm">
+                    {leistungsartLabel[note.kind]} · {bereichLabel[note.area]}
+                    {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
+                  </span>
+                  <span className="text-ink-faint text-sm">
+                    {datumAnzeige(note.datum)}
+                  </span>
+                  {note.notiz === null ? null : (
+                    <span className="text-ink-faint text-sm">{note.notiz}</span>
+                  )}
+                  <button
+                    className={`${leiseKnopfKlasse} ml-auto`}
+                    disabled={anzeige.gesperrt}
+                    onClick={() => {
+                      loeschen.reset();
+                      loeschen.mutate(note.id);
+                    }}
+                    type="button"
                   >
-                    {aktionsfehlerText(
-                      loeschen.error,
-                      'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
-                    )}
-                  </p>
-                ) : null}
-              </li>
-            ))}
+                    {anzeige.laeuft ? 'Wird gelöscht …' : 'Löschen'}
+                  </button>
+                  {anzeige.fehler === null ? null : (
+                    <p
+                      className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
+                      role="alert"
+                    >
+                      {aktionsfehlerText(
+                        anzeige.fehler,
+                        'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
+                      )}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}
