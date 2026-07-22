@@ -44,10 +44,12 @@
       }
     },
     {
-      // Designated environment boundary: env.ts reads process.env exactly
-      // once and validates it; the UPPER_SNAKE keys are the dotenv wire
-      // format, not identifier naming choices.
-      "includes": ["apps/web/src/shared/env.ts"],
+      // Designated environment boundaries: env.ts reads process.env exactly
+      // once and validates it; drizzle.config.ts runs in drizzle-kit's CLI
+      // context (also inside the migration container, where only
+      // DATABASE_URL exists) and must not pull the full app env. The
+      // UPPER_SNAKE keys are the dotenv wire format, not naming choices.
+      "includes": ["apps/web/src/shared/env.ts", "apps/web/drizzle.config.ts"],
       "linter": {
         "rules": {
           "correctness": {
