@@ -3,15 +3,15 @@ vite v8.1.5 building client environment for production...
 [2Ktransforming...
 [@tanstack/devtools-vite] Removed devtools code from: /src/routes/__root.tsx
 
-[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:20:28 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:24:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:28:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:32:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts:20:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts:24:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:22:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:26:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:30:30 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:20:28 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:24:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:28:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:32:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/lernen/server/lernen-fns.ts:16:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:client] /home/david/dev/personal/punktlandung/apps/web/src/features/zeugnis/server/zeugnis-fns.ts:12:26 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 ✓ 1450 modules transformed.
@@ -79,33 +79,33 @@ dist/client/assets/Schema-CaoLlNes.js                                    188.74 
 dist/client/assets/_app-RxMT5BvD.js                                      318.26 kB │ gzip:  94.45 kB
 dist/client/assets/index-B1KPjnHE.js                                     341.80 kB │ gzip: 107.67 kB
 
-✓ built in 539ms
+✓ built in 337ms
 vite v8.1.5 building ssr environment for production...
 [2Ktransforming...
 [@tanstack/devtools-vite] Removed devtools code from: /src/routes/__root.tsx
 
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/lernen/server/lernen-fns.ts?tss-serverfn-split:16:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/zeugnis/server/zeugnis-fns.ts?tss-serverfn-split:12:26 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts?tss-serverfn-split:22:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts?tss-serverfn-split:26:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts?tss-serverfn-split:30:30 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts?tss-serverfn-split:20:28 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts?tss-serverfn-split:24:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts?tss-serverfn-split:28:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts?tss-serverfn-split:32:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts?tss-serverfn-split:20:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts?tss-serverfn-split:24:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts?tss-serverfn-split:22:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts?tss-serverfn-split:26:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts?tss-serverfn-split:30:30 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/zeugnis/server/zeugnis-fns.ts?tss-serverfn-split:12:26 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:22:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:26:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:30:30 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts:20:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts:24:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:20:28 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:24:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:28:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/noten/server/noten-fns.ts:32:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts:20:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/halbjahre/server/halbjahr-fns.ts:24:33 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:22:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:26:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/faecher/server/fach-fns.ts:30:30 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
-[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/zeugnis/server/zeugnis-fns.ts:12:26 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 [plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/lernen/server/lernen-fns.ts:16:29 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
+[plugin tanstack-start-core::server-fn:ssr] /home/david/dev/personal/punktlandung/apps/web/src/features/zeugnis/server/zeugnis-fns.ts:12:26 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.
 ✓ 722 modules transformed.
 rendering chunks...
 computing gzip size...

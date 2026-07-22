@@ -2,7 +2,7 @@ $ bun test
 bun test v1.3.14 (0d9b296a)
 
 src/playwright-config.test.ts:
-(pass) createA11yPlaywrightConfig > configures the shared a11y test runner shape [0.23ms]
+(pass) createA11yPlaywrightConfig > configures the shared a11y test runner shape [0.27ms]
 (pass) createA11yPlaywrightConfig > uses stricter retry and reporting defaults in CI [0.04ms]
 
  2 pass

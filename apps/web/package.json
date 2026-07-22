@@ -20,6 +20,7 @@
     "db:down": "podman stop punktlandung-db",
     "db:generate": "bun --env-file=.env.local run drizzle-kit generate",
     "db:migrate": "bun --env-file=.env.local run drizzle-kit migrate",
+    "db:migrate:deploy": "drizzle-kit migrate",
     "db:push": "bun --env-file=.env.local run drizzle-kit push",
     "db:studio": "bun --env-file=.env.local run drizzle-kit studio"
   },
