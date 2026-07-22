@@ -1,21 +1,16 @@
-# Repo-owned SOPS policy. Replace the placeholder recipients below with your
-# real age public keys (`age-keygen` prints one; the declarative-infra skill
-# has key-management helpers), then encrypt secrets/*.yaml. This file is
-# seeded once and never synced.
+# Repo-owned SOPS policy. This file is seeded once and never synced.
 keys:
-  # Personal identity at ~/.config/sops/age/keys.txt. Rename the anchor so it
-  # identifies person and machine — the hostname verbatim when it already
-  # encodes the owner, otherwise prefixed with the person.
-  - &primary age1replacewithyourpersonalagerecipientpublickeyxxxxxxxxxxxxxxxxxx
-  # GitHub Actions CI recipient (private key: SOPS_AGE_KEY Actions secret).
-  - &ci age1replacewithyourgithubactionscirecipientpublickeyxxxxxxxxxxxxxxxxxxx
+  # Standalone age identity at ~/.config/sops/age/keys.txt.
+  - &owner_machine age1gxzu2f027zu227f4wyf4jh5sw0w495482qfzv5flmfyjvgzxm3ys8p9muz
+  # Repository-specific GitHub Actions identity; private key: SOPS_AGE_KEY.
+  - &github_actions_ci age1pvmhl0kd3wlf4aj7075elw6jdv98c67uc2qqj708y67e48qdy9xshpftxc
 creation_rules:
   - path_regex: secrets/dev\.yaml$
     key_groups:
       - age:
-          - *primary
+          - *owner_machine
   - path_regex: secrets/ci\.yaml$
     key_groups:
       - age:
-          - *primary
-          - *ci
+          - *owner_machine
+          - *github_actions_ci
