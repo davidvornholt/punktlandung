@@ -50,5 +50,5 @@ GitHub-Zugriffs- und Refresh-Tokens werden von Better Auth vor dem Speichern ver
 
 ## Tests
 
-- `bun run test` — Bun-Unit-Tests (Notenmathematik, Statistiken, Validierung).
+- `bun run test` — Bun-Unit-Tests sowie PostgreSQL-Integrationstests für Kalenderdaten und Bestandsmigrationen. `DATABASE_URL` (oder die lokale Standardverbindung auf Port 15432) muss auf einen erreichbaren PostgreSQL-Server zeigen; der verbundene Benutzer benötigt `CREATE DATABASE`. Die Integrationssuiten erstellen je Test temporäre Datenbanken und löschen sie anschließend wieder.
 - `bun run test:a11y` — Playwright + Axe gegen den Produktions-Build (WCAG 2.2 AA, null Verstöße). Gescannt wird die unauthentifizierte Oberfläche; die angemeldeten Seiten sind mangels testbarem OAuth-Login noch nicht abgedeckt.
