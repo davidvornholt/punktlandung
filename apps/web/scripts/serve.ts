@@ -5,6 +5,8 @@
  * einen Fetch-Handler und liefert selbst keine statischen Dateien aus.
  */
 
+import { parsePort } from './server-config.ts';
+
 type StartServerEntry = {
   readonly default: {
     readonly fetch: (request: Request) => Promise<Response> | Response;
@@ -13,13 +15,11 @@ type StartServerEntry = {
 
 const serverEntryUrl = new URL('../dist/server/server.js', import.meta.url);
 const clientDirUrl = new URL('../dist/client/', import.meta.url);
+const port = parsePort(Bun.env.PORT);
 
 const { default: startServer } = (await import(
   serverEntryUrl.href
 )) as StartServerEntry;
-
-const defaultPort = 3000;
-const port = Number(Bun.env.PORT ?? defaultPort);
 
 const immutableCache = 'public, max-age=31536000, immutable';
 

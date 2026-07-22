@@ -6,8 +6,8 @@
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "standards": "standards",
-    "check": "standards check && turbo run lint check-types test build test:a11y",
-    "check:fix": "standards check && turbo run lint:fix check-types test build test:a11y",
+    "check": "bun test scripts/repository-artifacts.test.ts && standards check && turbo run lint check-types test build test:a11y",
+    "check:fix": "bun test scripts/repository-artifacts.test.ts && standards check && turbo run lint:fix check-types test build test:a11y",
     "test:a11y": "turbo run test:a11y",
     "dev": "turbo run dev --filter=@punktlandung/web",
     "build": "turbo run build --filter=@punktlandung/web",

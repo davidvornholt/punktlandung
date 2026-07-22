@@ -45,7 +45,7 @@ All design values live in `packages/ui/src/theme.css`. It is the single source o
 
 ## Motion
 
-- One easing curve for everything: the shared easing token (`ease-standard` utility; JS imports the constant from `@punktlandung/ui/motion`). Short, confident transitions; small lifts on hover; no bounce, no spectacle.
+- One easing curve for everything: the shared `ease-standard` utility from `theme.css`. Short, confident transitions; small lifts on hover; no bounce, no spectacle. If JavaScript needs the curve later, generate its representation from that canonical token instead of copying the literal.
 - Hover, focus, and press states are deliberate design moments: visible focus ring in `primary`, pressed states darken to `primary-strong`.
 
 ## Anti-patterns

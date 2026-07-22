@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
+import { sitzungErforderlich } from '#/shared/auth/auth-middleware.ts';
 import { runtime } from '#/shared/runtime.ts';
 import {
   FachAktualisierung,
@@ -17,18 +18,22 @@ import {
 } from '../services/fach-service.ts';
 
 export const listFaecherFn = createServerFn({ method: 'GET' })
+  .middleware([sitzungErforderlich])
   .inputValidator(Schema.standardSchemaV1(FaecherAbfrage))
   .handler(({ data }) => runtime.runPromise(listFaecher(data.schoolYear)));
 
 export const createFachFn = createServerFn({ method: 'POST' })
+  .middleware([sitzungErforderlich])
   .inputValidator(Schema.standardSchemaV1(FachEingabe))
   .handler(({ data }) => runtime.runPromise(createFach(data)));
 
 export const updateFachFn = createServerFn({ method: 'POST' })
+  .middleware([sitzungErforderlich])
   .inputValidator(Schema.standardSchemaV1(FachAktualisierung))
   .handler(({ data }) => runtime.runPromise(updateFach(data)));
 
 export const archiveFachFn = createServerFn({ method: 'POST' })
+  .middleware([sitzungErforderlich])
   .inputValidator(Schema.standardSchemaV1(FachKennung))
   .handler(({ data }) =>
     runtime.runPromise(archiveFach(data.id, data.schoolYear)),

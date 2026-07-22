@@ -12,7 +12,7 @@ Punktlandung is a single-user grade tracker for a Baden-Württemberg Gymnasium (
 
 - The database is intentionally app-private: schema, migrations, and config stay in `apps/web` (`src/shared/db`), not a `packages/db` package.
 - Better Auth is the one non-Effect boundary: it owns `src/shared/auth` and shares the pg pool from `src/shared/db/pool.ts`. Everything else follows the Effect standards.
-- Auth is GitHub-only with a single allowed login (`GITHUB_ALLOWED_LOGIN`); there is no user management and none should be added.
+- Auth is GitHub-only with a single allowed immutable numeric account ID (`GITHUB_ALLOWED_ACCOUNT_ID`); there is no user management and none should be added.
 - TanStack Start specifics: `src/routes` is the framework-required entrypoint location; `src/routeTree.gen.ts` is generated (regenerate via `bun run generate-routes`, excluded in `biome.jsonc`). Production serving goes through `apps/web/scripts/serve.ts` (Bun.serve wrapping the SSR handler from `dist/server/server.js`).
 
 ## Known gaps (do not silently "fix")

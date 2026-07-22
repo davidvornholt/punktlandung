@@ -17,7 +17,7 @@ Persönlicher Notenüberblick für ein Gymnasium in Baden-Württemberg — ein Z
 | Pfad | Inhalt |
 | --- | --- |
 | `apps/web` | Die App: Routen (Entrypoints), Features (`faecher`, `halbjahre`, `noten`, `zeugnis`, `lernen`), geteilte Infrastruktur unter `src/shared` |
-| `packages/ui` | Theme-Tokens (`theme.css`) und Motion-Konstanten — einzige Quelle aller Designwerte |
+| `packages/ui` | Theme-Tokens (`theme.css`) — einzige Quelle aller Designwerte |
 | `packages/a11y-testing` | Kanonisches Axe/Playwright-Werkzeug (synced, nicht lokal ändern) |
 | `packages/typescript-config` | Kanonische tsconfig-Basis (synced, nicht lokal ändern) |
 
@@ -28,8 +28,8 @@ bun run check       # standards check + turbo lint, check-types, test, build, te
 bun run check:fix   # dito, mit Auto-Fixes
 ```
 
-Details und Umgebungswerte: `apps/web/README.md`. Entwicklungs-Datenbank: `bun run db:up` in `apps/web`.
+Details und Umgebungswerte: `apps/web/README.md`. Entwicklungs-Datenbank: `bun run --filter @punktlandung/web db:up` aus der Repo-Wurzel.
 
 ## Deployment
 
-Das Root-`Dockerfile` baut ein Bun-Alpine-Image (Multi-Stage, Non-Root, Healthcheck gegen `/api/healthz`), das nur den Build-Output und Produktionsabhängigkeiten enthält. Das Image läuft auf `prod-1` hinter Caddy; öffentlicher Host ist `punktlandung.vornholt.online` (Caddy terminiert TLS und proxied auf Port 3000). Produktionskonfiguration kommt aus den Host-Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`).
+Das Root-`Dockerfile` baut ein Bun-Alpine-Image (Multi-Stage, Non-Root, Healthcheck gegen `/api/healthz`), das nur den Build-Output und Produktionsabhängigkeiten enthält. Das Image läuft auf `prod-1` hinter Caddy; öffentlicher Host ist `punktlandung.vornholt.online` (Caddy terminiert TLS und proxied auf Port 3000). Produktions-Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `GITHUB_CLIENT_SECRET`) und öffentliche Laufzeitkonfiguration (`BETTER_AUTH_URL`, `GITHUB_CLIENT_ID`, `GITHUB_ALLOWED_ACCOUNT_ID`) kommen aus der Host-Konfiguration im Repository `personal-infra`.

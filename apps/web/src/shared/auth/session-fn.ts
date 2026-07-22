@@ -1,11 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { getRequest } from '@tanstack/react-start/server';
 
-import { auth } from '#/shared/auth/auth.ts';
-
-export type SitzungsInfo = {
-  readonly name: string;
-};
+import { getAutorisierteSitzung, type SitzungsInfo } from './session.ts';
 
 /**
  * Liest die Better-Auth-Sitzung aus den Request-Headern. Schlägt die
@@ -14,8 +10,5 @@ export type SitzungsInfo = {
  */
 export const getSitzung = createServerFn({ method: 'GET' }).handler(
   (): Promise<SitzungsInfo | null> =>
-    auth.api
-      .getSession({ headers: getRequest().headers })
-      .then((sitzung) => (sitzung ? { name: sitzung.user.name } : null))
-      .catch(() => null),
+    getAutorisierteSitzung(getRequest().headers).catch(() => null),
 );
