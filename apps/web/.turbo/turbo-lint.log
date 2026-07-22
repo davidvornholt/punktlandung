@@ -1,21 +1,2 @@
 $ biome check --error-on-warnings .
-Checked 74 files in 920ms. No fixes applied.
-Found 1 error.
-drizzle.config.ts:6:21 lint/suspicious/noUndeclaredEnvVars ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × The environment variable DATABASE_URL is not listed as a dependency in turbo.json. Add this environment variable a task's 'env'/'passThroughEnv', or to 'globalEnv', 'globalPassThroughEnv', in your turbo.json(c) configuration to ensure correct caching behavior in Turborepo.
-  
-    4 │ // Deploy-Container, wo nur DATABASE_URL gesetzt ist (kein Auth-Env).
-    5 │ // Die db:*-Skripte laden .env.local via `bun --env-file`.
-  > 6 │ const databaseUrl = process.env.DATABASE_URL;
-      │                     ^^^^^^^^^^^^^^^^^^^^^^^^
-    7 │ if (databaseUrl === undefined || databaseUrl === '') {
-    8 │   throw new Error('DATABASE_URL ist nicht gesetzt.');
-  
-
-check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Some errors were emitted while running checks.
-  
-
-error: script "lint" exited with code 1
+Checked 74 files in 980ms. No fixes applied.

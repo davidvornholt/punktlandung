@@ -47,8 +47,10 @@
       // Designated environment boundaries: env.ts reads process.env exactly
       // once and validates it; drizzle.config.ts runs in drizzle-kit's CLI
       // context (also inside the migration container, where only
-      // DATABASE_URL exists) and must not pull the full app env. The
-      // UPPER_SNAKE keys are the dotenv wire format, not naming choices.
+      // DATABASE_URL exists) and must not pull the full app env. Its
+      // DATABASE_URL read is migrate-runtime-only, never a cached Turbo
+      // task input, so it does not belong in turbo.json env declarations.
+      // The UPPER_SNAKE keys are the dotenv wire format, not naming choices.
       "includes": ["apps/web/src/shared/env.ts", "apps/web/drizzle.config.ts"],
       "linter": {
         "rules": {
@@ -58,6 +60,9 @@
           "style": {
             "noProcessEnv": "off",
             "useNamingConvention": "off"
+          },
+          "suspicious": {
+            "noUndeclaredEnvVars": "off"
           }
         }
       }

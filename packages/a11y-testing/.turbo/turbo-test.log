@@ -2,10 +2,10 @@ $ bun test
 bun test v1.3.14 (0d9b296a)
 
 src/playwright-config.test.ts:
-(pass) createA11yPlaywrightConfig > configures the shared a11y test runner shape [0.33ms]
-(pass) createA11yPlaywrightConfig > uses stricter retry and reporting defaults in CI [0.05ms]
+(pass) createA11yPlaywrightConfig > configures the shared a11y test runner shape [0.23ms]
+(pass) createA11yPlaywrightConfig > uses stricter retry and reporting defaults in CI [0.04ms]
 
  2 pass
  0 fail
  13 expect() calls
-Ran 2 tests across 1 file. [256.00ms]
+Ran 2 tests across 1 file. [243.00ms]
