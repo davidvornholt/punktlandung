@@ -1,11 +1,13 @@
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import { grade, subject, term } from '#/shared/db/schema.ts';
+import { grade, term } from '#/shared/db/schema.ts';
 import { zuFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { Leistung, Notensystem } from '#/shared/noten/notenwert.ts';
 import { fachschnitt } from '#/shared/noten/notenwert.ts';
+import type { SchuljahrFach } from '#/shared/noten/schuljahr-fachstand.ts';
+import { ladeSchuljahrFachstand } from '#/shared/noten/schuljahr-fachstand.ts';
 import {
   formatHalbnote,
   formatNote,
@@ -17,12 +19,11 @@ import { ZeugnisHalbjahrNichtGefunden } from '../errors/zeugnis-errors.ts';
 export type ZeugnisZeile = {
   readonly fachId: string;
   readonly fachName: string;
-  /** Zeugnisschreibweise, z. B. "2+" oder "11 P."; null ohne Noten. */
   readonly anzeige: string | null;
   readonly anzahlNoten: number;
 };
 
-export type JahresZeile = {
+export type JahresvorschauZeile = {
   readonly fachId: string;
   readonly fachName: string;
   readonly note: number;
@@ -34,13 +35,15 @@ export type Zeugnis = {
   readonly label: string;
   readonly schoolYear: string;
   readonly system: Notensystem;
-  /** Mittel der Halbjahresnoten im nativen System, formatiert; null ohne Noten. */
   readonly gesamtschnitt: string | null;
   readonly zeilen: ReadonlyArray<ZeugnisZeile>;
-  readonly jahreszeugnis: ReadonlyArray<JahresZeile> | null;
+  readonly jahresvorschau: ReadonlyArray<JahresvorschauZeile> | null;
 };
 
-type NotenZeile = typeof grade.$inferSelect;
+type NotenZeile = Pick<
+  typeof grade.$inferSelect,
+  'subjectId' | 'value' | 'weight' | 'kind' | 'area'
+>;
 
 const zuLeistung = (note: NotenZeile): Leistung => ({
   value: Number(note.value),
@@ -65,37 +68,38 @@ const notenProFach = (noten: ReadonlyArray<NotenZeile>) => {
 const anzeigeFuer = (halbnote: number, system: Notensystem): string =>
   system === 'punkte' ? `${halbnote} P.` : formatHalbnote(halbnote);
 
-/** Jahreszeugnis-Zeilen, wenn das Schuljahr genau zwei Sechser-Halbjahre hat. */
-const jahresZeilen = (
-  halbjahrIds: ReadonlyArray<string>,
-  faecher: ReadonlyArray<typeof subject.$inferSelect>,
-) =>
-  Effect.gen(function* () {
-    const db = yield* PgDrizzle;
-    const noten = yield* db
-      .select()
-      .from(grade)
-      .where(inArray(grade.termId, [...halbjahrIds]));
-    const gruppen = notenProFach(noten);
-    return faecher.flatMap((fach): ReadonlyArray<JahresZeile> => {
-      const schnitt = fachschnitt(
-        (gruppen.get(fach.id) ?? []).map(zuLeistung),
-        zuFachgewichtung(fach),
-      );
-      if (schnitt === null) {
-        return [];
-      }
-      const jahr = jahresnote(schnitt);
-      return [
-        {
-          fachId: fach.id,
-          fachName: fach.name,
-          note: jahr.note,
-          grenzfall: jahr.grenzfall,
-        },
-      ];
-    });
+/** Nicht bindende Ganznoten-Vorschau aus allen Leistungen des Schuljahrs. */
+export const berechneJahresvorschau = (
+  noten: ReadonlyArray<NotenZeile>,
+  faecher: ReadonlyArray<SchuljahrFach>,
+): ReadonlyArray<JahresvorschauZeile> => {
+  const gruppen = notenProFach(noten);
+  return faecher.flatMap((fach): ReadonlyArray<JahresvorschauZeile> => {
+    const schnitt = fachschnitt(
+      (gruppen.get(fach.id) ?? []).map(zuLeistung),
+      zuFachgewichtung(fach),
+    );
+    if (schnitt === null) {
+      return [];
+    }
+    const vorschau = jahresnote(schnitt);
+    return [
+      {
+        fachId: fach.id,
+        fachName: fach.name,
+        note: vorschau.note,
+        grenzfall: vorschau.grenzfall,
+      },
+    ];
   });
+};
+
+export const istVollstaendigesSchuljahr = (
+  halbjahre: ReadonlyArray<{ readonly half: number }>,
+): boolean =>
+  halbjahre.length === 2 &&
+  halbjahre.some((eintrag) => eintrag.half === 1) &&
+  halbjahre.some((eintrag) => eintrag.half === 2);
 
 export const ladeZeugnis = (termId: string) =>
   Effect.gen(function* () {
@@ -105,11 +109,8 @@ export const ladeZeugnis = (termId: string) =>
     if (halbjahr === undefined) {
       return yield* Effect.fail(new ZeugnisHalbjahrNichtGefunden({ termId }));
     }
-    const faecher = yield* db
-      .select()
-      .from(subject)
-      .where(eq(subject.archived, false))
-      .orderBy(asc(subject.sortOrder), asc(subject.name));
+    const fachstand = yield* ladeSchuljahrFachstand(halbjahr.schoolYear);
+    const faecher = fachstand.filter((fach) => !fach.archived);
     const noten = yield* db
       .select()
       .from(grade)
@@ -140,7 +141,7 @@ export const ladeZeugnis = (termId: string) =>
     const sechserHalbjahre =
       halbjahr.system === 'sechser'
         ? yield* db
-            .select({ id: term.id })
+            .select({ id: term.id, half: term.half })
             .from(term)
             .where(
               and(
@@ -149,13 +150,21 @@ export const ladeZeugnis = (termId: string) =>
               ),
             )
         : [];
-    const jahreszeugnis =
-      sechserHalbjahre.length === 2
-        ? yield* jahresZeilen(
-            sechserHalbjahre.map((eintrag) => eintrag.id),
-            faecher,
+    const vollstaendigesJahr = istVollstaendigesSchuljahr(sechserHalbjahre);
+    const jahresnoten = vollstaendigesJahr
+      ? yield* db
+          .select()
+          .from(grade)
+          .where(
+            inArray(
+              grade.termId,
+              sechserHalbjahre.map((eintrag) => eintrag.id),
+            ),
           )
-        : null;
+      : [];
+    const jahresvorschau = vollstaendigesJahr
+      ? berechneJahresvorschau(jahresnoten, faecher)
+      : null;
 
     const gesamtschnitt =
       halbnoten.length === 0
@@ -173,6 +182,6 @@ export const ladeZeugnis = (termId: string) =>
       system: halbjahr.system,
       gesamtschnitt,
       zeilen,
-      jahreszeugnis,
+      jahresvorschau,
     } satisfies Zeugnis;
   });

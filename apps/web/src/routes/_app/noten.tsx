@@ -8,27 +8,67 @@ import { aktuellesHalbjahr } from '#/features/halbjahre/services/aktuelles-halbj
 import { HalbjahrAuswahl } from '#/features/halbjahre/ui/halbjahr-auswahl.tsx';
 import { Eintragsleiste } from '#/features/noten/ui/eintragsleiste.tsx';
 import { Notenliste } from '#/features/noten/ui/notenliste.tsx';
-
-const heutigesDatum = () =>
-  new Date().toISOString().slice(0, '0000-00-00'.length);
+import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
+import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { seitentitel } from '#/shared/ui/seitentitel.ts';
 
 const NotenSeite = () => {
-  const { data: halbjahre } = useQuery(halbjahreQueryOptions);
-  const { data: faecher } = useQuery(faecherQueryOptions);
+  const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
+  const halbjahre = halbjahreAbfrage.data;
   const [gewaehltesId, setGewaehltesId] = useState<string | null>(null);
 
-  if (halbjahre === undefined || faecher === undefined) {
+  const vorgabe =
+    halbjahre === undefined
+      ? null
+      : aktuellesHalbjahr(halbjahre, berlinKalenderdatum());
+  const halbjahr =
+    halbjahre?.find((eintrag) => eintrag.id === gewaehltesId) ?? vorgabe;
+  const faecherAbfrage = useQuery({
+    ...faecherQueryOptions(halbjahr?.schoolYear ?? ''),
+    enabled: halbjahr !== null,
+  });
+  const faecher = faecherAbfrage.data;
+
+  if (
+    halbjahreAbfrage.isPending ||
+    (halbjahr !== null && faecherAbfrage.isPending)
+  ) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">Noten</h1>
-        <p className="mt-6 text-ink-muted">Daten werden geladen …</p>
+        <div className="mt-6">
+          <Ladehinweis text="Noten werden geladen …" />
+        </div>
       </>
     );
   }
-
-  const vorgabe = aktuellesHalbjahr(halbjahre, heutigesDatum());
-  const halbjahr =
-    halbjahre.find((eintrag) => eintrag.id === gewaehltesId) ?? vorgabe;
+  if (
+    halbjahreAbfrage.isError ||
+    faecherAbfrage.isError ||
+    halbjahre === undefined ||
+    (halbjahr !== null && faecher === undefined)
+  ) {
+    return (
+      <>
+        <h1 className="font-display text-3xl text-ink tracking-tight">Noten</h1>
+        <div className="mt-6">
+          <AbfrageFehler
+            onWiederholen={() =>
+              Promise.all([
+                halbjahreAbfrage.isError
+                  ? halbjahreAbfrage.refetch()
+                  : Promise.resolve(),
+                faecherAbfrage.isError
+                  ? faecherAbfrage.refetch()
+                  : Promise.resolve(),
+              ])
+            }
+            text="Halbjahre oder Fächer konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+          />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -53,7 +93,7 @@ const NotenSeite = () => {
               wert={halbjahr.id}
             />
           </div>
-          {faecher.length === 0 ? (
+          {(faecher ?? []).length === 0 ? (
             <div className="mt-6 border border-border bg-surface-sunken p-8">
               <p className="text-ink">Noch keine Fächer.</p>
               <p className="mt-2 text-ink-muted">
@@ -69,7 +109,7 @@ const NotenSeite = () => {
             <>
               <div className="mt-4">
                 <Eintragsleiste
-                  faecher={faecher}
+                  faecher={faecher ?? []}
                   key={halbjahr.id}
                   term={halbjahr}
                 />
@@ -85,4 +125,5 @@ const NotenSeite = () => {
 
 export const Route = createFileRoute('/_app/noten')({
   component: NotenSeite,
+  head: () => ({ meta: [{ title: seitentitel('Noten') }] }),
 });

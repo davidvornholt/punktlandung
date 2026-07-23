@@ -32,10 +32,17 @@ export type Fachgewichtung = {
 const umrechnungsBasis = 17;
 const punkteProNotenstufe = 3;
 const prozentBasis = 100;
+const punkteMin = 0;
+const punkteMax = 15;
 
 /** Normalisiert einen nativen Wert auf die Punkteskala (0–15, dezimal). */
-export const zuPunkten = (value: number, system: Notensystem): number =>
-  system === 'punkte' ? value : umrechnungsBasis - punkteProNotenstufe * value;
+export const zuPunkten = (value: number, system: Notensystem): number => {
+  const punkte =
+    system === 'punkte'
+      ? value
+      : umrechnungsBasis - punkteProNotenstufe * value;
+  return Math.min(punkteMax, Math.max(punkteMin, punkte));
+};
 
 /** Rechnet einen Punktewert (dezimal) in die Sechserskala um. */
 export const zuSechser = (punkte: number): number =>

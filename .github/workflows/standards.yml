@@ -123,6 +123,47 @@ jobs:
           STANDARDS_SKIP_GITHUB_CHECK: "true"
         run: bun run check
 
+  nix-discovery:
+    if: github.repository == 'davidvornholt/standards'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Discover Nix matrix
+        id: matrix
+        run: |
+          set -euo pipefail
+          matrix=$(jq -cer -f nix/bun-system-matrix.jq nix/bun-system-metadata.json)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  nix:
+    name: Nix (${{ matrix.system }})
+    if: github.repository == 'davidvornholt/standards'
+    needs: nix-discovery
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.nix-discovery.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Test Nix system metadata
+        run: bash nix/bun-system-metadata.test.sh
+
+      - name: Build Nix check
+        run: nix build ".#checks.${{ matrix.system }}.standards-cli" -L
+
   # The settings-read PAT is isolated from all repository-controlled executable
   # code. The checkout contains only declarative settings inputs and the
   # encrypted token source; the CLI is a published, checksum-pinned artifact
@@ -163,8 +204,8 @@ jobs:
           unzip -q "$bun_archive" -d "$bun_root"
           install -m 0755 "$bun_root/bun-linux-${bun_arch}/bun" "$bun_root/bun"
 
-          standards_version=0.12.0
-          standards_sha=253d45c85d7f83617053e04c1c962be49ea01bd030014072d9051409317baaa8222b980a5a712452f61d50df588ac0a59e77e18dfdb768ad634cf1518a435563
+          standards_version=0.14.0
+          standards_sha=a9884f90ab4bc4c037f519e99cb844b9dac1d9aa0d53f3885eea0abbd9d3960e86404eed7df8b9865aaf8d040fccc73381fd5f666fde05d60f38a36fde8e792d
           standards_archive="$RUNNER_TEMP/standards.tgz"
           cli_root="$RUNNER_TEMP/standards-cli"
           mkdir -p "$cli_root/package"
@@ -234,22 +275,44 @@ jobs:
           GH_TOKEN="$value" "$RUNNER_TEMP/standards-bin/bun" \
             package/src/cli.ts github --check --dir "$GITHUB_WORKSPACE"
 
-  # Keep the stable required-check name while making both independent gates
+  # Keep the stable required-check name while making all independent gates
   # mandatory. `always()` ensures a failed or cancelled dependency cannot turn
-  # this required check into a skipped success.
+  # this required check into a skipped success. The source repository owns the
+  # Nix release gate; every consumer must skip both source-only jobs.
   check:
     if: always()
     needs:
       - quality
       - github-settings
+      - nix-discovery
+      - nix
     runs-on: ubuntu-latest
     steps:
       - name: Require all standards gates
         env:
           GITHUB_SETTINGS_RESULT: ${{ needs.github-settings.result }}
+          IS_SOURCE_REPOSITORY: ${{ github.repository == 'davidvornholt/standards' }}
+          NIX_DISCOVERY_RESULT: ${{ needs.nix-discovery.result }}
+          NIX_RESULT: ${{ needs.nix.result }}
           QUALITY_RESULT: ${{ needs.quality.result }}
         run: |
+          case "$IS_SOURCE_REPOSITORY" in
+            true)
+              expected_nix_result=success
+              ;;
+            false)
+              expected_nix_result=skipped
+              ;;
+            *)
+              echo "::error::Unexpected source-repository mode (is-source-repository=$IS_SOURCE_REPOSITORY)"
+              exit 1
+              ;;
+          esac
           if [ "$QUALITY_RESULT" != success ] || [ "$GITHUB_SETTINGS_RESULT" != success ]; then
-            echo "::error::Standards gates did not all succeed (quality=$QUALITY_RESULT, github-settings=$GITHUB_SETTINGS_RESULT)"
+            echo "::error::Standards gates did not all succeed (quality=$QUALITY_RESULT, github-settings=$GITHUB_SETTINGS_RESULT, nix-discovery=$NIX_DISCOVERY_RESULT, nix=$NIX_RESULT)"
+            exit 1
+          fi
+          if [ "$NIX_DISCOVERY_RESULT" != "$expected_nix_result" ] || [ "$NIX_RESULT" != "$expected_nix_result" ]; then
+            echo "::error::Nix gates did not match the repository mode (is-source-repository=$IS_SOURCE_REPOSITORY, expected=$expected_nix_result, nix-discovery=$NIX_DISCOVERY_RESULT, nix=$NIX_RESULT)"
             exit 1
           fi

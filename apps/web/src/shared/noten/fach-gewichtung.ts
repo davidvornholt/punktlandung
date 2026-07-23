@@ -1,15 +1,13 @@
-import type { subject } from '#/shared/db/schema.ts';
 import type { Fachgewichtung } from './notenwert.ts';
 
-type GewichtsSpalten = Pick<
-  typeof subject.$inferSelect,
-  | 'writtenShare'
-  | 'klausurWeight'
-  | 'testWeight'
-  | 'muendlichWeight'
-  | 'gfsWeight'
-  | 'sonstigeWeight'
->;
+type GewichtsSpalten = {
+  readonly writtenShare: number | null;
+  readonly klausurWeight: string;
+  readonly testWeight: string;
+  readonly muendlichWeight: string;
+  readonly gfsWeight: string;
+  readonly sonstigeWeight: string;
+};
 
 /**
  * Übersetzt die numeric-Spalten (Strings) einer Fachzeile in die

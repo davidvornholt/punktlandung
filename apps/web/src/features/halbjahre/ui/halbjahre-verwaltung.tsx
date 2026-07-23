@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import {
-  leiseKnopfKlasse,
-  primaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
+import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { bestimmeAbfrageZustand } from '#/shared/ui/abfrage-zustand-modell.ts';
+import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
+import { primaerKnopfKlasse } from '#/shared/ui/form-klassen.ts';
+import { useFormularFokus } from '#/shared/ui/formular-fokus.ts';
 import type { HalbjahrEingabe } from '../schemas/halbjahr-schema.ts';
 import {
   createHalbjahrFn,
@@ -13,30 +14,62 @@ import {
 } from '../server/halbjahr-fns.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
 import { HalbjahrForm } from './halbjahr-form.tsx';
+import { HalbjahrListe } from './halbjahr-liste.tsx';
 
-const systemText = (halbjahr: Halbjahr) =>
-  halbjahr.system === 'punkte' ? 'Notenpunkte 0–15' : 'Noten 1–6';
+const bearbeitungskennung = (bearbeitung: Halbjahr | 'neu' | null) => {
+  if (bearbeitung === null || bearbeitung === 'neu') {
+    return bearbeitung;
+  }
+  return bearbeitung.id;
+};
+
+const halbjahrFormularFehler = (
+  anlegen: { readonly error: unknown; readonly isError: boolean },
+  aendern: { readonly error: unknown; readonly isError: boolean },
+): string | null => {
+  if (anlegen.isError) {
+    return aktionsfehlerText(
+      anlegen.error,
+      'Das Halbjahr konnte nicht angelegt werden. Prüfe die Verbindung und versuche es erneut.',
+    );
+  }
+  if (aendern.isError) {
+    return aktionsfehlerText(
+      aendern.error,
+      'Das Halbjahr konnte nicht geändert werden. Die Eingaben bleiben erhalten; versuche es erneut.',
+    );
+  }
+  return null;
+};
 
 export const HalbjahreVerwaltung = () => {
   const queryClient = useQueryClient();
-  const { data: halbjahre } = useQuery(halbjahreQueryOptions);
+  const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
   const [bearbeitung, setBearbeitung] = useState<Halbjahr | 'neu' | null>(null);
+  const formularKennung = bearbeitungskennung(bearbeitung);
+  const fokus = useFormularFokus(formularKennung);
 
-  const abschluss = {
-    onSuccess: () => {
-      setBearbeitung(null);
-      return queryClient.invalidateQueries({ queryKey: ['halbjahre'] });
-    },
+  const schliesseNachErfolg = () => {
+    setBearbeitung(null);
+    return queryClient.invalidateQueries({ queryKey: ['halbjahre'] });
   };
   const anlegen = useMutation({
     mutationFn: (werte: HalbjahrEingabe) => createHalbjahrFn({ data: werte }),
-    ...abschluss,
+    onSuccess: schliesseNachErfolg,
   });
   const aendern = useMutation({
     mutationFn: (werte: HalbjahrEingabe & { readonly id: string }) =>
       updateHalbjahrFn({ data: werte }),
-    ...abschluss,
+    onSuccess: schliesseNachErfolg,
   });
+  const halbjahre = halbjahreAbfrage.data;
+  const abfrageZustand = bestimmeAbfrageZustand({
+    data: halbjahre,
+    isError: halbjahreAbfrage.isError,
+    isPending: halbjahreAbfrage.isPending,
+    istLeer: (werte) => werte.length === 0,
+  });
+  const formularFehler = halbjahrFormularFehler(anlegen, aendern);
 
   return (
     <section>
@@ -47,7 +80,13 @@ export const HalbjahreVerwaltung = () => {
         {bearbeitung === null ? (
           <button
             className={primaerKnopfKlasse}
-            onClick={() => setBearbeitung('neu')}
+            onClick={(ereignis) => {
+              fokus.merkeAusloeser(ereignis.currentTarget);
+              anlegen.reset();
+              aendern.reset();
+              setBearbeitung('neu');
+            }}
+            ref={fokus.ersatzAusloeserRef}
             type="button"
           >
             Halbjahr anlegen
@@ -58,12 +97,17 @@ export const HalbjahreVerwaltung = () => {
         <div className="mt-4">
           <HalbjahrForm
             beschaeftigt={anlegen.isPending || aendern.isPending}
+            fehler={formularFehler}
+            formularRef={fokus.formularRef}
             halbjahr={bearbeitung === 'neu' ? null : bearbeitung}
+            key={formularKennung}
             onAbbrechen={() => setBearbeitung(null)}
             onSpeichern={(werte) => {
               if (bearbeitung === 'neu') {
+                anlegen.reset();
                 anlegen.mutate(werte);
               } else {
+                aendern.reset();
                 aendern.mutate({ ...werte, id: bearbeitung.id });
               }
             }}
@@ -73,38 +117,31 @@ export const HalbjahreVerwaltung = () => {
           />
         </div>
       )}
-      <ul className="mt-4 space-y-3">
-        {(halbjahre ?? []).map((halbjahr) => (
-          <li
-            className="border border-border bg-surface p-4 shadow-card"
-            key={halbjahr.id}
-          >
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="font-display text-ink text-xl tracking-tight">
-                {halbjahr.label}
-              </h3>
-              <span className="text-ink-faint text-xs uppercase tracking-widest">
-                {halbjahr.schoolYear}
-              </span>
-            </div>
-            <p className="mt-1 text-ink-muted text-sm">
-              {halbjahr.startsOn} bis {halbjahr.endsOn} · {systemText(halbjahr)}
-            </p>
-            <div className="mt-2">
-              <button
-                className={leiseKnopfKlasse}
-                onClick={() => setBearbeitung(halbjahr)}
-                type="button"
-              >
-                Bearbeiten
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {halbjahre !== undefined &&
-      halbjahre.length === 0 &&
-      bearbeitung === null ? (
+      {abfrageZustand === 'ausstehend' ? (
+        <div className="mt-4">
+          <Ladehinweis text="Halbjahre werden geladen …" />
+        </div>
+      ) : null}
+      {abfrageZustand === 'fehler' ? (
+        <div className="mt-4">
+          <AbfrageFehler
+            onWiederholen={() => halbjahreAbfrage.refetch()}
+            text="Die Halbjahre konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+          />
+        </div>
+      ) : null}
+      {abfrageZustand === 'erfolg' && halbjahre !== undefined ? (
+        <HalbjahrListe
+          halbjahre={halbjahre}
+          onBearbeiten={(halbjahr, ausloeser) => {
+            fokus.merkeAusloeser(ausloeser);
+            anlegen.reset();
+            aendern.reset();
+            setBearbeitung(halbjahr);
+          }}
+        />
+      ) : null}
+      {abfrageZustand === 'leer' && bearbeitung === null ? (
         <div className="mt-4 border border-border bg-surface-sunken p-6">
           <p className="text-ink-muted">
             Noch keine Halbjahre. Lege zuerst das laufende Halbjahr an — mit

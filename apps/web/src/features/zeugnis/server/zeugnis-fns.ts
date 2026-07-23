@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
+import { sitzungErforderlich } from '#/shared/auth/auth-middleware.ts';
 import { runtime } from '#/shared/runtime.ts';
 import { ladeZeugnis } from '../services/zeugnis-service.ts';
 
@@ -10,6 +11,7 @@ const ZeugnisAbfrage = Schema.Struct({
 });
 
 export const zeugnisFn = createServerFn({ method: 'GET' })
+  .middleware([sitzungErforderlich])
   .inputValidator(Schema.standardSchemaV1(ZeugnisAbfrage))
   .handler(({ data }) => runtime.runPromise(ladeZeugnis(data.termId)));
 

@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
-
+import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
+import { begrenzeIsoDatum } from '#/shared/datum/zeitraum.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
+import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
 import {
   eingabeKlasse,
   labelKlasse,
@@ -11,9 +13,6 @@ import type { NoteEingabe } from '../schemas/note-schema.ts';
 import { notenGrenzen } from '../schemas/note-schema.ts';
 import { createNoteFn } from '../server/noten-fns.ts';
 import { leistungsartLabel } from './leistungsart-label.ts';
-
-const heutigesDatum = () =>
-  new Date().toISOString().slice(0, '0000-00-00'.length);
 
 const liesWerte = (form: HTMLFormElement, termId: string): NoteEingabe => {
   const daten = new FormData(form);
@@ -40,7 +39,12 @@ export const Eintragsleiste = ({
   term,
   faecher,
 }: {
-  readonly term: { readonly id: string; readonly system: Notensystem };
+  readonly term: {
+    readonly id: string;
+    readonly system: Notensystem;
+    readonly startsOn: string;
+    readonly endsOn: string;
+  };
   readonly faecher: ReadonlyArray<{
     readonly id: string;
     readonly name: string;
@@ -66,6 +70,7 @@ export const Eintragsleiste = ({
       className="border border-border bg-surface p-4 shadow-card"
       onSubmit={(ereignis) => {
         ereignis.preventDefault();
+        eintragen.reset();
         eintragen.mutate(liesWerte(ereignis.currentTarget, term.id));
       }}
       ref={formRef}
@@ -110,7 +115,13 @@ export const Eintragsleiste = ({
           Datum
           <input
             className={eingabeKlasse}
-            defaultValue={heutigesDatum()}
+            defaultValue={begrenzeIsoDatum(
+              berlinKalenderdatum(),
+              term.startsOn,
+              term.endsOn,
+            )}
+            max={term.endsOn}
+            min={term.startsOn}
             name="datum"
             required={true}
             type="date"
@@ -121,7 +132,7 @@ export const Eintragsleiste = ({
           disabled={eintragen.isPending}
           type="submit"
         >
-          Note eintragen
+          {eintragen.isPending ? 'Note wird eingetragen …' : 'Note eintragen'}
         </button>
       </div>
       <details className="mt-3">
@@ -161,10 +172,10 @@ export const Eintragsleiste = ({
           className="mt-3 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          Die Note konnte nicht gespeichert werden. Prüfe den Wert — im
-          {punkteSystem
-            ? ' Punktesystem sind ganze Zahlen von 0 bis 15 gültig.'
-            : ' Sechsersystem sind Werte von 1,00 bis 6,00 gültig.'}
+          {aktionsfehlerText(
+            eintragen.error,
+            'Die Note konnte wegen eines technischen Fehlers nicht gespeichert werden. Die Eingaben bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
+          )}
         </p>
       ) : null}
     </form>

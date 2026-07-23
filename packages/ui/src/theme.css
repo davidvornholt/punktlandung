@@ -76,7 +76,7 @@
   --font-sans:
     "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
 
-  /* The single easing curve; JS reads the same values from motion.ts. */
+  /* The single easing curve. */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   --shadow-card: var(--pl-shadow-card);

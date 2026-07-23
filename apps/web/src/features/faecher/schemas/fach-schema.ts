@@ -15,7 +15,7 @@ const Gewicht = Schema.Number.pipe(
   Schema.lessThanOrEqualTo(fachGrenzen.gewichtMax),
 );
 
-export const FachEingabe = Schema.Struct({
+export const FachFelder = Schema.Struct({
   name: Schema.String.pipe(
     Schema.minLength(1),
     Schema.maxLength(fachGrenzen.nameMax),
@@ -35,6 +35,13 @@ export const FachEingabe = Schema.Struct({
   sonstigeWeight: Gewicht,
 });
 
+export type FachFelder = typeof FachFelder.Type;
+
+export const FachEingabe = Schema.Struct({
+  schoolYear: Schema.String,
+  ...FachFelder.fields,
+});
+
 export type FachEingabe = typeof FachEingabe.Type;
 
 export const FachAktualisierung = Schema.Struct({
@@ -46,6 +53,11 @@ export type FachAktualisierung = typeof FachAktualisierung.Type;
 
 export const FachKennung = Schema.Struct({
   id: Schema.String,
+  schoolYear: Schema.String,
 });
 
 export type FachKennung = typeof FachKennung.Type;
+
+export const FaecherAbfrage = Schema.Struct({
+  schoolYear: Schema.String,
+});

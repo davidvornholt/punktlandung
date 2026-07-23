@@ -10,7 +10,7 @@ if (databaseUrl === undefined || databaseUrl === '') {
 
 export default defineConfig({
   out: './drizzle',
-  schema: './src/shared/db/schema.ts',
+  schema: ['./src/shared/db/schema.ts', './src/shared/auth/auth-schema.ts'],
   dialect: 'postgresql',
   dbCredentials: {
     url: databaseUrl,

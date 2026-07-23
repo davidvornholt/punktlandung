@@ -30,6 +30,17 @@ describe('jahresnote', () => {
     expect(jahresnote(2.5)).toEqual({ note: 3, grenzfall: true });
     expect(jahresnote(2.55)).toEqual({ note: 3, grenzfall: true });
   });
+
+  it('behandelt beide Toleranz-Endpunkte dezimalsicher', () => {
+    for (const basis of [1, 2, 4]) {
+      expect(jahresnote(basis + 0.4).grenzfall).toBe(true);
+      expect(jahresnote(basis + 0.6).grenzfall).toBe(true);
+      expect(jahresnote(basis + 0.39).grenzfall).toBe(false);
+      expect(jahresnote(basis + 0.61).grenzfall).toBe(false);
+    }
+    expect(jahresnote(2.399).grenzfall).toBe(false);
+    expect(jahresnote(2.601).grenzfall).toBe(false);
+  });
 });
 
 describe('formatHalbnote', () => {

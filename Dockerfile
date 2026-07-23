@@ -53,10 +53,10 @@ COPY --chown=app:app --from=builder /app/packages/ui /app/packages/ui
 COPY --chown=app:app --from=builder /app/apps/web/dist ./dist
 COPY --chown=app:app --from=builder /app/apps/web/scripts ./scripts
 COPY --chown=app:app --from=builder /app/apps/web/package.json ./package.json
-# Migration inputs: the deploy host runs `bunx --bun drizzle-kit migrate`
+# Migration inputs: the deploy host runs `bun run db:migrate:deploy`
 # in this image as a oneshot before starting the server.
 COPY --chown=app:app --from=builder /app/apps/web/drizzle ./drizzle
-COPY --chown=app:app --from=builder /app/apps/web/drizzle.config.ts ./drizzle.config.ts
+COPY --chown=app:app --from=builder /app/apps/web/src/shared/db ./src/shared/db
 
 EXPOSE 3000
 

@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import {
   createFileRoute,
   Link,
@@ -5,7 +6,7 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router';
-
+import { lehneAuthFehlerAb } from '#/shared/auth/auth-antwort.ts';
 import { authClient } from '#/shared/auth/auth-client.ts';
 import { getSitzung } from '#/shared/auth/session-fn.ts';
 
@@ -22,12 +23,10 @@ const navLinkKlasse =
 
 const AppShell = () => {
   const router = useRouter();
-  const abmelden = () => {
-    authClient
-      .signOut()
-      .then(() => router.navigate({ to: '/anmelden' }))
-      .catch(() => undefined);
-  };
+  const abmelden = useMutation({
+    mutationFn: () => authClient.signOut().then(lehneAuthFehlerAb),
+    onSuccess: () => router.navigate({ to: '/anmelden' }),
+  });
 
   return (
     <div className="min-h-svh bg-background">
@@ -43,11 +42,21 @@ const AppShell = () => {
           </p>
           <button
             className="text-ink-muted text-sm underline decoration-border-strong underline-offset-4 transition-colors duration-150 ease-standard hover:text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            onClick={abmelden}
+            disabled={abmelden.isPending}
+            onClick={() => abmelden.mutate()}
             type="button"
           >
-            Abmelden
+            {abmelden.isPending ? 'Wird abgemeldet …' : 'Abmelden'}
           </button>
+          {abmelden.isError ? (
+            <p
+              className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
+              role="alert"
+            >
+              Die Abmeldung ist fehlgeschlagen. Du bleibst angemeldet; prüfe die
+              Verbindung und versuche es erneut.
+            </p>
+          ) : null}
         </div>
         <nav
           aria-label="Hauptnavigation"

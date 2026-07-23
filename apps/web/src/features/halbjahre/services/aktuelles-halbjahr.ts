@@ -11,5 +11,5 @@ export const aktuellesHalbjahr = <
   halbjahre.find(
     (halbjahr) => halbjahr.startsOn <= heute && heute <= halbjahr.endsOn,
   ) ??
-  halbjahre[0] ??
+  halbjahre.find((halbjahr) => halbjahr.startsOn <= heute) ??
   null;

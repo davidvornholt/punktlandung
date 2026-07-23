@@ -1,6 +1,6 @@
 ---
 name: declarative-infra
-description: Operating contract for declarative infrastructure (NixOS hosts, OpenTofu stacks). Use when touching host configuration, flakes, secrets or deploy wiring, PR preview environments, or cloud resources (DNS, buckets) — even when the infrastructure's home is another repo.
+description: Operating contract for declarative infrastructure (NixOS hosts, OpenTofu stacks). Use when touching host configuration, flakes, secrets or deploy wiring, PR preview environments, or cloud resources (DNS, buckets) — even when the infrastructure's home is another repo — or when a task needs a provider credential or API token.
 ---
 
 # Declarative infrastructure
@@ -11,6 +11,8 @@ description: Operating contract for declarative infrastructure (NixOS hosts, Ope
 - Apply changes by pushing to GitHub and letting trusted main-branch automation converge. Never run `deploy-rs`, `tofu apply`, or `nixos-rebuild switch` by hand; direct mutation is for emergencies only, and must be flagged when used.
 - PR previews are the one sanctioned exception to state-in-git: the active preview set lives in a host-local desired-state file mutated only by a validated forced SSH command, which converges the same flake that defines production. How previews are shaped stays fully declarative; see `references/pr-previews.md`.
 - App services run as Podman `oci-containers` with digest-pinned images, published only through Caddy; hosts never run Docker. Wiring details live in `references/bootstrap.md`.
+- When the home is a dedicated infra repo, public-image freshness is automation-owned: the source repo announces new digests via `repository_dispatch`, the home repo bumps its committed desired state through its own gates, and completion requires the exact infra merge SHA plus healthy exact-digest readback from every target — see `references/image-promotion.md`.
+- Provider credentials are written directly into SOPS targets by `bun standards creds`: Cloudflare tokens are minted, renewed, and revoked by `plan` / `apply`, while GitHub App credentials let workflows mint short-lived installation tokens for selected repositories. GitHub App keys rotate manually through the App settings page; do not claim `creds apply` rotates them or ask the operator to create brokered Cloudflare tokens by hand.
 
 ## Changing existing infrastructure
 

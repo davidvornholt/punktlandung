@@ -6,5 +6,8 @@ import { pool } from '#/shared/db/pool.ts';
 
 const SqlLive = PgClient.layerFromPool({ acquire: Effect.succeed(pool) });
 
-/** Stellt `PgDrizzle` für Effect-Services bereit. */
-export const DatabaseLive = pgDrizzleLayer.pipe(Layer.provide(SqlLive));
+/** Stellt Transaktionen und den darauf gebundenen Drizzle-Zugriff bereit. */
+export const DatabaseLive = Layer.merge(
+  SqlLive,
+  pgDrizzleLayer.pipe(Layer.provide(SqlLive)),
+);
