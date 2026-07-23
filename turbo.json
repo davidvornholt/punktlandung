@@ -18,6 +18,7 @@
       "outputs": []
     },
     "test": {
+      "env": ["DATABASE_URL"],
       "outputs": []
     },
     "test:a11y": {
