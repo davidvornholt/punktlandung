@@ -1,3 +1,4 @@
+import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
 import { eingabeKlasse, labelKlasse } from '#/shared/ui/form-klassen.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
 
@@ -20,7 +21,7 @@ export const HalbjahrAuswahl = ({
     >
       {halbjahre.map((halbjahr) => (
         <option key={halbjahr.id} value={halbjahr.id}>
-          {halbjahr.label} · {halbjahr.schoolYear}
+          {halbjahrBezeichnung(halbjahr)} · {halbjahr.schoolYear}
         </option>
       ))}
     </select>

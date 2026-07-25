@@ -14,6 +14,7 @@ import {
   halbjahresnote,
   jahresnote,
 } from '#/shared/noten/zeugnisnote.ts';
+import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
 import { ZeugnisHalbjahrNichtGefunden } from '../errors/zeugnis-errors.ts';
 
 export type ZeugnisZeile = {
@@ -177,7 +178,7 @@ export const ladeZeugnis = (termId: string) =>
 
     return {
       termId: halbjahr.id,
-      label: halbjahr.label,
+      label: halbjahrBezeichnung(halbjahr),
       schoolYear: halbjahr.schoolYear,
       system: halbjahr.system,
       gesamtschnitt,

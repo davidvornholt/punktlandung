@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   date,
   integer,
   numeric,
@@ -10,8 +12,13 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 
+import { klassenstufen } from '#/shared/schule/klassenstufe.ts';
+
 /** Notensystem eines Halbjahrs: Unterstufe 1–6, Kursstufe 0–15 Punkte. */
 export const gradeSystem = pgEnum('grade_system', ['sechser', 'punkte']);
+
+/** Klassenstufen des Gymnasiums; J1/J2 sind die Jahrgänge der Kursstufe. */
+export const klassenstufeEnum = pgEnum('klassenstufe', klassenstufen);
 
 /** Leistungsart; Gewichte dafür verkündet die Lehrkraft je Fach vorab. */
 export const gradeKind = pgEnum('grade_kind', [
@@ -107,18 +114,19 @@ export const term = pgTable(
   'term',
   {
     id: text('id').primaryKey(),
-    /** Anzeigename, z. B. "10.2" oder "K1.1". */
-    label: text('label').notNull(),
+    /** Klassenstufe, z. B. "10" oder "J1"; ergibt mit `half` die Bezeichnung. */
+    klassenstufe: klassenstufeEnum('klassenstufe').notNull(),
     /** Schuljahr, z. B. "2026/27". */
     schoolYear: text('school_year').notNull(),
     /** 1 oder 2 innerhalb des Schuljahrs. */
-    half: integer('half').notNull(),
+    half: integer('half').$type<1 | 2>().notNull(),
     system: gradeSystem('system').notNull(),
     startsOn: date('starts_on').notNull(),
     endsOn: date('ends_on').notNull(),
   },
   (table) => [
     unique('term_school_year_half_unique').on(table.schoolYear, table.half),
+    check('term_half_valid', sql`${table.half} in (1, 2)`),
   ],
 );
 

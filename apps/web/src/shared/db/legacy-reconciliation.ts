@@ -4,7 +4,7 @@ import { LegacyReconciliationDatabaseError } from './legacy-reconciliation-datab
 
 type TermRow = QueryResultRow & {
   readonly id: string;
-  readonly label: string;
+  readonly bezeichnung: string | null;
   readonly schoolYear: string;
   readonly half: number;
   readonly system: string;
@@ -51,8 +51,14 @@ const gruppiere = <Row>(
   return [...groups.values()].filter((group) => group.length > 1);
 };
 
+/**
+ * Bezeichnung heißt je nach Migrationsstand `label` oder `klassenstufe`; sie
+ * gehört in den Vergleich, weil Migration 0002 die Klassenstufe genau daraus
+ * ableitet und ein automatisches Zusammenführen sie sonst stillschweigend
+ * verwerfen würde.
+ */
 const termMetadata = (row: TermRow): string =>
-  [row.label, row.system, row.startsOn, row.endsOn].join('\u0000');
+  [row.bezeichnung, row.system, row.startsOn, row.endsOn].join('\u0000');
 
 const studyDayData = (row: StudyDayRow): string =>
   JSON.stringify([row.minutes, row.note]);
@@ -133,8 +139,10 @@ const reconcileInTransaction = (client: PoolClient) =>
     );
     const terms = yield* query<TermRow>(
       client,
-      `SELECT id, label, school_year AS "schoolYear", half, system,
-              starts_on AS "startsOn", ends_on AS "endsOn"
+      `SELECT id, school_year AS "schoolYear", half, system,
+              starts_on AS "startsOn", ends_on AS "endsOn",
+              COALESCE(to_jsonb(term) ->> 'label',
+                       to_jsonb(term) ->> 'klassenstufe') AS "bezeichnung"
          FROM term
         ORDER BY school_year, half, id`,
     );

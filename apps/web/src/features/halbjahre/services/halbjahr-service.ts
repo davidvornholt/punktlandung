@@ -6,6 +6,8 @@ import { Effect } from 'effect';
 
 import { grade, term } from '#/shared/db/schema.ts';
 import { materialisiereNeuesSchuljahr } from '#/shared/noten/schuljahr-fachstand.ts';
+import type { Klassenstufe } from '#/shared/schule/klassenstufe.ts';
+import { notensystemFuerKlassenstufe } from '#/shared/schule/klassenstufe.ts';
 import {
   HalbjahrBelegungDoppelt,
   HalbjahrNichtGefunden,
@@ -44,6 +46,11 @@ const mappeBelegung = (
     ? Effect.fail(new HalbjahrBelegungDoppelt(eingabe))
     : Effect.fail(fehler);
 
+/** Das Notensystem folgt der Klassenstufe und wird nie vom Aufrufer übernommen. */
+const mitNotensystem = <Felder extends { readonly klassenstufe: Klassenstufe }>(
+  felder: Felder,
+) => ({ ...felder, system: notensystemFuerKlassenstufe(felder.klassenstufe) });
+
 /** Halbjahre, neuestes zuerst (nach Beginn sortiert). */
 export const listHalbjahre = Effect.gen(function* () {
   const db = yield* PgDrizzle;
@@ -59,7 +66,7 @@ export const createHalbjahr = (eingabe: HalbjahrEingabe) =>
           const db = yield* PgDrizzle;
           const eingefuegt = yield* db
             .insert(term)
-            .values({ id: crypto.randomUUID(), ...eingabe })
+            .values({ id: crypto.randomUUID(), ...mitNotensystem(eingabe) })
             .onConflictDoNothing({ target: [term.schoolYear, term.half] })
             .returning({ id: term.id });
           if (eingefuegt.length === 0) {
@@ -95,9 +102,10 @@ export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
             .select({ takenOn: grade.takenOn })
             .from(grade)
             .where(eq(grade.termId, eingabe.id));
+          const { id, ...neu } = mitNotensystem(eingabe);
           const verstoss = halbjahrVerstoss(
             halbjahr,
-            eingabe,
+            neu,
             vorhandeneNoten.map((note) => note.takenOn),
           );
           if (verstoss === 'notensystem') {
@@ -105,7 +113,7 @@ export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
               new NotensystemMitNotenUnveraenderlich({
                 halbjahrId: eingabe.id,
                 bisher: halbjahr.system,
-                neu: eingabe.system,
+                neu: neu.system,
               }),
             );
           }
@@ -127,8 +135,7 @@ export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
               }),
             );
           }
-          const { id, ...felder } = eingabe;
-          yield* db.update(term).set(felder).where(eq(term.id, id));
+          yield* db.update(term).set(neu).where(eq(term.id, id));
           yield* materialisiereNeuesSchuljahr(eingabe.schoolYear);
         }),
       )

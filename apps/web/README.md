@@ -34,6 +34,10 @@ bun run dev
 
 Die `db:*`-Skripte laden `.env.local` selbst (`bun --env-file`); Drizzle Kit liest `DATABASE_URL` absichtlich direkt aus `process.env`, weil seine Konfiguration außerhalb der App-Laufzeit ausgewertet wird. Generierte `.env.local`-Dateien werden nie von Hand gepflegt.
 
+## Halbjahre
+
+Ein Halbjahr wird allein über Klassenstufe (5–10, J1, J2), Schuljahr und 1./2. Halbjahr angelegt; Bezeichnung (`10.2`), Notensystem und Zeitraum leiten sich daraus ab. Das Schuljahr läuft vom 1. August bis zum 31. Juli, das erste Schulhalbjahr endet am 31. Januar (§ 26 SchG BW). Beide Halbjahre decken das Schuljahr lückenlos ab, damit jedes Notendatum in genau ein Halbjahr fällt; abweichende Zeiträume bleiben in der Maske möglich. J1 und J2 gehören zur Kursstufe und rechnen in Notenpunkten, alle übrigen Stufen in Noten von 1 bis 6.
+
 ## Fach- und Zeugnislogik
 
 Fachname, Kürzel, Archivstatus und alle Gewichtungen werden je Schuljahr historisiert und von dessen beiden Halbjahre gemeinsam verwendet. Noten müssen innerhalb des inklusiven Halbjahr-Zeitraums liegen; ein belegtes Halbjahr darf weder das Notensystem noch das Schuljahr wechseln und darf vorhandene Noten nicht durch eine Zeitraumänderung ausschließen.
