@@ -51,13 +51,32 @@ describe('Bestandsdaten vor Migrationen', () => {
       expect(studyDays.rows).toEqual([{ id: 'study-a' }, { id: 'study-c' }]);
       await expect(
         pool.query(`INSERT INTO term
-          (id, label, school_year, half, system, starts_on, ends_on)
-          VALUES ('term-c', '10.1', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29')`),
+          (id, klassenstufe, school_year, half, system, starts_on, ends_on)
+          VALUES ('term-c', '10', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29')`),
       ).rejects.toMatchObject({ constraint: 'term_school_year_half_unique' });
       await expect(
         pool.query(`INSERT INTO study_day (id, day, subject_id)
           VALUES ('study-e', '2026-10-01', NULL)`),
       ).rejects.toMatchObject({ constraint: 'study_day_day_subject_unique' });
+    }));
+
+  it('führt Halbjahre mit abweichender Bezeichnung nicht zusammen', () =>
+    withPostgresTestDatabase(async (pool) => {
+      await applyInitialMigration(pool);
+      await pool.query(`
+        INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
+        VALUES
+          ('term-a', '9.1', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29'),
+          ('term-b', '10.1', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29');
+      `);
+
+      const exit = await Effect.runPromiseExit(migrateDatabase(pool));
+
+      expect(exit._tag).toBe('Failure');
+      expect(String(exit)).toContain('Halbjahr 2026/27/1');
+      expect(
+        (await pool.query('SELECT id FROM term ORDER BY id')).rows,
+      ).toEqual([{ id: 'term-a' }, { id: 'term-b' }]);
     }));
 
   it('meldet alle nicht verlustfrei auflösbaren Gruppen und lässt sie unverändert', () =>
@@ -95,5 +114,49 @@ describe('Bestandsdaten vor Migrationen', () => {
           )
         ).rows,
       ).toEqual([{ count: 0 }]);
+    }));
+});
+
+describe('Klassenstufe aus der Bezeichnung', () => {
+  it('leitet Klassenstufen ab und übersetzt die alte Kursstufen-Schreibweise', () =>
+    withPostgresTestDatabase(async (pool) => {
+      await applyInitialMigration(pool);
+      await pool.query(`
+        INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
+        VALUES
+          ('term-a', '9.2', '2024/25', 2, 'sechser', '2025-02-01', '2025-07-31'),
+          ('term-b', '10.1', '2025/26', 1, 'sechser', '2025-08-01', '2026-01-31'),
+          ('term-c', 'K1.1', '2026/27', 1, 'punkte', '2026-08-01', '2027-01-31'),
+          ('term-d', 'K2.2', '2027/28', 2, 'punkte', '2028-02-01', '2028-07-31');
+      `);
+
+      await Effect.runPromise(migrateDatabase(pool));
+
+      const terms = await pool.query(
+        'SELECT id, klassenstufe FROM term ORDER BY id',
+      );
+      expect(terms.rows).toEqual([
+        { id: 'term-a', klassenstufe: '9' },
+        { id: 'term-b', klassenstufe: '10' },
+        { id: 'term-c', klassenstufe: 'J1' },
+        { id: 'term-d', klassenstufe: 'J2' },
+      ]);
+    }));
+
+  it('bricht ab und behält die Bezeichnung, wenn sich keine Klassenstufe ergibt', () =>
+    withPostgresTestDatabase(async (pool) => {
+      await applyInitialMigration(pool);
+      await pool.query(`
+        INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
+        VALUES ('term-a', '9b', '2024/25', 2, 'sechser', '2025-02-01', '2025-07-31');
+      `);
+
+      const exit = await Effect.runPromiseExit(migrateDatabase(pool));
+
+      expect(exit._tag).toBe('Failure');
+      expect(String(exit)).toContain('9b');
+      expect((await pool.query('SELECT label FROM term')).rows).toEqual([
+        { label: '9b' },
+      ]);
     }));
 });

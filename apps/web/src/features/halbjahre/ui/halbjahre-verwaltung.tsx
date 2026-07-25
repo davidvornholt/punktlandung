@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
 import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
 import { bestimmeAbfrageZustand } from '#/shared/ui/abfrage-zustand-modell.ts';
 import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
@@ -100,6 +101,8 @@ export const HalbjahreVerwaltung = () => {
             fehler={formularFehler}
             formularRef={fokus.formularRef}
             halbjahr={bearbeitung === 'neu' ? null : bearbeitung}
+            halbjahre={halbjahre ?? []}
+            heute={berlinKalenderdatum()}
             key={formularKennung}
             onAbbrechen={() => setBearbeitung(null)}
             onSpeichern={(werte) => {
@@ -144,8 +147,9 @@ export const HalbjahreVerwaltung = () => {
       {abfrageZustand === 'leer' && bearbeitung === null ? (
         <div className="mt-4 border border-border bg-surface-sunken p-6">
           <p className="text-ink-muted">
-            Noch keine Halbjahre. Lege zuerst das laufende Halbjahr an — mit
-            Zeitraum und Notensystem.
+            Noch keine Halbjahre. Lege zuerst das laufende Halbjahr an — du
+            wählst nur Klassenstufe, Schuljahr und Halbjahr, den Rest ergänzt
+            Punktlandung.
           </p>
         </div>
       ) : null}

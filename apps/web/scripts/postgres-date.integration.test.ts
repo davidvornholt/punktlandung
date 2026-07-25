@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { SqlClient } from '@effect/sql/SqlClient';
-import {
-  type PgDrizzle,
-  layer as pgDrizzleLayer,
-} from '@effect/sql-drizzle/Pg';
-import { PgClient } from '@effect/sql-pg';
-import { Effect, Layer } from 'effect';
-import type { Pool } from 'pg';
+import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
+import { Effect } from 'effect';
 import { aktuellesHalbjahr } from '#/features/halbjahre/services/aktuelles-halbjahr.ts';
 import {
   listHalbjahre,
@@ -18,12 +13,10 @@ import {
   updateNote,
 } from '#/features/noten/services/noten-service.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
-import { withPostgresTestDatabase } from './postgres-test-database.ts';
-
-const testLayer = (pool: Pool) => {
-  const sql = PgClient.layerFromPool({ acquire: Effect.succeed(pool) });
-  return Layer.merge(sql, pgDrizzleLayer.pipe(Layer.provide(sql)));
-};
+import {
+  postgresTestLayer,
+  withPostgresTestDatabase,
+} from './postgres-test-database.ts';
 
 const note = {
   termId: 'term-alt',
@@ -36,10 +29,9 @@ const note = {
 
 const halbjahr = {
   id: 'term-alt',
-  label: '10.1',
+  klassenstufe: '10' as const,
   schoolYear: '2026/27',
   half: 1 as const,
-  system: 'sechser' as const,
   startsOn: '2026-09-14',
   endsOn: '2027-01-29',
 };
@@ -52,12 +44,12 @@ describe('PostgreSQL-Kalenderdaten', () => {
       await pool.query(`
         INSERT INTO subject (id, name, short_name)
         VALUES ('mathe', 'Mathematik', 'M');
-        INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
+        INSERT INTO term (id, klassenstufe, school_year, half, system, starts_on, ends_on)
         VALUES
-          ('term-alt', '10.1', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29'),
-          ('term-neu', '10.2', '2026/27', 2, 'sechser', '2027-02-01', '2027-07-28');
+          ('term-alt', '10', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29'),
+          ('term-neu', '10', '2026/27', 2, 'sechser', '2027-02-01', '2027-07-28');
       `);
-      const layer = testLayer(pool);
+      const layer = postgresTestLayer(pool);
       const provided = <Value, Error>(
         effect: Effect.Effect<Value, Error, SqlClient | PgDrizzle>,
       ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
@@ -69,9 +61,12 @@ describe('PostgreSQL-Kalenderdaten', () => {
         { id: 'term-neu', startsOn: '2027-02-01', endsOn: '2027-07-28' },
         { id: 'term-alt', startsOn: '2026-09-14', endsOn: '2027-01-29' },
       ]);
-      expect(halbjahrFormWerte(listed[1] ?? null)).toMatchObject({
+      expect(
+        halbjahrFormWerte(listed[1] ?? null, listed, '2026-09-14'),
+      ).toMatchObject({
         startsOn: '2026-09-14',
         endsOn: '2027-01-29',
+        zeitraumAngepasst: true,
       });
       expect(aktuellesHalbjahr(listed, '2026-09-13')).toBeNull();
       expect(aktuellesHalbjahr(listed, '2026-09-14')?.id).toBe('term-alt');

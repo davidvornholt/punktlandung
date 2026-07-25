@@ -1,8 +1,8 @@
+import { formatiereIsoDatum } from '#/shared/datum/kalenderdatum.ts';
+import { notensystemText } from '#/shared/noten/notensystem-text.ts';
+import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
 import { leiseKnopfKlasse } from '#/shared/ui/form-klassen.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
-
-const systemText = (halbjahr: Halbjahr) =>
-  halbjahr.system === 'punkte' ? 'Notenpunkte 0–15' : 'Noten 1–6';
 
 export const HalbjahrListe = ({
   halbjahre,
@@ -22,14 +22,16 @@ export const HalbjahrListe = ({
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-display text-ink text-xl tracking-tight">
-            {halbjahr.label}
+            {halbjahrBezeichnung(halbjahr)}
           </h3>
           <span className="text-ink-faint text-xs uppercase tracking-widest">
             {halbjahr.schoolYear}
           </span>
         </div>
         <p className="mt-1 text-ink-muted text-sm">
-          {halbjahr.startsOn} bis {halbjahr.endsOn} · {systemText(halbjahr)}
+          {formatiereIsoDatum(halbjahr.startsOn)} bis{' '}
+          {formatiereIsoDatum(halbjahr.endsOn)} ·{' '}
+          {notensystemText(halbjahr.system)}
         </p>
         <div className="mt-2">
           <button

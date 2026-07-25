@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import { layer as pgDrizzleLayer } from '@effect/sql-drizzle/Pg';
+import { PgClient } from '@effect/sql-pg';
+import { Effect, Layer } from 'effect';
 import pg, { type Pool } from 'pg';
 import { preservePostgresDates } from '../src/shared/db/postgres-date.ts';
 
@@ -38,6 +41,12 @@ export const withPostgresTestDatabase = async <Value>(
     await admin.query(`DROP DATABASE "${name}"`);
     await admin.end();
   }
+};
+
+/** SqlClient- und Drizzle-Schicht auf einer Testdatenbank, wie im Betrieb. */
+export const postgresTestLayer = (pool: Pool) => {
+  const sql = PgClient.layerFromPool({ acquire: Effect.succeed(pool) });
+  return Layer.merge(sql, pgDrizzleLayer.pipe(Layer.provide(sql)));
 };
 
 export const applyInitialMigration = async (pool: Pool): Promise<void> => {

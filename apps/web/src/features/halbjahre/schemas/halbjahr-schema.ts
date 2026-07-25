@@ -1,11 +1,9 @@
 import { Schema } from 'effect';
 
-export const halbjahrGrenzen = {
-  labelMax: 20,
-} as const;
+import { klassenstufen } from '#/shared/schule/klassenstufe.ts';
+import { schuljahrMuster } from '#/shared/schule/schuljahr.ts';
 
 const isoDatumMuster = /^\d{4}-\d{2}-\d{2}$/u;
-const schuljahrMuster = /^\d{4}\/\d{2}$/u;
 
 const IsoDatum = Schema.String.pipe(Schema.pattern(isoDatumMuster));
 
@@ -17,16 +15,16 @@ const zeitraumGueltig = (zeitraum: {
     ? undefined
     : 'Das Enddatum muss nach dem Beginn liegen.';
 
+/**
+ * Das Notensystem gehört bewusst nicht dazu: es folgt der Klassenstufe und
+ * wird serverseitig abgeleitet, damit kein Aufrufer die beiden entkoppeln kann.
+ */
 const HalbjahrFelder = Schema.Struct({
-  /** Anzeigename, z. B. "10.2" oder "K1.1". */
-  label: Schema.String.pipe(
-    Schema.minLength(1),
-    Schema.maxLength(halbjahrGrenzen.labelMax),
-  ),
+  /** Klassenstufe, z. B. "10" oder "J1". */
+  klassenstufe: Schema.Literal(...klassenstufen),
   /** Schuljahr, z. B. "2026/27". */
   schoolYear: Schema.String.pipe(Schema.pattern(schuljahrMuster)),
   half: Schema.Literal(1, 2),
-  system: Schema.Literal('sechser', 'punkte'),
   startsOn: IsoDatum,
   endsOn: IsoDatum,
 });

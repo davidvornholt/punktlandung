@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { berlinKalenderdatum } from './kalenderdatum.ts';
+import { berlinKalenderdatum, formatiereIsoDatum } from './kalenderdatum.ts';
 
 describe('berlinKalenderdatum', () => {
   it('wechselt den Tag an der Berliner Mitternacht statt an UTC', () => {
@@ -31,5 +31,16 @@ describe('berlinKalenderdatum', () => {
     expect(berlinKalenderdatum(new Date('2026-10-25T01:30:00Z'))).toBe(
       '2026-10-25',
     );
+  });
+});
+
+describe('formatiereIsoDatum', () => {
+  it('dreht ein ISO-Datum in die deutsche Schreibweise', () => {
+    expect(formatiereIsoDatum('2026-08-01')).toBe('01.08.2026');
+  });
+
+  it('gibt unvollständige Eingaben unverändert zurück', () => {
+    expect(formatiereIsoDatum('')).toBe('');
+    expect(formatiereIsoDatum('2026-08')).toBe('2026-08');
   });
 });
