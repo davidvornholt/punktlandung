@@ -22,17 +22,15 @@ export type SchuljahrFach = {
   readonly archived: boolean;
 };
 
-const lifecycleSperrbereich = 1_416_129_093;
+const lifecycleLockNamespace = 1_416_129_093;
 
 /** Serialisiert den Fachstand-Lifecycle bis zum Transaktionsende. */
-export const sperreSchuljahrLifecycle = (
-  ...schoolYears: ReadonlyArray<string>
-) =>
+export const lockSchuljahrLifecycle = (...schoolYears: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const client = yield* SqlClient;
     for (const schoolYear of [...new Set(schoolYears)].sort()) {
       yield* client`SELECT pg_advisory_xact_lock(
-        ${lifecycleSperrbereich}, hashtext(${schoolYear})
+        ${lifecycleLockNamespace}, hashtext(${schoolYear})
       )`;
     }
   });
@@ -41,7 +39,7 @@ export const sperreSchuljahrLifecycle = (
  * Einziger Dekodierpunkt der Gewichtung: ab hier ist sie getypt, sodass jede
  * Auswertung stromabwärts total bleibt.
  */
-const ausFach = (
+const decodeFach = (
   fach: typeof subject.$inferSelect | typeof schoolYearSubject.$inferSelect,
   id: string,
   schoolYear: string,
@@ -61,10 +59,10 @@ const ausFach = (
   );
 
 const ausLegacy = (fach: typeof subject.$inferSelect, schoolYear: string) =>
-  ausFach(fach, fach.id, schoolYear);
+  decodeFach(fach, fach.id, schoolYear);
 
 const ausSchuljahr = (fach: typeof schoolYearSubject.$inferSelect) =>
-  ausFach(fach, fach.subjectId, fach.schoolYear);
+  decodeFach(fach, fach.subjectId, fach.schoolYear);
 
 const zuSchuljahrZeile = (fach: SchuljahrFach) => ({
   schoolYear: fach.schoolYear,
@@ -76,7 +74,7 @@ const zuSchuljahrZeile = (fach: SchuljahrFach) => ({
   archived: fach.archived,
 });
 
-const ladeLegacyFaecher = Effect.gen(function* () {
+const loadLegacyFaecher = Effect.gen(function* () {
   const db = yield* PgDrizzle;
   return yield* db
     .select()
@@ -96,7 +94,7 @@ export const ladeSchuljahrFachstand = (schoolYear: string) =>
       .from(schoolYearSubjectSet)
       .where(eq(schoolYearSubjectSet.schoolYear, schoolYear));
     if (marker.length === 0) {
-      const legacy = yield* ladeLegacyFaecher;
+      const legacy = yield* loadLegacyFaecher;
       return yield* Effect.forEach(legacy, (fach) =>
         ausLegacy(fach, schoolYear),
       );
@@ -137,7 +135,7 @@ export const materialisiereBestehendeSchuljahre = Effect.gen(function* () {
     .select({ schoolYear: schoolYearSubjectSet.schoolYear })
     .from(schoolYearSubjectSet);
   const fixiert = new Set(marker.map((eintrag) => eintrag.schoolYear));
-  const legacy = yield* ladeLegacyFaecher;
+  const legacy = yield* loadLegacyFaecher;
   for (const { schoolYear } of schuljahre) {
     if (!fixiert.has(schoolYear)) {
       yield* speichereFachstand(
@@ -179,7 +177,7 @@ export const materialisiereNeuesSchuljahr = (schoolYear: string) =>
       .limit(1);
     const faecher =
       quelle[0] === undefined
-        ? yield* Effect.forEach(yield* ladeLegacyFaecher, (fach) =>
+        ? yield* Effect.forEach(yield* loadLegacyFaecher, (fach) =>
             ausLegacy(fach, schoolYear),
           )
         : (yield* ladeSchuljahrFachstand(quelle[0].schoolYear)).map((fach) => ({
@@ -195,15 +193,15 @@ export const materialisiereNeuesSchuljahr = (schoolYear: string) =>
  * Stand ohne Schuljahr und ein später erneut angelegtes Schuljahr erbte ihn
  * still, statt vom dann aktuellen Vorjahr abzuleiten.
  */
-export const verwerfeFachstandOhneHalbjahr = (schoolYear: string) =>
+export const deleteOrphanedFachstand = (schoolYear: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
-    const verbleibende = yield* db
+    const remaining = yield* db
       .select({ id: term.id })
       .from(term)
       .where(eq(term.schoolYear, schoolYear))
       .limit(1);
-    if (verbleibende.length > 0) {
+    if (remaining.length > 0) {
       return;
     }
     yield* db

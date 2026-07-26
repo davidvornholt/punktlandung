@@ -1,6 +1,6 @@
 import { Data } from 'effect';
 
-import { notenAnzahlText } from '#/shared/noten/notenanzahl-text.ts';
+import { notenCountText } from '#/shared/noten/noten-count-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 
 export class HalbjahrBelegungDoppelt extends Data.TaggedError(
@@ -19,11 +19,11 @@ export class HalbjahrNichtGefunden extends Data.TaggedError(
   }
 }
 
-export class HalbjahrMitNotenNichtLoeschbar extends Data.TaggedError(
-  'HalbjahrMitNotenNichtLoeschbar',
-)<{ readonly halbjahrId: string; readonly anzahl: number }> {
+export class HalbjahrDeletionBlockedByNoten extends Data.TaggedError(
+  'HalbjahrDeletionBlockedByNoten',
+)<{ readonly halbjahrId: string; readonly notenCount: number }> {
   override get message(): string {
-    return `Das Halbjahr enthält noch ${notenAnzahlText(this.anzahl)} und kann deshalb nicht gelöscht werden. Lösche zuerst die Noten.`;
+    return `Das Halbjahr enthält noch ${notenCountText(this.notenCount)} und kann deshalb nicht gelöscht werden. Lösche zuerst die Noten.`;
   }
 }
 

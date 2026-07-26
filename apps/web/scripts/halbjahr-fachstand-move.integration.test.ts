@@ -5,71 +5,80 @@ import {
   updateHalbjahr,
 } from '#/features/halbjahre/services/halbjahr-service.ts';
 import {
-  erstesHalbjahr,
-  folgejahr,
-  mitFach,
-  vorjahr,
-  zaehle,
-  zweitesHalbjahr,
+  countRows,
+  firstHalbjahr,
+  followingSchoolYearHalbjahr,
+  previousSchoolYearHalbjahr,
+  secondHalbjahr,
+  withFach,
 } from './halbjahr-fachstand-test-helpers.ts';
 
 describe('Schuljahr-Fachstand nach dem Verschieben', () => {
   it('verwirft den Fachstand nach dem Verschieben des einzigen Halbjahrs', () =>
-    mitFach(async (provided, pool) => {
-      await provided(createHalbjahr(vorjahr));
-      await provided(createHalbjahr(erstesHalbjahr));
-      const vorhanden = (await provided(listHalbjahre)).find(
-        ({ schoolYear }) => schoolYear === erstesHalbjahr.schoolYear,
+    withFach(async (provided, pool) => {
+      await provided(createHalbjahr(previousSchoolYearHalbjahr));
+      await provided(createHalbjahr(firstHalbjahr));
+      const existing = (await provided(listHalbjahre)).find(
+        ({ schoolYear }) => schoolYear === firstHalbjahr.schoolYear,
       );
-      if (vorhanden === undefined) {
+      if (existing === undefined) {
         throw new Error('Zu verschiebendes Halbjahr fehlt.');
       }
 
-      await provided(updateHalbjahr({ ...folgejahr, id: vorhanden.id }));
+      await provided(
+        updateHalbjahr({
+          ...followingSchoolYearHalbjahr,
+          id: existing.id,
+        }),
+      );
       expect(
-        await zaehle(
+        await countRows(
           pool,
           'school_year_subject_set',
-          erstesHalbjahr.schoolYear,
+          firstHalbjahr.schoolYear,
         ),
       ).toBe(0);
       await pool.query(
         `UPDATE school_year_subject
          SET name = 'Aktualisierte Mathematik'
          WHERE school_year = $1 AND subject_id = 'mathe'`,
-        [vorjahr.schoolYear],
+        [previousSchoolYearHalbjahr.schoolYear],
       );
-      await provided(createHalbjahr(erstesHalbjahr));
+      await provided(createHalbjahr(firstHalbjahr));
       const fachstand = await pool.query<{ readonly name: string }>(
         `SELECT name FROM school_year_subject
          WHERE school_year = $1 AND subject_id = 'mathe'`,
-        [erstesHalbjahr.schoolYear],
+        [firstHalbjahr.schoolYear],
       );
 
       expect(fachstand.rows[0]?.name).toBe('Aktualisierte Mathematik');
     }));
 
   it('behält den Fachstand, wenn ein zweites Halbjahr zurückbleibt', () =>
-    mitFach(async (provided, pool) => {
-      await provided(createHalbjahr(erstesHalbjahr));
-      await provided(createHalbjahr(zweitesHalbjahr));
-      const zuVerschieben = (await provided(listHalbjahre)).find(
+    withFach(async (provided, pool) => {
+      await provided(createHalbjahr(firstHalbjahr));
+      await provided(createHalbjahr(secondHalbjahr));
+      const toMove = (await provided(listHalbjahre)).find(
         ({ half }) => half === 2,
       );
-      if (zuVerschieben === undefined) {
+      if (toMove === undefined) {
         throw new Error('Zu verschiebendes Halbjahr fehlt.');
       }
 
       await provided(
-        updateHalbjahr({ ...folgejahr, half: 2, id: zuVerschieben.id }),
+        updateHalbjahr({
+          ...followingSchoolYearHalbjahr,
+          half: 2,
+          id: toMove.id,
+        }),
       );
 
-      expect(await zaehle(pool, 'term', erstesHalbjahr.schoolYear)).toBe(1);
+      expect(await countRows(pool, 'term', firstHalbjahr.schoolYear)).toBe(1);
       expect(
-        await zaehle(
+        await countRows(
           pool,
           'school_year_subject_set',
-          erstesHalbjahr.schoolYear,
+          firstHalbjahr.schoolYear,
         ),
       ).toBe(1);
     }));

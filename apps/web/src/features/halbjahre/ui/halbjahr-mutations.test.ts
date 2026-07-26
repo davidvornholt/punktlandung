@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it, mock } from 'bun:test';
 
-import { HalbjahrMitNotenNichtLoeschbar } from '../errors/halbjahr-errors.ts';
-import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
+import { HalbjahrDeletionBlockedByNoten } from '../errors/halbjahr-errors.ts';
+import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import type { HalbjahrDeletionRequest } from './halbjahr-deletion-model.ts';
 
 type DeletionOptions = {
@@ -36,12 +36,12 @@ mock.module('../server/halbjahr-fns.ts', () => ({
 
 const { useHalbjahrMutations } = await import('./halbjahr-mutations.ts');
 
-const halbjahr: HalbjahrMitNotenAnzahl = {
+const halbjahr: HalbjahrWithNotenCount = {
   endsOn: '2027-01-31',
   half: 1,
   id: 'target',
   klassenstufe: '10',
-  notenAnzahl: 0,
+  notenCount: 0,
   schoolYear: '2026/27',
   startsOn: '2026-08-01',
   system: 'sechser',
@@ -82,9 +82,9 @@ describe('useHalbjahrMutations deletion', () => {
     });
 
     const refresh = deletion.onError(
-      new HalbjahrMitNotenNichtLoeschbar({
-        anzahl: 2,
+      new HalbjahrDeletionBlockedByNoten({
         halbjahrId: 'target',
+        notenCount: 2,
       }),
     );
     if (refresh === undefined) {

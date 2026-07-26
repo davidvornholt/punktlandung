@@ -1,8 +1,8 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { HalbjahrMitNotenNichtLoeschbar } from '../errors/halbjahr-errors.ts';
-import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
+import { HalbjahrDeletionBlockedByNoten } from '../errors/halbjahr-errors.ts';
+import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import { HalbjahrListe, HalbjahrRow } from './halbjahr-liste.tsx';
 import {
   collectElements,
@@ -11,7 +11,7 @@ import {
 } from './halbjahr-ui-test-helpers.ts';
 
 const rowProps = (
-  halbjahr: HalbjahrMitNotenAnzahl,
+  halbjahr: HalbjahrWithNotenCount,
   confirmed: boolean,
   onDelete = mock(() => undefined),
   onConfirmedChange = mock(() => undefined),
@@ -19,16 +19,16 @@ const rowProps = (
   confirmed,
   halbjahr,
   isFinalInSchoolYear: true,
-  loeschFehler: null,
+  deletionError: null,
+  isDeleting: false,
+  isDeletionInProgress: false,
   onBearbeiten: () => undefined,
   onConfirmedChange,
-  onLoeschen: onDelete,
-  wirdGeloescht: false,
-  wirdLoeschungAusgefuehrt: false,
+  onDelete,
 });
 
 const renderRow = (
-  halbjahr: HalbjahrMitNotenAnzahl,
+  halbjahr: HalbjahrWithNotenCount,
   confirmed: boolean,
   onDelete = mock(() => undefined),
   onConfirmedChange = mock(() => undefined),
@@ -107,14 +107,14 @@ describe('HalbjahrListe deletion rendering', () => {
     const markup = renderToStaticMarkup(
       <HalbjahrListe
         halbjahre={[createHalbjahr('first', 1), createHalbjahr('second', 2)]}
-        loeschung={{
+        deletion={{
           error: null,
           isError: false,
           isPending: true,
           variables: 'first',
         }}
         onBearbeiten={() => undefined}
-        onLoeschen={() => undefined}
+        onDelete={() => undefined}
       />,
     );
 
@@ -123,9 +123,9 @@ describe('HalbjahrListe deletion rendering', () => {
   });
 
   it('retains the row error after stale eligibility refreshes to occupied', () => {
-    const error = new HalbjahrMitNotenNichtLoeschbar({
-      anzahl: 2,
+    const error = new HalbjahrDeletionBlockedByNoten({
       halbjahrId: 'target',
+      notenCount: 2,
     });
     const mutation = {
       error,
@@ -133,13 +133,13 @@ describe('HalbjahrListe deletion rendering', () => {
       isPending: false,
       variables: 'target',
     };
-    const render = (notenAnzahl: number) =>
+    const render = (notenCount: number) =>
       renderToStaticMarkup(
         <HalbjahrListe
-          halbjahre={[createHalbjahr('target', 1, notenAnzahl)]}
-          loeschung={mutation}
+          halbjahre={[createHalbjahr('target', 1, notenCount)]}
+          deletion={mutation}
           onBearbeiten={() => undefined}
-          onLoeschen={() => undefined}
+          onDelete={() => undefined}
         />,
       );
 

@@ -5,24 +5,24 @@ import {
   listHalbjahre,
 } from '#/features/halbjahre/services/halbjahr-service.ts';
 import {
-  erstesHalbjahr,
-  hinterLifecycleBarriere,
-  mitFach,
-  zaehle,
-  zweitesHalbjahr,
+  behindLifecycleBarrier,
+  countRows,
+  firstHalbjahr,
+  secondHalbjahr,
+  withFach,
 } from './halbjahr-fachstand-test-helpers.ts';
 
 describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
   it('serialisiert zwei Löschungen desselben Schuljahrs', () =>
-    mitFach(async (provided, pool) => {
-      await provided(createHalbjahr(erstesHalbjahr));
-      await provided(createHalbjahr(zweitesHalbjahr));
+    withFach(async (provided, pool) => {
+      await provided(createHalbjahr(firstHalbjahr));
+      await provided(createHalbjahr(secondHalbjahr));
       const halbjahre = await provided(listHalbjahre);
 
-      await hinterLifecycleBarriere(
+      await behindLifecycleBarrier(
         pool,
         provided,
-        erstesHalbjahr.schoolYear,
+        firstHalbjahr.schoolYear,
         halbjahre.map(
           ({ id }) =>
             () =>
@@ -30,11 +30,11 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
         ),
       );
 
-      const terms = await zaehle(pool, 'term', erstesHalbjahr.schoolYear);
-      const marker = await zaehle(
+      const terms = await countRows(pool, 'term', firstHalbjahr.schoolYear);
+      const marker = await countRows(
         pool,
         'school_year_subject_set',
-        erstesHalbjahr.schoolYear,
+        firstHalbjahr.schoolYear,
       );
       expect(terms).toBe(0);
       expect(marker).toBe(0);
@@ -42,23 +42,23 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
     }));
 
   it('serialisiert Löschen und Anlegen im selben Schuljahr', () =>
-    mitFach(async (provided, pool) => {
-      await provided(createHalbjahr(erstesHalbjahr));
-      const [vorhanden] = await provided(listHalbjahre);
-      if (vorhanden === undefined) {
+    withFach(async (provided, pool) => {
+      await provided(createHalbjahr(firstHalbjahr));
+      const [existing] = await provided(listHalbjahre);
+      if (existing === undefined) {
         throw new Error('Angelegtes Halbjahr fehlt.');
       }
 
-      await hinterLifecycleBarriere(pool, provided, erstesHalbjahr.schoolYear, [
-        () => provided(deleteHalbjahr(vorhanden.id)),
-        () => provided(createHalbjahr(zweitesHalbjahr)),
+      await behindLifecycleBarrier(pool, provided, firstHalbjahr.schoolYear, [
+        () => provided(deleteHalbjahr(existing.id)),
+        () => provided(createHalbjahr(secondHalbjahr)),
       ]);
 
-      const terms = await zaehle(pool, 'term', erstesHalbjahr.schoolYear);
-      const marker = await zaehle(
+      const terms = await countRows(pool, 'term', firstHalbjahr.schoolYear);
+      const marker = await countRows(
         pool,
         'school_year_subject_set',
-        erstesHalbjahr.schoolYear,
+        firstHalbjahr.schoolYear,
       );
       expect(terms).toBe(1);
       expect(marker).toBe(1);

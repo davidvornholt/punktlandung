@@ -1,14 +1,14 @@
 import { useState } from 'react';
 
 import { formatIsoDate } from '#/shared/date/calendar-date.ts';
-import { notenAnzahlText } from '#/shared/noten/notenanzahl-text.ts';
+import { notenCountText } from '#/shared/noten/noten-count-text.ts';
 import { notensystemText } from '#/shared/noten/notensystem-text.ts';
 import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
-import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
+import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import type { HalbjahrDeletionRequest } from './halbjahr-deletion-model.ts';
 import {
   findAdjacentHalbjahrEditTrigger,
@@ -16,33 +16,33 @@ import {
   isFinalHalbjahrInSchoolYear,
 } from './halbjahr-deletion-model.ts';
 
-const loeschbeschriftung = (wirdGeloescht: boolean, bestaetigt: boolean) => {
-  if (wirdGeloescht) {
+const deletionLabel = (isDeleting: boolean, confirmed: boolean) => {
+  if (isDeleting) {
     return 'Wird gelöscht …';
   }
-  return bestaetigt ? 'Wirklich löschen' : 'Löschen';
+  return confirmed ? 'Wirklich löschen' : 'Löschen';
 };
 
 export const HalbjahrRow = ({
   confirmed,
   halbjahr,
   isFinalInSchoolYear,
-  loeschFehler,
-  wirdGeloescht,
-  wirdLoeschungAusgefuehrt,
+  deletionError,
+  isDeleting,
+  isDeletionInProgress,
   onBearbeiten,
   onConfirmedChange,
-  onLoeschen,
+  onDelete,
 }: {
   readonly confirmed: boolean;
-  readonly halbjahr: HalbjahrMitNotenAnzahl;
+  readonly halbjahr: HalbjahrWithNotenCount;
   readonly isFinalInSchoolYear: boolean;
-  readonly loeschFehler: unknown | null;
-  readonly wirdGeloescht: boolean;
-  readonly wirdLoeschungAusgefuehrt: boolean;
-  readonly onBearbeiten: (ausloeser: HTMLButtonElement) => void;
+  readonly deletionError: unknown | null;
+  readonly isDeleting: boolean;
+  readonly isDeletionInProgress: boolean;
+  readonly onBearbeiten: (trigger: HTMLButtonElement) => void;
   readonly onConfirmedChange: (confirmed: boolean) => void;
-  readonly onLoeschen: (focusTarget: HTMLButtonElement | null) => void;
+  readonly onDelete: (focusTarget: HTMLButtonElement | null) => void;
 }) => (
   <li
     className="border border-border bg-surface p-4 shadow-card"
@@ -64,29 +64,27 @@ export const HalbjahrRow = ({
       <button
         className={quietButtonClass}
         data-halbjahr-edit-trigger={true}
-        onClick={(ereignis) => onBearbeiten(ereignis.currentTarget)}
+        onClick={(event) => onBearbeiten(event.currentTarget)}
         type="button"
       >
         Bearbeiten
       </button>
-      {halbjahr.notenAnzahl === 0 ? (
+      {halbjahr.notenCount === 0 ? (
         <>
           <button
             className={quietButtonClass}
-            disabled={wirdLoeschungAusgefuehrt}
+            disabled={isDeletionInProgress}
             onClick={(event) => {
               if (confirmed) {
                 onConfirmedChange(false);
-                onLoeschen(
-                  findAdjacentHalbjahrEditTrigger(event.currentTarget),
-                );
+                onDelete(findAdjacentHalbjahrEditTrigger(event.currentTarget));
               } else {
                 onConfirmedChange(true);
               }
             }}
             type="button"
           >
-            {loeschbeschriftung(wirdGeloescht, confirmed)}
+            {deletionLabel(isDeleting, confirmed)}
           </button>
           {confirmed ? (
             <button
@@ -100,7 +98,7 @@ export const HalbjahrRow = ({
         </>
       ) : (
         <p className="self-center text-ink-faint text-sm">
-          Enthält {notenAnzahlText(halbjahr.notenAnzahl)} und bleibt deshalb
+          Enthält {notenCountText(halbjahr.notenCount)} und bleibt deshalb
           erhalten.
         </p>
       )}
@@ -110,13 +108,13 @@ export const HalbjahrRow = ({
         {halbjahrDeletionConfirmationText(halbjahr, isFinalInSchoolYear)}
       </p>
     ) : null}
-    {loeschFehler === null ? null : (
+    {deletionError === null ? null : (
       <p
         className="mt-3 border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
         role="alert"
       >
         {actionErrorText(
-          loeschFehler,
+          deletionError,
           'Das Halbjahr konnte nicht gelöscht werden. Es bleibt in der Liste; versuche es erneut.',
         )}
       </p>
@@ -124,7 +122,7 @@ export const HalbjahrRow = ({
   </li>
 );
 
-const HalbjahrZeile = (
+const HalbjahrRowWithConfirmation = (
   props: Omit<
     Parameters<typeof HalbjahrRow>[0],
     'confirmed' | 'onConfirmedChange'
@@ -142,31 +140,31 @@ const HalbjahrZeile = (
 
 export const HalbjahrListe = ({
   halbjahre,
-  loeschung,
+  deletion,
   onBearbeiten,
-  onLoeschen,
+  onDelete,
 }: {
-  readonly halbjahre: ReadonlyArray<HalbjahrMitNotenAnzahl>;
-  readonly loeschung: ListMutation<string>;
+  readonly halbjahre: ReadonlyArray<HalbjahrWithNotenCount>;
+  readonly deletion: ListMutation<string>;
   readonly onBearbeiten: (
-    halbjahr: HalbjahrMitNotenAnzahl,
-    ausloeser: HTMLButtonElement,
+    halbjahr: HalbjahrWithNotenCount,
+    trigger: HTMLButtonElement,
   ) => void;
-  readonly onLoeschen: (request: HalbjahrDeletionRequest) => void;
+  readonly onDelete: (request: HalbjahrDeletionRequest) => void;
 }) => (
   <ul className="mt-4 space-y-3">
     {halbjahre.map((halbjahr) => {
-      const zeilenstatus = listMutationState(loeschung, halbjahr.id);
+      const rowState = listMutationState(deletion, halbjahr.id);
       return (
-        <HalbjahrZeile
+        <HalbjahrRowWithConfirmation
           halbjahr={halbjahr}
           isFinalInSchoolYear={isFinalHalbjahrInSchoolYear(halbjahre, halbjahr)}
           key={halbjahr.id}
-          loeschFehler={zeilenstatus.error}
-          onBearbeiten={(ausloeser) => onBearbeiten(halbjahr, ausloeser)}
-          onLoeschen={(focusTarget) => onLoeschen({ focusTarget, halbjahr })}
-          wirdGeloescht={zeilenstatus.pending}
-          wirdLoeschungAusgefuehrt={zeilenstatus.disabled}
+          deletionError={rowState.error}
+          isDeleting={rowState.pending}
+          isDeletionInProgress={rowState.disabled}
+          onBearbeiten={(trigger) => onBearbeiten(halbjahr, trigger)}
+          onDelete={(focusTarget) => onDelete({ focusTarget, halbjahr })}
         />
       );
     })}

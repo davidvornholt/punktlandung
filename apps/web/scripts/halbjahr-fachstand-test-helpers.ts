@@ -3,16 +3,16 @@ import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
 import type { Pool } from 'pg';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
-import { sperreSchuljahrLifecycle } from '#/shared/noten/schuljahr-fachstand.ts';
+import { lockSchuljahrLifecycle } from '#/shared/noten/schuljahr-fachstand.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
   postgresTestLayer,
   withPostgresTestDatabase,
 } from './postgres-test-database.ts';
 
-const maximaleSperrversuche = 100;
+const maxLockAttempts = 100;
 
-export const vorjahr = {
+export const previousSchoolYearHalbjahr = {
   klassenstufe: '9' as const,
   schoolYear: '2025/26',
   half: 1 as const,
@@ -20,7 +20,7 @@ export const vorjahr = {
   endsOn: '2026-01-30',
 };
 
-export const erstesHalbjahr = {
+export const firstHalbjahr = {
   klassenstufe: '10' as const,
   schoolYear: '2026/27',
   half: 1 as const,
@@ -28,26 +28,26 @@ export const erstesHalbjahr = {
   endsOn: '2027-01-29',
 };
 
-export const zweitesHalbjahr = {
-  ...erstesHalbjahr,
+export const secondHalbjahr = {
+  ...firstHalbjahr,
   half: 2 as const,
   startsOn: '2027-02-01',
   endsOn: '2027-07-28',
 };
 
-export const folgejahr = {
-  ...erstesHalbjahr,
+export const followingSchoolYearHalbjahr = {
+  ...firstHalbjahr,
   schoolYear: '2027/28',
   startsOn: '2027-09-13',
   endsOn: '2028-01-28',
 };
 
-export type Ausfuehrung = <Value, Error>(
+export type EffectRunner = <Value, Error>(
   effect: Effect.Effect<Value, Error, SqlClient | PgDrizzle>,
 ) => Promise<Value>;
 
-export const mitFach = (
-  verwende: (provided: Ausfuehrung, pool: Pool) => Promise<void>,
+export const withFach = (
+  runTest: (provided: EffectRunner, pool: Pool) => Promise<void>,
 ): Promise<void> =>
   withPostgresTestDatabase(async (pool) => {
     await Effect.runPromise(migrateDatabase(pool));
@@ -57,91 +57,87 @@ export const mitFach = (
       [JSON.stringify(standardgewichtung)],
     );
     const layer = postgresTestLayer(pool);
-    await verwende(
+    await runTest(
       (effect) => Effect.runPromise(effect.pipe(Effect.provide(layer))),
       pool,
     );
   });
 
-export const zaehle = async (
+export const countRows = async (
   pool: Pool,
-  tabelle: 'term' | 'school_year_subject_set',
+  table: 'term' | 'school_year_subject_set',
   schoolYear: string,
 ): Promise<number> => {
-  const ergebnis = await pool.query<{ readonly anzahl: string }>(
-    `SELECT count(*)::text AS anzahl FROM ${tabelle} WHERE school_year = $1`,
+  const result = await pool.query<{ readonly count: string }>(
+    `SELECT count(*)::text AS count FROM ${table} WHERE school_year = $1`,
     [schoolYear],
   );
-  return Number(ergebnis.rows[0]?.anzahl ?? '0');
+  return Number(result.rows[0]?.count ?? '0');
 };
 
-const warteAufLifecycleSperren = async (
+const waitForLifecycleLocks = async (
   pool: Pool,
-  erwartet: number,
-  verbleibendeVersuche: number,
+  expected: number,
+  remainingAttempts: number,
 ): Promise<void> => {
-  const ergebnis = await pool.query<{ readonly anzahl: string }>(
-    `SELECT count(*)::text AS anzahl
+  const result = await pool.query<{ readonly count: string }>(
+    `SELECT count(*)::text AS count
      FROM pg_stat_activity
      WHERE datname = current_database()
        AND wait_event_type = 'Lock'
        AND wait_event = 'advisory'`,
   );
-  if (Number(ergebnis.rows[0]?.anzahl ?? '0') >= erwartet) {
+  if (Number(result.rows[0]?.count ?? '0') >= expected) {
     return;
   }
-  if (verbleibendeVersuche === 0) {
+  if (remainingAttempts === 0) {
     throw new Error(
-      `${erwartet} Lifecycle-Operationen erreichten die Testbarriere nicht.`,
+      `${expected} Lifecycle-Operationen erreichten die Testbarriere nicht.`,
     );
   }
   await Bun.sleep(10);
-  await warteAufLifecycleSperren(pool, erwartet, verbleibendeVersuche - 1);
+  await waitForLifecycleLocks(pool, expected, remainingAttempts - 1);
 };
 
-export const hinterLifecycleBarriere = async (
+export const behindLifecycleBarrier = async (
   pool: Pool,
-  provided: Ausfuehrung,
+  provided: EffectRunner,
   schoolYear: string,
-  operationen: ReadonlyArray<() => Promise<void>>,
+  operations: ReadonlyArray<() => Promise<void>>,
 ): Promise<void> => {
-  let meldeBereit = (): void => undefined;
-  let gibFrei = (): void => undefined;
-  const bereit = new Promise<void>((resolve) => {
-    meldeBereit = resolve;
+  let signalReady = (): void => undefined;
+  let release = (): void => undefined;
+  const ready = new Promise<void>((resolve) => {
+    signalReady = resolve;
   });
-  const freigabe = new Promise<void>((resolve) => {
-    gibFrei = resolve;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
   });
-  const sperre = provided(
+  const lock = provided(
     Effect.gen(function* () {
       const sql = yield* SqlClient;
       yield* sql.withTransaction(
         Effect.gen(function* () {
-          yield* sperreSchuljahrLifecycle(schoolYear);
-          yield* Effect.sync(meldeBereit);
-          yield* Effect.promise(() => freigabe);
+          yield* lockSchuljahrLifecycle(schoolYear);
+          yield* Effect.sync(signalReady);
+          yield* Effect.promise(() => released);
         }),
       );
     }),
   );
-  await bereit;
-  const laufend = operationen.map((operation) => operation());
-  let barrierenfehler: unknown;
+  await ready;
+  const running = operations.map((operation) => operation());
+  let barrierError: unknown;
   try {
-    await warteAufLifecycleSperren(
-      pool,
-      operationen.length,
-      maximaleSperrversuche,
-    );
+    await waitForLifecycleLocks(pool, operations.length, maxLockAttempts);
   } catch (error) {
-    barrierenfehler = error;
+    barrierError = error;
   } finally {
-    gibFrei();
-    await sperre;
+    release();
+    await lock;
   }
-  await Promise.all(laufend);
-  if (barrierenfehler !== undefined) {
-    throw barrierenfehler;
+  await Promise.all(running);
+  if (barrierError !== undefined) {
+    throw barrierError;
   }
 };

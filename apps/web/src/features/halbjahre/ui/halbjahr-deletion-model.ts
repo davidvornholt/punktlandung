@@ -1,15 +1,15 @@
 import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
 import { restoreFormFocus } from '#/shared/ui/form-focus.ts';
-import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
+import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 
 export type HalbjahrDeletionRequest = {
   readonly focusTarget: HTMLButtonElement | null;
-  readonly halbjahr: HalbjahrMitNotenAnzahl;
+  readonly halbjahr: HalbjahrWithNotenCount;
 };
 
 export const isFinalHalbjahrInSchoolYear = (
-  halbjahre: ReadonlyArray<HalbjahrMitNotenAnzahl>,
-  halbjahr: HalbjahrMitNotenAnzahl,
+  halbjahre: ReadonlyArray<HalbjahrWithNotenCount>,
+  halbjahr: HalbjahrWithNotenCount,
 ): boolean =>
   !halbjahre.some(
     (candidate) =>
@@ -18,7 +18,7 @@ export const isFinalHalbjahrInSchoolYear = (
   );
 
 export const halbjahrDeletionConfirmationText = (
-  halbjahr: HalbjahrMitNotenAnzahl,
+  halbjahr: HalbjahrWithNotenCount,
   isFinalInSchoolYear: boolean,
 ): string =>
   isFinalInSchoolYear
@@ -26,7 +26,7 @@ export const halbjahrDeletionConfirmationText = (
     : 'Das leere Halbjahr wird entfernt.';
 
 export const halbjahrDeletionSuccessMessage = (
-  halbjahr: HalbjahrMitNotenAnzahl,
+  halbjahr: HalbjahrWithNotenCount,
 ): string =>
   `Halbjahr ${halbjahrBezeichnung(halbjahr)} (${halbjahr.schoolYear}) wurde gelöscht.`;
 
@@ -54,4 +54,4 @@ export const isProtectedHalbjahrDeletionError = (error: unknown): boolean =>
   error !== null &&
   '_tag' in error &&
   // biome-ignore lint/security/noSecrets: This is a stable Effect error tag, not a credential.
-  error._tag === 'HalbjahrMitNotenNichtLoeschbar';
+  error._tag === 'HalbjahrDeletionBlockedByNoten';

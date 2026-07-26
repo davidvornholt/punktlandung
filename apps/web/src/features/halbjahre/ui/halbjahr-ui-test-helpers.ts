@@ -1,18 +1,18 @@
 import type { ReactElement } from 'react';
 import { isValidElement } from 'react';
 
-import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
+import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 
 export const createHalbjahr = (
   id: string,
   half: 1 | 2,
-  notenAnzahl = 0,
-): HalbjahrMitNotenAnzahl => ({
+  notenCount = 0,
+): HalbjahrWithNotenCount => ({
   endsOn: '2027-01-31',
   half,
   id,
   klassenstufe: '10',
-  notenAnzahl,
+  notenCount,
   schoolYear: '2026/27',
   startsOn: '2026-08-01',
   system: 'sechser',

@@ -42,6 +42,6 @@ export const HalbjahrAktualisierung = Schema.Struct({
 
 export type HalbjahrAktualisierung = typeof HalbjahrAktualisierung.Type;
 
-export const HalbjahrKennung = Schema.Struct({
+export const HalbjahrId = Schema.Struct({
   id: Schema.String,
 });

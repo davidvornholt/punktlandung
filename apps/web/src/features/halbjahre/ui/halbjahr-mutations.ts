@@ -23,16 +23,16 @@ export const useHalbjahrMutations = ({
     onEditorClose();
     return queryClient.invalidateQueries({ queryKey: ['halbjahre'] });
   };
-  const anlegen = useMutation({
+  const createMutation = useMutation({
     mutationFn: (values: HalbjahrEingabe) => createHalbjahrFn({ data: values }),
     onSuccess: closeAfterSuccess,
   });
-  const aendern = useMutation({
+  const updateMutation = useMutation({
     mutationFn: (values: HalbjahrEingabe & { readonly id: string }) =>
       updateHalbjahrFn({ data: values }),
     onSuccess: closeAfterSuccess,
   });
-  const loeschen = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: ({ halbjahr }: HalbjahrDeletionRequest) =>
       deleteHalbjahrFn({ data: { id: halbjahr.id } }),
     onError: (error) =>
@@ -48,5 +48,5 @@ export const useHalbjahrMutations = ({
       ]);
     },
   });
-  return { aendern, anlegen, loeschen };
+  return { createMutation, deleteMutation, updateMutation };
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 
-import { HalbjahrMitNotenNichtLoeschbar } from '../errors/halbjahr-errors.ts';
-import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
+import { HalbjahrDeletionBlockedByNoten } from '../errors/halbjahr-errors.ts';
+import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import {
   findAdjacentHalbjahrEditTrigger,
   halbjahrDeletionConfirmationText,
@@ -14,12 +14,12 @@ import {
 const halbjahr = (
   id: string,
   schoolYear = '2026/27',
-): HalbjahrMitNotenAnzahl => ({
+): HalbjahrWithNotenCount => ({
   endsOn: '2027-01-31',
   half: 1,
   id,
   klassenstufe: '10',
-  notenAnzahl: 0,
+  notenCount: 0,
   schoolYear,
   startsOn: '2026-08-01',
   system: 'sechser',
@@ -96,9 +96,9 @@ describe('Halbjahr deletion model', () => {
   it('recognizes only the typed protected deletion rejection', () => {
     expect(
       isProtectedHalbjahrDeletionError(
-        new HalbjahrMitNotenNichtLoeschbar({
-          anzahl: 1,
+        new HalbjahrDeletionBlockedByNoten({
           halbjahrId: 'target',
+          notenCount: 1,
         }),
       ),
     ).toBeTrue();
