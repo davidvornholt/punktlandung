@@ -3,39 +3,39 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
-import { aktuellesHalbjahr } from '#/features/halbjahre/services/aktuelles-halbjahr.ts';
-import { HalbjahrAuswahl } from '#/features/halbjahre/ui/halbjahr-auswahl.tsx';
+import { currentHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
+import { HalbjahrSelect } from '#/features/halbjahre/ui/halbjahr-select.tsx';
 import { Zeugnisblatt } from '#/features/zeugnis/ui/zeugnisblatt.tsx';
-import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { pageTitle } from '#/shared/ui/page-title.ts';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 
-const ZeugnisSeite = () => {
-  const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
-  const halbjahre = halbjahreAbfrage.data;
-  const [gewaehltesId, setGewaehltesId] = useState<string | null>(null);
+const ZeugnisPage = () => {
+  const halbjahreQuery = useQuery(halbjahreQueryOptions);
+  const halbjahre = halbjahreQuery.data;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  if (halbjahreAbfrage.isPending) {
+  if (halbjahreQuery.isPending) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
           Zeugnis
         </h1>
         <div className="mt-6">
-          <Ladehinweis text="Zeugnis wird geladen …" />
+          <LoadingHint text="Zeugnis wird geladen …" />
         </div>
       </>
     );
   }
-  if (halbjahreAbfrage.isError || halbjahre === undefined) {
+  if (halbjahreQuery.isError || halbjahre === undefined) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
           Zeugnis
         </h1>
         <div className="mt-6">
-          <AbfrageFehler
-            onWiederholen={() => halbjahreAbfrage.refetch()}
+          <QueryError
+            onRetry={() => halbjahreQuery.refetch()}
             text="Die Halbjahre für das Zeugnis konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
@@ -43,9 +43,9 @@ const ZeugnisSeite = () => {
     );
   }
 
-  const vorgabe = aktuellesHalbjahr(halbjahre, berlinKalenderdatum());
+  const defaultValue = currentHalbjahr(halbjahre, berlinCalendarDate());
   const halbjahr =
-    halbjahre.find((eintrag) => eintrag.id === gewaehltesId) ?? vorgabe;
+    halbjahre.find((entry) => entry.id === selectedId) ?? defaultValue;
 
   return (
     <>
@@ -64,13 +64,13 @@ const ZeugnisSeite = () => {
       ) : (
         <>
           <div className="mt-6 max-w-xs">
-            <HalbjahrAuswahl
+            <HalbjahrSelect
               halbjahre={halbjahre}
-              onWechsel={setGewaehltesId}
-              wert={halbjahr.id}
+              onChange={setSelectedId}
+              value={halbjahr.id}
             />
           </div>
-          <Zeugnisblatt termId={halbjahr.id} />
+          <Zeugnisblatt halbjahrId={halbjahr.id} />
         </>
       )}
     </>
@@ -78,6 +78,6 @@ const ZeugnisSeite = () => {
 };
 
 export const Route = createFileRoute('/_app/zeugnis')({
-  component: ZeugnisSeite,
-  head: () => ({ meta: [{ title: seitentitel('Zeugnis') }] }),
+  component: ZeugnisPage,
+  head: () => ({ meta: [{ title: pageTitle('Zeugnis') }] }),
 });

@@ -12,16 +12,16 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 
-import { klassenstufen } from '#/shared/schule/klassenstufe.ts';
+import { klassenstufen } from '#/shared/school/klassenstufe.ts';
 
 /** Notensystem eines Halbjahrs: Unterstufe 1–6, Kursstufe 0–15 Punkte. */
-export const gradeSystem = pgEnum('grade_system', ['sechser', 'punkte']);
+export const notensystemEnum = pgEnum('grade_system', ['sechser', 'punkte']);
 
 /** Klassenstufen des Gymnasiums; J1/J2 sind die Jahrgänge der Kursstufe. */
 export const klassenstufeEnum = pgEnum('klassenstufe', klassenstufen);
 
 /** Leistungsart; Gewichte dafür verkündet die Lehrkraft je Fach vorab. */
-export const gradeKind = pgEnum('grade_kind', [
+export const leistungsartEnum = pgEnum('grade_kind', [
   'klausur',
   'test',
   'muendlich',
@@ -30,9 +30,12 @@ export const gradeKind = pgEnum('grade_kind', [
 ]);
 
 /** Wertungsbereich für die schriftlich/mündlich-Aufteilung eines Fachs. */
-export const gradeArea = pgEnum('grade_area', ['schriftlich', 'muendlich']);
+export const wertungsbereichEnum = pgEnum('grade_area', [
+  'schriftlich',
+  'muendlich',
+]);
 
-export const subject = pgTable('subject', {
+export const fachTable = pgTable('subject', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   shortName: text('short_name').notNull(),
@@ -67,13 +70,13 @@ export const subject = pgTable('subject', {
  * `subject` bleibt die stabile Identität und dient bestehenden Installationen
  * bis zur ersten atomaren Materialisierung als Legacy-Ausgangsstand.
  */
-export const schoolYearSubject = pgTable(
+export const schoolYearFachTable = pgTable(
   'school_year_subject',
   {
     schoolYear: text('school_year').notNull(),
     subjectId: text('subject_id')
       .notNull()
-      .references(() => subject.id, { onDelete: 'cascade' }),
+      .references(() => fachTable.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     shortName: text('short_name').notNull(),
     writtenShare: integer('written_share'),
@@ -105,12 +108,12 @@ export const schoolYearSubject = pgTable(
 );
 
 /** Markiert auch einen leeren Schuljahr-Fachstand als vollständig fixiert. */
-export const schoolYearSubjectSet = pgTable('school_year_subject_set', {
+export const schoolYearFachSetTable = pgTable('school_year_subject_set', {
   schoolYear: text('school_year').primaryKey(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const term = pgTable(
+export const halbjahrTable = pgTable(
   'term',
   {
     id: text('id').primaryKey(),
@@ -120,7 +123,7 @@ export const term = pgTable(
     schoolYear: text('school_year').notNull(),
     /** 1 oder 2 innerhalb des Schuljahrs. */
     half: integer('half').$type<1 | 2>().notNull(),
-    system: gradeSystem('system').notNull(),
+    system: notensystemEnum('system').notNull(),
     startsOn: date('starts_on').notNull(),
     endsOn: date('ends_on').notNull(),
   },
@@ -130,16 +133,16 @@ export const term = pgTable(
   ],
 );
 
-export const grade = pgTable('grade', {
+export const noteTable = pgTable('grade', {
   id: text('id').primaryKey(),
   subjectId: text('subject_id')
     .notNull()
-    .references(() => subject.id, { onDelete: 'cascade' }),
+    .references(() => fachTable.id, { onDelete: 'cascade' }),
   termId: text('term_id')
     .notNull()
-    .references(() => term.id, { onDelete: 'cascade' }),
-  kind: gradeKind('kind').notNull(),
-  area: gradeArea('area').notNull(),
+    .references(() => halbjahrTable.id, { onDelete: 'cascade' }),
+  kind: leistungsartEnum('kind').notNull(),
+  area: wertungsbereichEnum('area').notNull(),
   /** Nativer Wert im System des Halbjahrs (1,00–6,00 bzw. 0–15). */
   value: numeric('value', { precision: 4, scale: 2 }).notNull(),
   /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */
@@ -150,12 +153,12 @@ export const grade = pgTable('grade', {
 });
 
 /** Lerntage: ein Eintrag pro Tag und (optional) Fach. */
-export const studyDay = pgTable(
+export const studyDayTable = pgTable(
   'study_day',
   {
     id: text('id').primaryKey(),
     day: date('day').notNull(),
-    subjectId: text('subject_id').references(() => subject.id, {
+    subjectId: text('subject_id').references(() => fachTable.id, {
       onDelete: 'set null',
     }),
     minutes: integer('minutes'),

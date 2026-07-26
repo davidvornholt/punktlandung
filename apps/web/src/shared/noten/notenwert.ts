@@ -14,11 +14,11 @@ export type Leistungsart =
 
 export type Wertungsbereich = 'schriftlich' | 'muendlich';
 
-export type Leistung = {
-  readonly value: number;
-  readonly weight: number;
-  readonly kind: Leistungsart;
-  readonly area: Wertungsbereich;
+export type Assessment = {
+  readonly notenwert: number;
+  readonly individualGewichtung: number;
+  readonly leistungsart: Leistungsart;
+  readonly wertungsbereich: Wertungsbereich;
 };
 
 export type Fachgewichtung = {
@@ -27,13 +27,13 @@ export type Fachgewichtung = {
   readonly kindWeights: Readonly<Record<Leistungsart, number>>;
 };
 
-const prozentBasis = 100;
-const punkteMin = 0;
-const punkteMax = 15;
+const percentBase = 100;
+const minNotenpunkte = 0;
+const maxNotenpunkte = 15;
 
-type Umrechnungsanker = {
-  readonly eingabe: number;
-  readonly ausgabe: number;
+type ConversionAnchor = {
+  readonly input: number;
+  readonly output: number;
 };
 
 /**
@@ -41,84 +41,81 @@ type Umrechnungsanker = {
  * Dezimalwerte links sind die Viertelnoten, mit denen die App diese Tendenzen
  * im Sechsersystem erfasst; sie selbst sind keine amtliche Umrechnungstabelle.
  */
-const sechserZuPunkteAnker: ReadonlyArray<Umrechnungsanker> = [
-  { eingabe: 0.75, ausgabe: 15 },
-  { eingabe: 1, ausgabe: 14 },
-  { eingabe: 1.25, ausgabe: 13 },
-  { eingabe: 1.75, ausgabe: 12 },
-  { eingabe: 2, ausgabe: 11 },
-  { eingabe: 2.25, ausgabe: 10 },
-  { eingabe: 2.75, ausgabe: 9 },
-  { eingabe: 3, ausgabe: 8 },
-  { eingabe: 3.25, ausgabe: 7 },
-  { eingabe: 3.75, ausgabe: 6 },
-  { eingabe: 4, ausgabe: 5 },
-  { eingabe: 4.25, ausgabe: 4 },
-  { eingabe: 4.75, ausgabe: 3 },
-  { eingabe: 5, ausgabe: 2 },
-  { eingabe: 5.25, ausgabe: 1 },
-  { eingabe: 6, ausgabe: 0 },
+const sechserToNotenpunkteAnchors: ReadonlyArray<ConversionAnchor> = [
+  { input: 0.75, output: 15 },
+  { input: 1, output: 14 },
+  { input: 1.25, output: 13 },
+  { input: 1.75, output: 12 },
+  { input: 2, output: 11 },
+  { input: 2.25, output: 10 },
+  { input: 2.75, output: 9 },
+  { input: 3, output: 8 },
+  { input: 3.25, output: 7 },
+  { input: 3.75, output: 6 },
+  { input: 4, output: 5 },
+  { input: 4.25, output: 4 },
+  { input: 4.75, output: 3 },
+  { input: 5, output: 2 },
+  { input: 5.25, output: 1 },
+  { input: 6, output: 0 },
 ];
 
-const punkteZuSechserAnker: ReadonlyArray<Umrechnungsanker> = [
-  ...sechserZuPunkteAnker,
+const notenpunkteToSechserAnchors: ReadonlyArray<ConversionAnchor> = [
+  ...sechserToNotenpunkteAnchors,
 ]
   .reverse()
-  .map(({ eingabe, ausgabe }) => ({ eingabe: ausgabe, ausgabe: eingabe }));
+  .map(({ input, output }) => ({ input: output, output: input }));
 
-const interpoliere = (
+const interpolate = (
   value: number,
-  anker: ReadonlyArray<Umrechnungsanker>,
+  anchors: ReadonlyArray<ConversionAnchor>,
 ): number => {
   if (Number.isNaN(value)) {
     return value;
   }
-  const [erster] = anker;
-  const letzter = anker.at(-1);
-  if (erster === undefined || letzter === undefined) {
+  const [first] = anchors;
+  const last = anchors.at(-1);
+  if (first === undefined || last === undefined) {
     return value;
   }
-  if (value <= erster.eingabe) {
-    return erster.ausgabe;
+  if (value <= first.input) {
+    return first.output;
   }
-  for (let index = 1; index < anker.length; index += 1) {
-    const links = anker[index - 1];
-    const rechts = anker[index];
-    if (
-      links !== undefined &&
-      rechts !== undefined &&
-      value <= rechts.eingabe
-    ) {
-      const position =
-        (value - links.eingabe) / (rechts.eingabe - links.eingabe);
-      return links.ausgabe + position * (rechts.ausgabe - links.ausgabe);
+  for (let index = 1; index < anchors.length; index += 1) {
+    const left = anchors[index - 1];
+    const right = anchors[index];
+    if (left !== undefined && right !== undefined && value <= right.input) {
+      const position = (value - left.input) / (right.input - left.input);
+      return left.output + position * (right.output - left.output);
     }
   }
-  return letzter.ausgabe;
+  return last.output;
 };
 
 /** Normalisiert einen nativen Wert auf die Punkteskala (0–15, dezimal). */
-export const zuPunkten = (value: number, system: Notensystem): number =>
+export const toNotenpunkte = (value: number, system: Notensystem): number =>
   system === 'punkte'
-    ? Math.min(punkteMax, Math.max(punkteMin, value))
-    : interpoliere(value, sechserZuPunkteAnker);
+    ? Math.min(maxNotenpunkte, Math.max(minNotenpunkte, value))
+    : interpolate(value, sechserToNotenpunkteAnchors);
 
 /** Rechnet einen Punktewert (dezimal) in die Sechserskala um. */
-export const zuSechser = (punkte: number): number =>
-  interpoliere(punkte, punkteZuSechserAnker);
+export const toSechser = (notenpunkte: number): number =>
+  interpolate(notenpunkte, notenpunkteToSechserAnchors);
 
-const gewichtetesMittel = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
+const weightedAverage = (
+  assessments: ReadonlyArray<Assessment>,
+  fachGewichtung: Fachgewichtung,
 ): number | null => {
-  let summe = 0;
-  let gewichte = 0;
-  for (const l of leistungen) {
-    const gewicht = l.weight * gewichtung.kindWeights[l.kind];
-    summe += l.value * gewicht;
-    gewichte += gewicht;
+  let total = 0;
+  let totalGewichtung = 0;
+  for (const assessment of assessments) {
+    const combinedGewichtung =
+      assessment.individualGewichtung *
+      fachGewichtung.kindWeights[assessment.leistungsart];
+    total += assessment.notenwert * combinedGewichtung;
+    totalGewichtung += combinedGewichtung;
   }
-  return gewichte === 0 ? null : summe / gewichte;
+  return totalGewichtung === 0 ? null : total / totalGewichtung;
 };
 
 /**
@@ -126,27 +123,31 @@ const gewichtetesMittel = (
  * oder bereichsweise (schriftlich/mündlich) nach verkündetem Anteil. Fehlt
  * ein Bereich vollständig, zählt der vorhandene allein.
  */
-export const fachschnitt = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
+export const fachAverage = (
+  assessments: ReadonlyArray<Assessment>,
+  fachGewichtung: Fachgewichtung,
 ): number | null => {
-  if (gewichtung.writtenShare === null) {
-    return gewichtetesMittel(leistungen, gewichtung);
+  if (fachGewichtung.writtenShare === null) {
+    return weightedAverage(assessments, fachGewichtung);
   }
-  const schriftlich = gewichtetesMittel(
-    leistungen.filter((l) => l.area === 'schriftlich'),
-    gewichtung,
+  const schriftlichAverage = weightedAverage(
+    assessments.filter(
+      (assessment) => assessment.wertungsbereich === 'schriftlich',
+    ),
+    fachGewichtung,
   );
-  const muendlich = gewichtetesMittel(
-    leistungen.filter((l) => l.area === 'muendlich'),
-    gewichtung,
+  const muendlichAverage = weightedAverage(
+    assessments.filter(
+      (assessment) => assessment.wertungsbereich === 'muendlich',
+    ),
+    fachGewichtung,
   );
-  if (schriftlich === null) {
-    return muendlich;
+  if (schriftlichAverage === null) {
+    return muendlichAverage;
   }
-  if (muendlich === null) {
-    return schriftlich;
+  if (muendlichAverage === null) {
+    return schriftlichAverage;
   }
-  const anteil = gewichtung.writtenShare / prozentBasis;
-  return schriftlich * anteil + muendlich * (1 - anteil);
+  const share = fachGewichtung.writtenShare / percentBase;
+  return schriftlichAverage * share + muendlichAverage * (1 - share);
 };

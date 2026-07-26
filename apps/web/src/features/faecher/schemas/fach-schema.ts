@@ -1,63 +1,63 @@
 import { Schema } from 'effect';
 
 /** Eingabegrenzen — auch die Formulare nutzen sie für ihre Attribute. */
-export const fachGrenzen = {
+export const fachLimits = {
   nameMax: 100,
-  kuerzelMax: 10,
-  anteilMax: 100,
-  gewichtMax: 10,
-  gewichtSchritt: 0.25,
+  maxShortName: 10,
+  maxShare: 100,
+  maxGewichtung: 10,
+  gewichtungStep: 0.25,
 } as const;
 
 /** Gewicht einer Leistungsart, wie von der Lehrkraft verkündet. */
-const Gewicht = Schema.Number.pipe(
+const Gewichtung = Schema.Number.pipe(
   Schema.positive(),
-  Schema.lessThanOrEqualTo(fachGrenzen.gewichtMax),
+  Schema.lessThanOrEqualTo(fachLimits.maxGewichtung),
 );
 
-export const FachFelder = Schema.Struct({
+export const FachFields = Schema.Struct({
   name: Schema.String.pipe(
     Schema.minLength(1),
-    Schema.maxLength(fachGrenzen.nameMax),
+    Schema.maxLength(fachLimits.nameMax),
   ),
   shortName: Schema.String.pipe(
     Schema.minLength(1),
-    Schema.maxLength(fachGrenzen.kuerzelMax),
+    Schema.maxLength(fachLimits.maxShortName),
   ),
   /** Anteil schriftlicher Noten in Prozent; null = eine gemeinsame Liste. */
   writtenShare: Schema.NullOr(
-    Schema.Int.pipe(Schema.between(0, fachGrenzen.anteilMax)),
+    Schema.Int.pipe(Schema.between(0, fachLimits.maxShare)),
   ),
-  klausurWeight: Gewicht,
-  testWeight: Gewicht,
-  muendlichWeight: Gewicht,
-  gfsWeight: Gewicht,
-  sonstigeWeight: Gewicht,
+  klausurWeight: Gewichtung,
+  testWeight: Gewichtung,
+  muendlichWeight: Gewichtung,
+  gfsWeight: Gewichtung,
+  sonstigeWeight: Gewichtung,
 });
 
-export type FachFelder = typeof FachFelder.Type;
+export type FachFields = typeof FachFields.Type;
 
-export const FachEingabe = Schema.Struct({
+export const FachInput = Schema.Struct({
   schoolYear: Schema.String,
-  ...FachFelder.fields,
+  ...FachFields.fields,
 });
 
-export type FachEingabe = typeof FachEingabe.Type;
+export type FachInput = typeof FachInput.Type;
 
-export const FachAktualisierung = Schema.Struct({
+export const FachUpdate = Schema.Struct({
   id: Schema.String,
-  ...FachEingabe.fields,
+  ...FachInput.fields,
 });
 
-export type FachAktualisierung = typeof FachAktualisierung.Type;
+export type FachUpdate = typeof FachUpdate.Type;
 
-export const FachKennung = Schema.Struct({
+export const FachId = Schema.Struct({
   id: Schema.String,
   schoolYear: Schema.String,
 });
 
-export type FachKennung = typeof FachKennung.Type;
+export type FachId = typeof FachId.Type;
 
-export const FaecherAbfrage = Schema.Struct({
+export const FaecherQuery = Schema.Struct({
   schoolYear: Schema.String,
 });

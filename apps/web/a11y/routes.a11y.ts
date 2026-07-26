@@ -7,17 +7,17 @@ import { expect, test } from '@playwright/test';
  * angemeldeten Seiten (/noten, /zeugnis, …) im Test zu erreichen. "/" ist
  * trotzdem gelistet, weil der Redirect auf /anmelden mitgeprüft werden soll.
  */
-const routen = [
-  { name: 'Anmelden', pfad: '/anmelden' },
-  { name: 'Startseite (leitet auf /anmelden um)', pfad: '/' },
+const routes = [
+  { name: 'Anmelden', path: '/anmelden' },
+  { name: 'Startseite (leitet auf /anmelden um)', path: '/' },
 ] as const;
 
-for (const route of routen) {
+for (const route of routes) {
   test(`${route.name} hat keine automatisierten WCAG-2.2-AA-Verstöße`, async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto(route.pfad);
+    await page.goto(route.path);
 
     await expect(page.locator('main')).toBeVisible();
     expect(await scanWcag22AaViolations(page)).toEqual([]);

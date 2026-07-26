@@ -2,30 +2,27 @@ import { SqlClient } from '@effect/sql/SqlClient';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { istIsoDatumImZeitraum } from '#/shared/datum/zeitraum.ts';
-import { grade, term } from '#/shared/db/schema.ts';
-import { zuFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
+import { isIsoDateInRange } from '#/shared/date/date-range.ts';
+import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
+import { toFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type {
   Fachgewichtung,
   Leistungsart,
   Notensystem,
   Wertungsbereich,
 } from '#/shared/noten/notenwert.ts';
-import { ladeSchuljahrFachstand } from '#/shared/noten/schuljahr-fachstand.ts';
+import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
-  FachNichtImSchuljahr,
-  HalbjahrNichtGefunden,
-  NoteAusserhalbHalbjahr,
-  NoteNichtGefunden,
-  UngueltigerNotenwert,
+  FachNotInSchoolYear,
+  HalbjahrNotFound,
+  InvalidNotenwert,
+  NoteNotFound,
+  NoteOutsideHalbjahr,
 } from '../errors/noten-errors.ts';
-import type {
-  NoteAktualisierung,
-  NoteEingabe,
-} from '../schemas/note-schema.ts';
-import { istWertGueltig, standardBereich } from './notenpruefung.ts';
+import type { NoteInput, NoteUpdate } from '../schemas/note-schema.ts';
+import { defaultWertungsbereich, isValueValid } from './noten-validation.ts';
 
-export type NoteMitFach = {
+export type NoteWithFach = {
   readonly id: string;
   readonly kind: Leistungsart;
   readonly area: Wertungsbereich;
@@ -39,45 +36,43 @@ export type NoteMitFach = {
   readonly gewichtung: Fachgewichtung;
 };
 
-const pruefeWert = (wert: number, system: Notensystem) =>
-  istWertGueltig(wert, system)
+const validateValue = (value: number, system: Notensystem) =>
+  isValueValid(value, system)
     ? Effect.void
-    : Effect.fail(new UngueltigerNotenwert({ wert, system }));
+    : Effect.fail(new InvalidNotenwert({ wert: value, system }));
 
-const pruefeDatum = (
-  datum: string,
-  halbjahr: Pick<typeof term.$inferSelect, 'startsOn' | 'endsOn'>,
+const validateDate = (
+  date: string,
+  halbjahr: Pick<typeof halbjahrTable.$inferSelect, 'startsOn' | 'endsOn'>,
 ) =>
-  istIsoDatumImZeitraum(datum, halbjahr.startsOn, halbjahr.endsOn)
+  isIsoDateInRange(date, halbjahr.startsOn, halbjahr.endsOn)
     ? Effect.void
     : Effect.fail(
-        new NoteAusserhalbHalbjahr({
-          datum,
+        new NoteOutsideHalbjahr({
+          datum: date,
           startsOn: halbjahr.startsOn,
           endsOn: halbjahr.endsOn,
         }),
       );
 
-const ladeHalbjahrGesperrt = (termId: string) =>
+const loadLockedHalbjahr = (termId: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
-    const zeilen = yield* db
+    const rows = yield* db
       .select()
-      .from(term)
-      .where(eq(term.id, termId))
+      .from(halbjahrTable)
+      .where(eq(halbjahrTable.id, termId))
       .for('share');
-    const [halbjahr] = zeilen;
-    return (
-      halbjahr ?? (yield* Effect.fail(new HalbjahrNichtGefunden({ termId })))
-    );
+    const [halbjahr] = rows;
+    return halbjahr ?? (yield* Effect.fail(new HalbjahrNotFound({ termId })));
   });
 
-const pruefeFach = (subjectId: string, schoolYear: string) =>
+const validateFach = (fachId: string, schoolYear: string) =>
   Effect.gen(function* () {
-    const faecher = yield* ladeSchuljahrFachstand(schoolYear);
-    if (!faecher.some((fach) => fach.id === subjectId && !fach.archived)) {
+    const faecher = yield* loadSchoolYearFachSnapshot(schoolYear);
+    if (!faecher.some((fach) => fach.id === fachId && !fach.archived)) {
       return yield* Effect.fail(
-        new FachNichtImSchuljahr({ fachId: subjectId, schoolYear }),
+        new FachNotInSchoolYear({ fachId, schoolYear }),
       );
     }
   });
@@ -86,19 +81,22 @@ const pruefeFach = (subjectId: string, schoolYear: string) =>
 export const listNoten = (termId: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
-    const halbjahre = yield* db.select().from(term).where(eq(term.id, termId));
+    const halbjahre = yield* db
+      .select()
+      .from(halbjahrTable)
+      .where(eq(halbjahrTable.id, termId));
     const [halbjahr] = halbjahre;
     if (halbjahr === undefined) {
-      return yield* Effect.fail(new HalbjahrNichtGefunden({ termId }));
+      return yield* Effect.fail(new HalbjahrNotFound({ termId }));
     }
-    const fachstand = yield* ladeSchuljahrFachstand(halbjahr.schoolYear);
-    const faecher = new Map(fachstand.map((fach) => [fach.id, fach]));
-    const zeilen = yield* db
+    const fachSnapshot = yield* loadSchoolYearFachSnapshot(halbjahr.schoolYear);
+    const faecher = new Map(fachSnapshot.map((fach) => [fach.id, fach]));
+    const rows = yield* db
       .select()
-      .from(grade)
-      .where(eq(grade.termId, termId))
-      .orderBy(desc(grade.takenOn), desc(grade.createdAt));
-    return zeilen.flatMap((note): ReadonlyArray<NoteMitFach> => {
+      .from(noteTable)
+      .where(eq(noteTable.termId, termId))
+      .orderBy(desc(noteTable.takenOn), desc(noteTable.createdAt));
+    return rows.flatMap((note): ReadonlyArray<NoteWithFach> => {
       const fach = faecher.get(note.subjectId);
       if (fach === undefined) {
         return [];
@@ -115,70 +113,68 @@ export const listNoten = (termId: string) =>
           fachId: fach.id,
           fachName: fach.name,
           fachKuerzel: fach.shortName,
-          gewichtung: zuFachgewichtung(fach),
+          gewichtung: toFachgewichtung(fach),
         },
       ];
     });
   });
 
-export const createNote = (eingabe: NoteEingabe) =>
+export const createNote = (input: NoteInput) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     yield* sql.withTransaction(
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
-        const halbjahr = yield* ladeHalbjahrGesperrt(eingabe.termId);
-        yield* pruefeWert(eingabe.wert, halbjahr.system);
-        yield* pruefeDatum(eingabe.datum, halbjahr);
-        yield* pruefeFach(eingabe.subjectId, halbjahr.schoolYear);
-        yield* db.insert(grade).values({
+        const halbjahr = yield* loadLockedHalbjahr(input.termId);
+        yield* validateValue(input.wert, halbjahr.system);
+        yield* validateDate(input.datum, halbjahr);
+        yield* validateFach(input.subjectId, halbjahr.schoolYear);
+        yield* db.insert(noteTable).values({
           id: crypto.randomUUID(),
-          subjectId: eingabe.subjectId,
-          termId: eingabe.termId,
-          kind: eingabe.kind,
-          area: eingabe.area ?? standardBereich(eingabe.kind),
-          value: `${eingabe.wert}`,
-          weight: `${eingabe.gewicht}`,
-          takenOn: eingabe.datum,
-          note: eingabe.notiz,
+          subjectId: input.subjectId,
+          termId: input.termId,
+          kind: input.kind,
+          area: input.area ?? defaultWertungsbereich(input.kind),
+          value: `${input.wert}`,
+          weight: `${input.gewicht}`,
+          takenOn: input.datum,
+          note: input.notiz,
         });
       }),
     );
   });
 
-export const updateNote = (eingabe: NoteAktualisierung) =>
+export const updateNote = (input: NoteUpdate) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     yield* sql.withTransaction(
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
-        const vorhanden = yield* db
-          .select({ termId: grade.termId })
-          .from(grade)
-          .where(eq(grade.id, eingabe.id))
+        const existing = yield* db
+          .select({ termId: noteTable.termId })
+          .from(noteTable)
+          .where(eq(noteTable.id, input.id))
           .for('update');
-        const [zeile] = vorhanden;
-        if (zeile === undefined) {
-          return yield* Effect.fail(
-            new NoteNichtGefunden({ noteId: eingabe.id }),
-          );
+        const [row] = existing;
+        if (row === undefined) {
+          return yield* Effect.fail(new NoteNotFound({ noteId: input.id }));
         }
-        const halbjahr = yield* ladeHalbjahrGesperrt(zeile.termId);
-        yield* pruefeWert(eingabe.wert, halbjahr.system);
-        yield* pruefeDatum(eingabe.datum, halbjahr);
-        yield* pruefeFach(eingabe.subjectId, halbjahr.schoolYear);
+        const halbjahr = yield* loadLockedHalbjahr(row.termId);
+        yield* validateValue(input.wert, halbjahr.system);
+        yield* validateDate(input.datum, halbjahr);
+        yield* validateFach(input.subjectId, halbjahr.schoolYear);
         yield* db
-          .update(grade)
+          .update(noteTable)
           .set({
-            subjectId: eingabe.subjectId,
-            kind: eingabe.kind,
-            area: eingabe.area ?? standardBereich(eingabe.kind),
-            value: `${eingabe.wert}`,
-            weight: `${eingabe.gewicht}`,
-            takenOn: eingabe.datum,
-            note: eingabe.notiz,
+            subjectId: input.subjectId,
+            kind: input.kind,
+            area: input.area ?? defaultWertungsbereich(input.kind),
+            value: `${input.wert}`,
+            weight: `${input.gewicht}`,
+            takenOn: input.datum,
+            note: input.notiz,
           })
-          .where(eq(grade.id, eingabe.id));
+          .where(eq(noteTable.id, input.id));
       }),
     );
   });
@@ -186,5 +182,5 @@ export const updateNote = (eingabe: NoteAktualisierung) =>
 export const deleteNote = (id: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
-    yield* db.delete(grade).where(eq(grade.id, id));
+    yield* db.delete(noteTable).where(eq(noteTable.id, id));
   });

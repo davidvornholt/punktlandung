@@ -32,11 +32,11 @@ describe('jahresnote', () => {
   });
 
   it('behandelt beide Toleranz-Endpunkte dezimalsicher', () => {
-    for (const basis of [1, 2, 4]) {
-      expect(jahresnote(basis + 0.4).grenzfall).toBe(true);
-      expect(jahresnote(basis + 0.6).grenzfall).toBe(true);
-      expect(jahresnote(basis + 0.39).grenzfall).toBe(false);
-      expect(jahresnote(basis + 0.61).grenzfall).toBe(false);
+    for (const base of [1, 2, 4]) {
+      expect(jahresnote(base + 0.4).grenzfall).toBe(true);
+      expect(jahresnote(base + 0.6).grenzfall).toBe(true);
+      expect(jahresnote(base + 0.39).grenzfall).toBe(false);
+      expect(jahresnote(base + 0.61).grenzfall).toBe(false);
     }
     expect(jahresnote(2.399).grenzfall).toBe(false);
     expect(jahresnote(2.601).grenzfall).toBe(false);

@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { HalbjahreVerwaltung } from '#/features/halbjahre/ui/halbjahre-verwaltung.tsx';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { HalbjahreManagement } from '#/features/halbjahre/ui/halbjahre-management.tsx';
+import { pageTitle } from '#/shared/ui/page-title.ts';
 
-const EinstellungenSeite = () => (
+const SettingsPage = () => (
   <>
     <h1 className="font-display text-3xl text-ink tracking-tight">
       Einstellungen
@@ -12,12 +12,12 @@ const EinstellungenSeite = () => (
       Halbjahre bestimmen Zeitraum und Notensystem für alle Noten.
     </p>
     <div className="mt-6">
-      <HalbjahreVerwaltung />
+      <HalbjahreManagement />
     </div>
   </>
 );
 
 export const Route = createFileRoute('/_app/einstellungen')({
-  component: EinstellungenSeite,
-  head: () => ({ meta: [{ title: seitentitel('Einstellungen') }] }),
+  component: SettingsPage,
+  head: () => ({ meta: [{ title: pageTitle('Einstellungen') }] }),
 });

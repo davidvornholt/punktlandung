@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { zeugnisQueryOptions } from '../server/zeugnis-fns.ts';
 import type { Zeugnis } from '../services/zeugnis-service.ts';
 
@@ -33,19 +33,19 @@ const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
           </tr>
         </thead>
         <tbody>
-          {zeugnis.jahresvorschau.map((zeile) => (
-            <tr className="border-border border-b" key={zeile.fachId}>
+          {zeugnis.jahresvorschau.map((row) => (
+            <tr className="border-border border-b" key={row.fachId}>
               <th
                 className="py-2 pr-3 text-left font-normal text-ink"
                 scope="row"
               >
-                {zeile.fachName}
+                {row.fachName}
               </th>
               <td className="py-2">
                 <span className="font-display text-ink text-xl">
-                  {zeile.note}
+                  {row.note}
                 </span>
-                {zeile.grenzfall ? (
+                {row.grenzfall ? (
                   <span className="ml-3 border border-critical bg-critical-subtle px-2 py-0.5 text-ink text-xs uppercase tracking-widest">
                     * Grenzfall — pädagogisches Ermessen
                   </span>
@@ -59,22 +59,26 @@ const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
   );
 
 /** Das Zeugnisblatt: formale Vorschau eines Halbjahreszeugnisses. */
-export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
-  const zeugnisAbfrage = useQuery(zeugnisQueryOptions(termId));
-  const zeugnis = zeugnisAbfrage.data;
+export const Zeugnisblatt = ({
+  halbjahrId,
+}: {
+  readonly halbjahrId: string;
+}) => {
+  const zeugnisQuery = useQuery(zeugnisQueryOptions(halbjahrId));
+  const zeugnis = zeugnisQuery.data;
 
-  if (zeugnisAbfrage.isPending) {
+  if (zeugnisQuery.isPending) {
     return (
       <div className="mt-6">
-        <Ladehinweis text="Zeugnis wird berechnet …" />
+        <LoadingHint text="Zeugnis wird berechnet …" />
       </div>
     );
   }
-  if (zeugnisAbfrage.isError || zeugnis === undefined) {
+  if (zeugnisQuery.isError || zeugnis === undefined) {
     return (
       <div className="mt-6">
-        <AbfrageFehler
-          onWiederholen={() => zeugnisAbfrage.refetch()}
+        <QueryError
+          onRetry={() => zeugnisQuery.refetch()}
           text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>
@@ -115,19 +119,19 @@ export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
           </tr>
         </thead>
         <tbody>
-          {zeugnis.zeilen.map((zeile) => (
-            <tr className="border-border border-b" key={zeile.fachId}>
+          {zeugnis.zeilen.map((row) => (
+            <tr className="border-border border-b" key={row.fachId}>
               <th
                 className="py-2 pr-3 text-left font-normal text-ink"
                 scope="row"
               >
-                {zeile.fachName}
+                {row.fachName}
               </th>
               <td className="py-2 pr-3 text-ink-muted text-sm">
-                {zeile.anzahlNoten}
+                {row.anzahlNoten}
               </td>
               <td className="py-2 font-display text-ink text-xl">
-                {zeile.anzeige ?? '—'}
+                {row.anzeige ?? '—'}
               </td>
             </tr>
           ))}

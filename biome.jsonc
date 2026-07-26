@@ -99,8 +99,8 @@
       }
     },
     {
-      // Data.TaggedError tag literals ("HalbjahrNichtGefunden", …) are stable
-      // domain identifiers that the entropy-based secret heuristic
+      // Data.TaggedError tag literals ("HalbjahrNotFound", …) are stable
+      // error identifiers that the entropy-based secret heuristic
       // misclassifies as credentials.
       "includes": ["apps/web/src/features/*/errors/*.ts"],
       "linter": {
@@ -112,7 +112,7 @@
       }
     },
     {
-      // Grade-math tests compare against literal numeric fixtures (Noten,
+      // Notenmath tests compare against literal numeric fixtures (Noten,
       // Punkte, Gewichte, Daten); naming each expected value would obscure
       // the arithmetic the tests pin down.
       "includes": ["apps/web/src/**/*.test.ts"],

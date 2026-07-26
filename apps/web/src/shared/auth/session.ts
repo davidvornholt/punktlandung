@@ -2,13 +2,13 @@ import { auth } from '#/shared/auth/auth.ts';
 import { env } from '#/shared/env.ts';
 import { authorizeSession } from './authorization.ts';
 
-export type SitzungsInfo = {
+export type SessionInfo = {
   readonly name: string;
 };
 
-export const getAutorisierteSitzung = async (
+export const getAuthorizedSession = async (
   headers: Headers,
-): Promise<SitzungsInfo | null> => {
+): Promise<SessionInfo | null> => {
   const session = await authorizeSession({
     allowedAccountId: env.GITHUB_ALLOWED_ACCOUNT_ID,
     getSession: () => auth.api.getSession({ headers }),

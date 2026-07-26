@@ -11,7 +11,7 @@ export const leistungsartLabel: Readonly<Record<Leistungsart, string>> = {
   sonstige: 'Sonstige',
 };
 
-export const bereichLabel: Readonly<Record<Wertungsbereich, string>> = {
+export const wertungsbereichLabel: Readonly<Record<Wertungsbereich, string>> = {
   schriftlich: 'schriftlich',
   muendlich: 'mündlich',
 };

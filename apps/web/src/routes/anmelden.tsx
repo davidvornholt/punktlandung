@@ -1,17 +1,17 @@
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { lehneAuthFehlerAb } from '#/shared/auth/auth-antwort.ts';
 import { authClient } from '#/shared/auth/auth-client.ts';
-import { getSitzung } from '#/shared/auth/session-fn.ts';
-import { primaerKnopfKlasse } from '#/shared/ui/form-klassen.ts';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { rejectAuthError } from '#/shared/auth/auth-response.ts';
+import { getSessionFn } from '#/shared/auth/session-fn.ts';
+import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
+import { pageTitle } from '#/shared/ui/page-title.ts';
 
-const Anmelden = () => {
-  const anmelden = useMutation({
+const SignInPage = () => {
+  const signInMutation = useMutation({
     mutationFn: () =>
       authClient.signIn
         .social({ provider: 'github', callbackURL: '/' })
-        .then(lehneAuthFehlerAb),
+        .then(rejectAuthError),
   });
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-6">
@@ -24,16 +24,16 @@ const Anmelden = () => {
           Zeugnis im Blick behalten.
         </p>
         <button
-          className={`${primaerKnopfKlasse} mt-8 w-full py-3`}
-          disabled={anmelden.isPending}
-          onClick={() => anmelden.mutate()}
+          className={`${primaryButtonClass} mt-8 w-full py-3`}
+          disabled={signInMutation.isPending}
+          onClick={() => signInMutation.mutate()}
           type="button"
         >
-          {anmelden.isPending
+          {signInMutation.isPending
             ? 'GitHub-Anmeldung wird geöffnet …'
             : 'Mit GitHub anmelden'}
         </button>
-        {anmelden.isError ? (
+        {signInMutation.isError ? (
           <p
             className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
             role="alert"
@@ -53,11 +53,11 @@ const Anmelden = () => {
 
 export const Route = createFileRoute('/anmelden')({
   beforeLoad: async () => {
-    const sitzung = await getSitzung();
-    if (sitzung !== null) {
+    const session = await getSessionFn();
+    if (session !== null) {
       throw redirect({ to: '/' });
     }
   },
-  component: Anmelden,
-  head: () => ({ meta: [{ title: seitentitel('Anmelden') }] }),
+  component: SignInPage,
+  head: () => ({ meta: [{ title: pageTitle('Anmelden') }] }),
 });

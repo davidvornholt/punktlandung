@@ -1,6 +1,6 @@
 import type { Fachgewichtung } from './notenwert.ts';
 
-type GewichtsSpalten = {
+type FachgewichtungColumns = {
   readonly writtenShare: number | null;
   readonly klausurWeight: string;
   readonly testWeight: string;
@@ -13,7 +13,9 @@ type GewichtsSpalten = {
  * Übersetzt die numeric-Spalten (Strings) einer Fachzeile in die
  * Fachgewichtung der Notenmathematik.
  */
-export const zuFachgewichtung = (fach: GewichtsSpalten): Fachgewichtung => ({
+export const toFachgewichtung = (
+  fach: FachgewichtungColumns,
+): Fachgewichtung => ({
   writtenShare: fach.writtenShare,
   kindWeights: {
     klausur: Number(fach.klausurWeight),
