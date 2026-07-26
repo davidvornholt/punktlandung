@@ -11,11 +11,11 @@ import type { Fach } from '../services/fach-service.ts';
 import { fachFormValues } from './fach-form-model.ts';
 
 const gewichtungFields = [
-  { name: 'klausurGewichtung', label: 'Klausur' },
-  { name: 'testGewichtung', label: 'Test' },
-  { name: 'muendlichGewichtung', label: 'Mündlich' },
-  { name: 'gfsGewichtung', label: 'GFS' },
-  { name: 'sonstigeGewichtung', label: 'Sonstige' },
+  { name: 'klausurWeight', label: 'Klausur' },
+  { name: 'testWeight', label: 'Test' },
+  { name: 'muendlichWeight', label: 'Mündlich' },
+  { name: 'gfsWeight', label: 'GFS' },
+  { name: 'sonstigeWeight', label: 'Sonstige' },
 ] as const;
 
 const readValues = (form: HTMLFormElement): FachFields => {
@@ -25,16 +25,16 @@ const readValues = (form: HTMLFormElement): FachFields => {
     const raw = text(name).replace(',', '.');
     return raw === '' ? 1 : Number(raw);
   };
-  const share = text('schriftlichShare');
+  const share = text('writtenShare');
   return {
     name: text('name'),
     shortName: text('shortName'),
-    schriftlichShare: share === '' ? null : Number(share),
-    klausurGewichtung: parseGewichtung('klausurGewichtung'),
-    testGewichtung: parseGewichtung('testGewichtung'),
-    muendlichGewichtung: parseGewichtung('muendlichGewichtung'),
-    gfsGewichtung: parseGewichtung('gfsGewichtung'),
-    sonstigeGewichtung: parseGewichtung('sonstigeGewichtung'),
+    writtenShare: share === '' ? null : Number(share),
+    klausurWeight: parseGewichtung('klausurWeight'),
+    testWeight: parseGewichtung('testWeight'),
+    muendlichWeight: parseGewichtung('muendlichWeight'),
+    gfsWeight: parseGewichtung('gfsWeight'),
+    sonstigeWeight: parseGewichtung('sonstigeWeight'),
   };
 };
 
@@ -117,11 +117,11 @@ export const FachForm = ({
           Schriftlicher Anteil in Prozent (optional)
           <input
             className={inputClass}
-            defaultValue={values.schriftlichShare}
+            defaultValue={values.writtenShare}
             inputMode="numeric"
             max={fachLimits.maxShare}
             min={0}
-            name="schriftlichShare"
+            name="writtenShare"
             step={1}
             type="number"
           />

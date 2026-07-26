@@ -21,22 +21,22 @@ const Leistungsart = Schema.Literal(
 const Wertungsbereich = Schema.Literal('schriftlich', 'muendlich');
 
 const NotenFields = Schema.Struct({
-  fachId: Schema.String,
-  leistungsart: Leistungsart,
+  subjectId: Schema.String,
+  kind: Leistungsart,
   /** Ohne Angabe leitet der Service den Bereich aus der Leistungsart ab. */
-  wertungsbereich: Schema.optional(Wertungsbereich),
+  area: Schema.optional(Wertungsbereich),
   /** Nativer Wert; die Systemprüfung übernimmt der Service anhand des Halbjahrs. */
-  notenwert: Schema.Number,
-  individualGewichtung: Schema.Number.pipe(
+  wert: Schema.Number,
+  gewicht: Schema.Number.pipe(
     Schema.positive(),
     Schema.lessThanOrEqualTo(notenLimits.maxGewichtung),
   ),
-  date: Schema.String.pipe(Schema.pattern(isoDatePattern)),
-  comment: Schema.NullOr(Schema.String),
+  datum: Schema.String.pipe(Schema.pattern(isoDatePattern)),
+  notiz: Schema.NullOr(Schema.String),
 });
 
 export const NoteInput = Schema.Struct({
-  halbjahrId: Schema.String,
+  termId: Schema.String,
   ...NotenFields.fields,
 });
 
@@ -54,5 +54,5 @@ export const NoteId = Schema.Struct({
 });
 
 export const NotenQuery = Schema.Struct({
-  halbjahrId: Schema.String,
+  termId: Schema.String,
 });

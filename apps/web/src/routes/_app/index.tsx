@@ -52,10 +52,10 @@ const Overview = () => {
           detail={
             last === undefined
               ? undefined
-              : `entspricht Note ${formatNote(toSechser(last.average), 'sechser')}`
+              : `entspricht Note ${formatNote(toSechser(last.schnitt), 'sechser')}`
           }
           label="Gesamtschnitt"
-          value={last === undefined ? '—' : formatNote(last.average, 'punkte')}
+          value={last === undefined ? '—' : formatNote(last.schnitt, 'punkte')}
         />
         <StatCard label="Anzahl Noten" value={`${trend.length}`} />
         <LearnedToday />

@@ -3,14 +3,16 @@ import { Data } from 'effect';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 
 export class HalbjahrAlreadyExists extends Data.TaggedError(
-  'HalbjahrAlreadyExists',
-)<{ readonly schoolYear: string; readonly number: 1 | 2 }> {
+  'HalbjahrBelegungDoppelt',
+)<{ readonly schoolYear: string; readonly half: 1 | 2 }> {
   override get message(): string {
-    return `Für ${this.schoolYear} existiert bereits das ${this.number}. Halbjahr. Bearbeite den vorhandenen Eintrag.`;
+    return `Für ${this.schoolYear} existiert bereits das ${this.half}. Halbjahr. Bearbeite den vorhandenen Eintrag.`;
   }
 }
 
-export class HalbjahrNotFound extends Data.TaggedError('HalbjahrNotFound')<{
+export class HalbjahrNotFound extends Data.TaggedError(
+  'HalbjahrNichtGefunden',
+)<{
   readonly halbjahrId: string;
 }> {
   override get message(): string {
@@ -19,7 +21,7 @@ export class HalbjahrNotFound extends Data.TaggedError('HalbjahrNotFound')<{
 }
 
 export class NotensystemImmutableWithNoten extends Data.TaggedError(
-  'NotensystemImmutableWithNoten',
+  'NotensystemMitNotenUnveraenderlich',
 )<{
   readonly halbjahrId: string;
   readonly previous: Notensystem;
@@ -31,7 +33,7 @@ export class NotensystemImmutableWithNoten extends Data.TaggedError(
 }
 
 export class SchoolYearImmutableWithNoten extends Data.TaggedError(
-  'SchoolYearImmutableWithNoten',
+  'SchuljahrMitNotenUnveraenderlich',
 )<{
   readonly halbjahrId: string;
   readonly previous: string;
@@ -43,7 +45,7 @@ export class SchoolYearImmutableWithNoten extends Data.TaggedError(
 }
 
 export class HalbjahrExcludesNoten extends Data.TaggedError(
-  'HalbjahrExcludesNoten',
+  'HalbjahrSchliesstNotenAus',
 )<{
   readonly halbjahrId: string;
   readonly startsOn: string;

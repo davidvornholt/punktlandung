@@ -15,15 +15,15 @@ export const logStudyDay = (input: StudyDayInput) =>
       .values({
         id: crypto.randomUUID(),
         day: input.day,
-        fachId: input.fachId,
+        subjectId: input.subjectId,
         minutes: input.minutes,
-        comment: input.comment,
+        note: input.notiz,
       })
       .onConflictDoUpdate({
-        target: [studyDayTable.day, studyDayTable.fachId],
+        target: [studyDayTable.day, studyDayTable.subjectId],
         set: {
           minutes: sql`excluded.minutes`,
-          comment: sql`excluded.note`,
+          note: sql`excluded.note`,
         },
       });
   });

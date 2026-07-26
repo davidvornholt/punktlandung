@@ -119,7 +119,7 @@ export const Zeugnisblatt = ({
           </tr>
         </thead>
         <tbody>
-          {zeugnis.rows.map((row) => (
+          {zeugnis.zeilen.map((row) => (
             <tr className="border-border border-b" key={row.fachId}>
               <th
                 className="py-2 pr-3 text-left font-normal text-ink"
@@ -128,10 +128,10 @@ export const Zeugnisblatt = ({
                 {row.fachName}
               </th>
               <td className="py-2 pr-3 text-ink-muted text-sm">
-                {row.noteCount}
+                {row.anzahlNoten}
               </td>
               <td className="py-2 font-display text-ink text-xl">
-                {row.display ?? '—'}
+                {row.anzeige ?? '—'}
               </td>
             </tr>
           ))}
@@ -142,10 +142,10 @@ export const Zeugnisblatt = ({
           Schnitt aller Halbjahresnoten
         </span>
         <span className="font-display text-4xl text-ink tracking-tight">
-          {zeugnis.overallAverage ?? '—'}
+          {zeugnis.gesamtschnitt ?? '—'}
         </span>
       </p>
-      {zeugnis.rows.length === 0 ? (
+      {zeugnis.zeilen.length === 0 ? (
         <div className="mt-4 border border-border bg-surface-sunken p-4">
           <p className="text-ink-muted">
             Ohne Fächer bleibt das Zeugnisblatt leer. Lege zuerst Fächer an.

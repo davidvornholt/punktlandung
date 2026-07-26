@@ -31,8 +31,8 @@ import {
 
 type UpdateFields = (part: Partial<HalbjahrFormValues>) => void;
 
-const formatHalbjahrNumber = (number: 1 | 2) =>
-  number === 1 ? '1. Halbjahr (Aug–Jan)' : '2. Halbjahr (Feb–Jul)';
+const formatHalbjahrNumber = (half: 1 | 2) =>
+  half === 1 ? '1. Halbjahr (Aug–Jan)' : '2. Halbjahr (Feb–Jul)';
 
 const Summary = ({ values }: { readonly values: HalbjahrFormValues }) => (
   <p className="mt-4 border border-border bg-surface-sunken px-3 py-2 text-ink-muted text-sm">
@@ -95,14 +95,14 @@ const HeaderFields = ({
       <select
         className={inputClass}
         onChange={(event) =>
-          onUpdate({ number: event.target.value === '2' ? 2 : 1 })
+          onUpdate({ half: event.target.value === '2' ? 2 : 1 })
         }
-        value={values.number}
+        value={values.half}
       >
-        {([1, 2] as const).map((number) => (
-          <option key={number} value={number}>
-            {formatHalbjahrNumber(number)}
-            {isOccupied(occupied, values.schoolYear, number)
+        {([1, 2] as const).map((half) => (
+          <option key={half} value={half}>
+            {formatHalbjahrNumber(half)}
+            {isOccupied(occupied, values.schoolYear, half)
               ? ' — schon angelegt'
               : ''}
           </option>
@@ -144,11 +144,7 @@ export const HalbjahrForm = ({
     today,
     halbjahre.map((entry) => entry.schoolYear),
   );
-  const alreadyOccupied = isOccupied(
-    occupied,
-    values.schoolYear,
-    values.number,
-  );
+  const alreadyOccupied = isOccupied(occupied, values.schoolYear, values.half);
 
   return (
     <form
@@ -172,7 +168,7 @@ export const HalbjahrForm = ({
           className="mt-2 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          Für {values.schoolYear} gibt es das {values.number}. Halbjahr bereits.
+          Für {values.schoolYear} gibt es das {values.half}. Halbjahr bereits.
           Wähle eine andere Kombination oder bearbeite den vorhandenen Eintrag.
         </p>
       ) : null}

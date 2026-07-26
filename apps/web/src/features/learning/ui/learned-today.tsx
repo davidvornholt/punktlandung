@@ -23,9 +23,9 @@ export const LearnedToday = () => {
       logStudyDayFn({
         data: {
           day: berlinCalendarDate(),
-          fachId: null,
+          subjectId: null,
           minutes,
-          comment: null,
+          notiz: null,
         },
       }),
     onSuccess: () =>
@@ -55,13 +55,13 @@ export const LearnedToday = () => {
           <div>
             <dt className="text-ink-muted text-sm">Diesen Monat</dt>
             <dd className="font-display text-3xl text-ink tracking-tight">
-              {statisticsQuery.data.daysThisMonth}
+              {statisticsQuery.data.tageDiesenMonat}
             </dd>
           </div>
           <div>
             <dt className="text-ink-muted text-sm">Serie</dt>
             <dd className="font-display text-3xl text-ink tracking-tight">
-              {statisticsQuery.data.series} Tage
+              {statisticsQuery.data.serie} Tage
             </dd>
           </div>
         </dl>
@@ -71,7 +71,7 @@ export const LearnedToday = () => {
         onSubmit={(event) => {
           event.preventDefault();
           const raw =
-            `${new FormData(event.currentTarget).get('minuten') ?? ''}`.trim();
+            `${new FormData(event.currentTarget).get('minutes') ?? ''}`.trim();
           createMutation.reset();
           createMutation.mutate(raw === '' ? null : Number(raw));
         }}
@@ -83,7 +83,7 @@ export const LearnedToday = () => {
             inputMode="numeric"
             max={learningLimits.maxMinutes}
             min={1}
-            name="minuten"
+            name="minutes"
             step={1}
             type="number"
           />

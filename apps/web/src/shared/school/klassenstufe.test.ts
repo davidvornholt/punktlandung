@@ -8,7 +8,7 @@ import {
   notensystemForKlassenstufe,
 } from './klassenstufe.ts';
 
-describe('notensystemFuerKlassenstufe', () => {
+describe('notensystemForKlassenstufe', () => {
   it('nutzt Noten 1–6 bis einschließlich Klasse 10', () => {
     for (const klassenstufe of ['5', '10'] as const) {
       expect(notensystemForKlassenstufe(klassenstufe)).toBe('sechser');
@@ -24,14 +24,14 @@ describe('notensystemFuerKlassenstufe', () => {
 
 describe('formatHalbjahrLabel', () => {
   it('setzt Klassenstufe und Halbjahr zusammen', () => {
-    expect(formatHalbjahrLabel({ klassenstufe: '10', number: 2 })).toBe('10.2');
-    expect(formatHalbjahrLabel({ klassenstufe: 'J1', number: 1 })).toBe('J1.1');
+    expect(formatHalbjahrLabel({ klassenstufe: '10', half: 2 })).toBe('10.2');
+    expect(formatHalbjahrLabel({ klassenstufe: 'J1', half: 1 })).toBe('J1.1');
   });
 
   it('ist über alle Stufen und Halbjahre eindeutig', () => {
     const labels = klassenstufen.flatMap((klassenstufe) =>
-      ([1, 2] as const).map((number) =>
-        formatHalbjahrLabel({ klassenstufe, number }),
+      ([1, 2] as const).map((half) =>
+        formatHalbjahrLabel({ klassenstufe, half }),
       ),
     );
 
@@ -39,7 +39,7 @@ describe('formatHalbjahrLabel', () => {
   });
 });
 
-describe('naechsteKlassenstufe', () => {
+describe('nextKlassenstufe', () => {
   it('führt von der Mittelstufe in die Kursstufe', () => {
     expect(nextKlassenstufe('10')).toBe('J1');
   });
@@ -49,7 +49,7 @@ describe('naechsteKlassenstufe', () => {
   });
 });
 
-describe('istKlassenstufe', () => {
+describe('isKlassenstufe', () => {
   it('lehnt Klassenbezeichnungen und Altnamen ab', () => {
     expect(isKlassenstufe('9b')).toBe(false);
     expect(isKlassenstufe('K1')).toBe(false);

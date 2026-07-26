@@ -2,15 +2,17 @@ import { Data } from 'effect';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 
-export class HalbjahrNotFound extends Data.TaggedError('HalbjahrNotFound')<{
-  readonly halbjahrId: string;
+export class HalbjahrNotFound extends Data.TaggedError(
+  'HalbjahrNichtGefunden',
+)<{
+  readonly termId: string;
 }> {
   override get message(): string {
-    return `Das Halbjahr ${this.halbjahrId} existiert nicht. Lege es unter Einstellungen an oder wähle ein vorhandenes.`;
+    return `Das Halbjahr ${this.termId} existiert nicht. Lege es unter Einstellungen an oder wähle ein vorhandenes.`;
   }
 }
 
-export class NoteNotFound extends Data.TaggedError('NoteNotFound')<{
+export class NoteNotFound extends Data.TaggedError('NoteNichtGefunden')<{
   readonly noteId: string;
 }> {
   override get message(): string {
@@ -18,31 +20,31 @@ export class NoteNotFound extends Data.TaggedError('NoteNotFound')<{
   }
 }
 
-export class InvalidNotenwert extends Data.TaggedError('InvalidNotenwert')<{
-  readonly value: number;
-  readonly notensystem: Notensystem;
+export class InvalidNotenwert extends Data.TaggedError('UngueltigerNotenwert')<{
+  readonly wert: number;
+  readonly system: Notensystem;
 }> {
   override get message(): string {
-    return this.notensystem === 'punkte'
-      ? `${this.value} ist kein gültiger Wert: Notenpunkte sind ganze Zahlen von 0 bis 15.`
-      : `${this.value} ist kein gültiger Wert: Noten liegen zwischen 1,00 und 6,00.`;
+    return this.system === 'punkte'
+      ? `${this.wert} ist kein gültiger Wert: Notenpunkte sind ganze Zahlen von 0 bis 15.`
+      : `${this.wert} ist kein gültiger Wert: Noten liegen zwischen 1,00 und 6,00.`;
   }
 }
 
 export class NoteOutsideHalbjahr extends Data.TaggedError(
-  'NoteOutsideHalbjahr',
+  'NoteAusserhalbHalbjahr',
 )<{
-  readonly date: string;
+  readonly datum: string;
   readonly startsOn: string;
   readonly endsOn: string;
 }> {
   override get message(): string {
-    return `Das Notendatum ${this.date} liegt nicht im Halbjahr vom ${this.startsOn} bis ${this.endsOn}.`;
+    return `Das Notendatum ${this.datum} liegt nicht im Halbjahr vom ${this.startsOn} bis ${this.endsOn}.`;
   }
 }
 
 export class FachNotInSchoolYear extends Data.TaggedError(
-  'FachNotInSchoolYear',
+  'FachNichtImSchuljahr',
 )<{ readonly fachId: string; readonly schoolYear: string }> {
   override get message(): string {
     return `Das Fach ${this.fachId} gehört nicht zum Schuljahr ${this.schoolYear}. Wähle ein Fach aus diesem Schuljahr.`;

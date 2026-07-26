@@ -4,8 +4,8 @@ import type { Assessment, Fachgewichtung } from './notenwert.ts';
 import { fachAverage, toNotenpunkte, toSechser } from './notenwert.ts';
 
 const equallyWeighted: Fachgewichtung = {
-  schriftlichShare: null,
-  leistungsartGewichtungen: {
+  writtenShare: null,
+  kindWeights: {
     klausur: 1,
     test: 1,
     muendlich: 1,
@@ -46,9 +46,9 @@ describe('fachAverage', () => {
 
   it('gemeinsame Liste: gewichtetes Mittel über Art und Einzelgewicht', () => {
     const gewichtung: Fachgewichtung = {
-      schriftlichShare: null,
-      leistungsartGewichtungen: {
-        ...equallyWeighted.leistungsartGewichtungen,
+      writtenShare: null,
+      kindWeights: {
+        ...equallyWeighted.kindWeights,
         klausur: 2,
       },
     };
@@ -69,7 +69,7 @@ describe('fachAverage', () => {
   it('bereichsweise: verkündeter schriftlich-Anteil gilt', () => {
     const gewichtung: Fachgewichtung = {
       ...equallyWeighted,
-      schriftlichShare: 60,
+      writtenShare: 60,
     };
     const average = fachAverage(
       [
@@ -88,7 +88,7 @@ describe('fachAverage', () => {
   it('fehlt ein Bereich, zählt der vorhandene allein', () => {
     const gewichtung: Fachgewichtung = {
       ...equallyWeighted,
-      schriftlichShare: 60,
+      writtenShare: 60,
     };
     expect(
       fachAverage([assessment({ notenwert: 2.5 })], gewichtung),

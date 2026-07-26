@@ -1,14 +1,14 @@
 export type LearningStatistics = {
   /** Anzahl unterschiedlicher Lerntage im Monat von `heute`. */
-  readonly daysThisMonth: number;
+  readonly tageDiesenMonat: number;
   /** Aktuelle Serie zusammenhängender Lerntage (heute darf noch offen sein). */
-  readonly series: number;
+  readonly serie: number;
 };
 
 const monthLength = '0000-00'.length;
 
-const previousDay = (isoTag: string): string => {
-  const date = new Date(`${isoTag}T00:00:00Z`);
+const previousDay = (isoDay: string): string => {
+  const date = new Date(`${isoDay}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() - 1);
   return date.toISOString().slice(0, '0000-00-00'.length);
 };
@@ -24,15 +24,15 @@ export const calculateLearningStatistics = (
 ): LearningStatistics => {
   const month = today.slice(0, monthLength);
   const unique = new Set(days);
-  const daysThisMonth = [...unique].filter(
-    (tag) => tag.slice(0, monthLength) === month,
+  const tageDiesenMonat = [...unique].filter(
+    (day) => day.slice(0, monthLength) === month,
   ).length;
 
-  let series = 0;
+  let serie = 0;
   let expected = unique.has(today) ? today : previousDay(today);
   while (unique.has(expected)) {
-    series += 1;
+    serie += 1;
     expected = previousDay(expected);
   }
-  return { daysThisMonth, series };
+  return { tageDiesenMonat, serie };
 };

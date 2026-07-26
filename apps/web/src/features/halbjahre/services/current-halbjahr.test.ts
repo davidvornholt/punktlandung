@@ -7,7 +7,7 @@ const halbjahre = [
   { id: 'older', startsOn: '2026-09-14', endsOn: '2027-01-29' },
 ] as const;
 
-describe('aktuellesHalbjahr', () => {
+describe('currentHalbjahr', () => {
   it('wählt das Halbjahr, in dem heute liegt', () => {
     expect(currentHalbjahr(halbjahre, '2026-11-03')?.id).toBe('older');
     expect(currentHalbjahr(halbjahre, '2027-03-01')?.id).toBe('newer');

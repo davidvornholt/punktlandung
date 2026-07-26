@@ -29,8 +29,8 @@ export const notensystemForKlassenstufe = (
 /** Anzeigename eines Halbjahrs, z. B. "10.2" oder "J1.1". */
 export const formatHalbjahrLabel = (halbjahr: {
   readonly klassenstufe: Klassenstufe;
-  readonly number: 1 | 2;
-}): string => `${halbjahr.klassenstufe}.${halbjahr.number}`;
+  readonly half: 1 | 2;
+}): string => `${halbjahr.klassenstufe}.${halbjahr.half}`;
 
 /** Die auf `klassenstufe` folgende Stufe; nach J2 endet die Schullaufbahn. */
 export const nextKlassenstufe = (

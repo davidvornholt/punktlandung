@@ -17,11 +17,8 @@ const roundingFactor = 100;
  * Halbjahresnote in Viertelstufen (1; 1,25 = "1-"; 1,5 = "1-2"; 1,75 = "2+").
  * Im Punktesystem sind Halbjahresnoten ganze Notenpunkte.
  */
-export const halbjahresnote = (
-  average: number,
-  notensystem: Notensystem,
-): number =>
-  notensystem === 'punkte'
+export const halbjahresnote = (average: number, system: Notensystem): number =>
+  system === 'punkte'
     ? clamp(Math.round(average), minNotenpunkte, maxNotenpunkte)
     : clamp(
         Math.round(average * quarterStepsPerNote) / quarterStepsPerNote,
@@ -70,8 +67,8 @@ export const formatHalbnote = (quarters: number): string => {
 };
 
 /** Formatiert einen nativen Notenwert fürs UI ("2,25" bzw. "11 P."). */
-export const formatNote = (value: number, notensystem: Notensystem): string => {
+export const formatNote = (value: number, system: Notensystem): string => {
   const numberValue =
     `${Math.round(value * roundingFactor) / roundingFactor}`.replace('.', ',');
-  return notensystem === 'punkte' ? `${numberValue} P.` : numberValue;
+  return system === 'punkte' ? `${numberValue} P.` : numberValue;
 };

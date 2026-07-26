@@ -8,7 +8,7 @@ import { NotenCards } from './noten-cards.tsx';
 export const NotenList = ({
   halbjahr,
 }: {
-  readonly halbjahr: { readonly id: string; readonly notensystem: Notensystem };
+  readonly halbjahr: { readonly id: string; readonly system: Notensystem };
 }) => {
   const queryClient = useQueryClient();
   const notenQuery = useQuery(notenQueryOptions(halbjahr.id));
@@ -58,7 +58,7 @@ export const NotenList = ({
         deleteMutation.reset();
         deleteMutation.mutate(id);
       }}
-      notensystem={halbjahr.notensystem}
+      system={halbjahr.system}
     />
   );
 };

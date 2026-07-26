@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { defaultWertungsbereich, isValueValid } from './noten-validation.ts';
 
-describe('standardBereich', () => {
+describe('defaultWertungsbereich', () => {
   it('ordnet Klausur, Test und GFS dem schriftlichen Bereich zu', () => {
     expect(defaultWertungsbereich('klausur')).toBe('schriftlich');
     expect(defaultWertungsbereich('test')).toBe('schriftlich');
@@ -15,7 +15,7 @@ describe('standardBereich', () => {
   });
 });
 
-describe('istWertGueltig', () => {
+describe('isValueValid', () => {
   it('sechser: erlaubt 1,00 bis 6,00 einschließlich Zwischenwerten', () => {
     expect(isValueValid(1, 'sechser')).toBe(true);
     expect(isValueValid(2.75, 'sechser')).toBe(true);

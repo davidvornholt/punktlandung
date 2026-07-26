@@ -17,7 +17,7 @@ import type { Halbjahr } from '../services/halbjahr-service.ts';
 export type HalbjahrFormValues = {
   readonly klassenstufe: Klassenstufe;
   readonly schoolYear: string;
-  readonly number: 1 | 2;
+  readonly half: 1 | 2;
   readonly startsOn: string;
   readonly endsOn: string;
   readonly dateRangeAdjusted: boolean;
@@ -25,8 +25,8 @@ export type HalbjahrFormValues = {
 
 const occupancyKey = (halbjahr: {
   readonly schoolYear: string;
-  readonly number: number;
-}) => `${halbjahr.schoolYear}\u0000${halbjahr.number}`;
+  readonly half: number;
+}) => `${halbjahr.schoolYear}\u0000${halbjahr.half}`;
 
 /** Schuljahr-und-Halbjahr-Kombinationen, die bereits vergeben sind. */
 export const occupiedHalbjahre = (
@@ -42,8 +42,8 @@ export const occupiedHalbjahre = (
 export const isOccupied = (
   occupied: ReadonlySet<string>,
   schoolYear: string,
-  number: 1 | 2,
-): boolean => occupied.has(occupancyKey({ schoolYear, number }));
+  half: 1 | 2,
+): boolean => occupied.has(occupancyKey({ schoolYear, half }));
 
 const mostRecentlyStarted = (
   halbjahre: ReadonlyArray<Halbjahr>,
@@ -59,10 +59,10 @@ const mostRecentlyStarted = (
 const withOfficialDateRange = (values: {
   readonly klassenstufe: Klassenstufe;
   readonly schoolYear: string;
-  readonly number: 1 | 2;
+  readonly half: 1 | 2;
 }): HalbjahrFormValues => ({
   ...values,
-  ...halbjahrDateRange(values.schoolYear, values.number),
+  ...halbjahrDateRange(values.schoolYear, values.half),
   dateRangeAdjusted: false,
 });
 
@@ -79,20 +79,20 @@ export const newHalbjahrSuggestion = (
     return withOfficialDateRange({
       klassenstufe: '5',
       schoolYear: schoolYearForDate(today),
-      number: halbjahrForDate(today),
+      half: halbjahrForDate(today),
     });
   }
-  if (last.number === 1) {
+  if (last.half === 1) {
     return withOfficialDateRange({
       klassenstufe: last.klassenstufe,
       schoolYear: last.schoolYear,
-      number: 2,
+      half: 2,
     });
   }
   return withOfficialDateRange({
     klassenstufe: nextKlassenstufe(last.klassenstufe) ?? last.klassenstufe,
     schoolYear: nextSchoolYear(last.schoolYear),
-    number: 1,
+    half: 1,
   });
 };
 
@@ -105,11 +105,11 @@ export const halbjahrFormValues = (
   if (halbjahr === null) {
     return newHalbjahrSuggestion(halbjahre, today);
   }
-  const official = halbjahrDateRange(halbjahr.schoolYear, halbjahr.number);
+  const official = halbjahrDateRange(halbjahr.schoolYear, halbjahr.half);
   return {
     klassenstufe: halbjahr.klassenstufe,
     schoolYear: halbjahr.schoolYear,
-    number: halbjahr.number,
+    half: halbjahr.half,
     startsOn: halbjahr.startsOn,
     endsOn: halbjahr.endsOn,
     dateRangeAdjusted:
@@ -127,13 +127,13 @@ export const withUpdatedDateRange = (
 ): HalbjahrFormValues =>
   values.dateRangeAdjusted
     ? values
-    : { ...values, ...halbjahrDateRange(values.schoolYear, values.number) };
+    : { ...values, ...halbjahrDateRange(values.schoolYear, values.half) };
 
 /** Der zu speichernde Datensatz; das Notensystem leitet der Server ab. */
 export const toHalbjahrInput = (values: HalbjahrFormValues): HalbjahrInput => ({
   klassenstufe: values.klassenstufe,
   schoolYear: values.schoolYear,
-  number: values.number,
+  half: values.half,
   startsOn: values.startsOn,
   endsOn: values.endsOn,
 });

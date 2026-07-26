@@ -19,11 +19,11 @@ export type TrendNote = {
 };
 
 export type TrendEntry = {
-  readonly date: string;
-  readonly notenpunkte: number;
+  readonly datum: string;
+  readonly punkte: number;
   /** Laufender gewichteter Schnitt in Notenpunkten. */
-  readonly average: number;
-  readonly fachShortName: string;
+  readonly schnitt: number;
+  readonly fachKuerzel: string;
 };
 
 const roundingFactor = 100;
@@ -66,10 +66,10 @@ export const calculateTrend = (
     const total =
       fachAverages.reduce((sum, value) => sum + value, 0) / fachAverages.length;
     return {
-      date: note.date,
-      notenpunkte: roundToPrecision(note.notenpunkte),
-      average: roundToPrecision(total),
-      fachShortName: note.fachShortName,
+      datum: note.date,
+      punkte: roundToPrecision(note.notenpunkte),
+      schnitt: roundToPrecision(total),
+      fachKuerzel: note.fachShortName,
     };
   });
 };

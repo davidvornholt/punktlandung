@@ -14,12 +14,12 @@ export type SchoolYearFach = {
   readonly schoolYear: string;
   readonly name: string;
   readonly shortName: string;
-  readonly schriftlichShare: number | null;
-  readonly klausurGewichtung: string;
-  readonly testGewichtung: string;
-  readonly muendlichGewichtung: string;
-  readonly gfsGewichtung: string;
-  readonly sonstigeGewichtung: string;
+  readonly writtenShare: number | null;
+  readonly klausurWeight: string;
+  readonly testWeight: string;
+  readonly muendlichWeight: string;
+  readonly gfsWeight: string;
+  readonly sonstigeWeight: string;
   readonly sortOrder: number;
   readonly archived: boolean;
 };
@@ -31,12 +31,12 @@ const fromLegacy = (fach: LegacyFach, schoolYear: string): SchoolYearFach => ({
   schoolYear,
   name: fach.name,
   shortName: fach.shortName,
-  schriftlichShare: fach.schriftlichShare,
-  klausurGewichtung: fach.klausurGewichtung,
-  testGewichtung: fach.testGewichtung,
-  muendlichGewichtung: fach.muendlichGewichtung,
-  gfsGewichtung: fach.gfsGewichtung,
-  sonstigeGewichtung: fach.sonstigeGewichtung,
+  writtenShare: fach.writtenShare,
+  klausurWeight: fach.klausurWeight,
+  testWeight: fach.testWeight,
+  muendlichWeight: fach.muendlichWeight,
+  gfsWeight: fach.gfsWeight,
+  sonstigeWeight: fach.sonstigeWeight,
   sortOrder: fach.sortOrder,
   archived: fach.archived,
 });
@@ -44,31 +44,31 @@ const fromLegacy = (fach: LegacyFach, schoolYear: string): SchoolYearFach => ({
 const fromSchoolYear = (
   fach: typeof schoolYearFachTable.$inferSelect,
 ): SchoolYearFach => ({
-  id: fach.fachId,
+  id: fach.subjectId,
   schoolYear: fach.schoolYear,
   name: fach.name,
   shortName: fach.shortName,
-  schriftlichShare: fach.schriftlichShare,
-  klausurGewichtung: fach.klausurGewichtung,
-  testGewichtung: fach.testGewichtung,
-  muendlichGewichtung: fach.muendlichGewichtung,
-  gfsGewichtung: fach.gfsGewichtung,
-  sonstigeGewichtung: fach.sonstigeGewichtung,
+  writtenShare: fach.writtenShare,
+  klausurWeight: fach.klausurWeight,
+  testWeight: fach.testWeight,
+  muendlichWeight: fach.muendlichWeight,
+  gfsWeight: fach.gfsWeight,
+  sonstigeWeight: fach.sonstigeWeight,
   sortOrder: fach.sortOrder,
   archived: fach.archived,
 });
 
 const toSchoolYearRow = (fach: SchoolYearFach) => ({
   schoolYear: fach.schoolYear,
-  fachId: fach.id,
+  subjectId: fach.id,
   name: fach.name,
   shortName: fach.shortName,
-  schriftlichShare: fach.schriftlichShare,
-  klausurGewichtung: fach.klausurGewichtung,
-  testGewichtung: fach.testGewichtung,
-  muendlichGewichtung: fach.muendlichGewichtung,
-  gfsGewichtung: fach.gfsGewichtung,
-  sonstigeGewichtung: fach.sonstigeGewichtung,
+  writtenShare: fach.writtenShare,
+  klausurWeight: fach.klausurWeight,
+  testWeight: fach.testWeight,
+  muendlichWeight: fach.muendlichWeight,
+  gfsWeight: fach.gfsWeight,
+  sonstigeWeight: fach.sonstigeWeight,
   sortOrder: fach.sortOrder,
   archived: fach.archived,
 });

@@ -19,19 +19,19 @@ import {
 } from './postgres-test-database.ts';
 
 const note = {
-  halbjahrId: 'term-alt',
-  fachId: 'mathe',
-  leistungsart: 'test' as const,
-  notenwert: 2,
-  individualGewichtung: 1,
-  comment: null,
+  termId: 'term-alt',
+  subjectId: 'mathe',
+  kind: 'test' as const,
+  wert: 2,
+  gewicht: 1,
+  notiz: null,
 };
 
 const halbjahr = {
   id: 'term-alt',
   klassenstufe: '10' as const,
   schoolYear: '2026/27',
-  number: 1 as const,
+  half: 1 as const,
   startsOn: '2026-09-14',
   endsOn: '2027-01-29',
 };
@@ -74,22 +74,22 @@ describe('PostgreSQL-Kalenderdaten', () => {
       expect(currentHalbjahr(listed, '2027-02-01')?.id).toBe('term-neu');
       expect(currentHalbjahr(listed, '2027-08-01')?.id).toBe('term-neu');
 
-      await provided(createNote({ ...note, date: halbjahr.startsOn }));
-      await provided(createNote({ ...note, date: halbjahr.endsOn }));
+      await provided(createNote({ ...note, datum: halbjahr.startsOn }));
+      await provided(createNote({ ...note, datum: halbjahr.endsOn }));
       const before = await provided(
-        Effect.flip(createNote({ ...note, date: '2026-09-13' })),
+        Effect.flip(createNote({ ...note, datum: '2026-09-13' })),
       );
       const after = await provided(
-        Effect.flip(createNote({ ...note, date: '2027-01-30' })),
+        Effect.flip(createNote({ ...note, datum: '2027-01-30' })),
       );
-      expect(before._tag).toBe('NoteOutsideHalbjahr');
-      expect(after._tag).toBe('NoteOutsideHalbjahr');
+      expect(before._tag).toBe('NoteAusserhalbHalbjahr');
+      expect(after._tag).toBe('NoteAusserhalbHalbjahr');
 
       await provided(updateHalbjahr(halbjahr));
       const shrink = await provided(
         Effect.flip(updateHalbjahr({ ...halbjahr, startsOn: '2026-09-15' })),
       );
-      expect(shrink._tag).toBe('HalbjahrExcludesNoten');
+      expect(shrink._tag).toBe('HalbjahrSchliesstNotenAus');
 
       const noten = await pool.query<{ readonly id: string }>(
         'SELECT id FROM grade ORDER BY taken_on LIMIT 1',
@@ -100,15 +100,15 @@ describe('PostgreSQL-Kalenderdaten', () => {
         throw new Error('Testnote fehlt.');
       }
       const updateBefore = await provided(
-        Effect.flip(updateNote({ ...note, id: noteId, date: '2026-09-13' })),
+        Effect.flip(updateNote({ ...note, id: noteId, datum: '2026-09-13' })),
       );
       const updateAfter = await provided(
-        Effect.flip(updateNote({ ...note, id: noteId, date: '2027-01-30' })),
+        Effect.flip(updateNote({ ...note, id: noteId, datum: '2027-01-30' })),
       );
-      expect(updateBefore._tag).toBe('NoteOutsideHalbjahr');
-      expect(updateAfter._tag).toBe('NoteOutsideHalbjahr');
+      expect(updateBefore._tag).toBe('NoteAusserhalbHalbjahr');
+      expect(updateAfter._tag).toBe('NoteAusserhalbHalbjahr');
       await provided(
-        updateNote({ ...note, id: noteId, date: halbjahr.endsOn }),
+        updateNote({ ...note, id: noteId, datum: halbjahr.endsOn }),
       );
     }));
 });

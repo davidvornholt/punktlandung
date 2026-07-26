@@ -9,7 +9,7 @@ import {
   schoolYearOptions,
 } from './school-year.ts';
 
-describe('schuljahrAusBeginnjahr', () => {
+describe('schoolYearFromStartYear', () => {
   it('kürzt das Folgejahr zweistellig', () => {
     expect(schoolYearFromStartYear(2026)).toBe('2026/27');
   });
@@ -45,7 +45,7 @@ describe('halbjahrForDate', () => {
   });
 });
 
-describe('halbjahrZeitraum', () => {
+describe('halbjahrDateRange', () => {
   it('nutzt die amtlichen Grenzen des ersten Halbjahrs', () => {
     expect(halbjahrDateRange('2026/27', 1)).toEqual({
       startsOn: '2026-08-01',
@@ -72,7 +72,7 @@ describe('halbjahrZeitraum', () => {
   });
 });
 
-describe('naechstesSchuljahr', () => {
+describe('nextSchoolYear', () => {
   it('zählt das Beginnjahr hoch', () => {
     expect(nextSchoolYear('2026/27')).toBe('2027/28');
   });

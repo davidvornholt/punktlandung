@@ -3,10 +3,10 @@ import type { Fach } from '../services/fach-service.ts';
 export const fachFormValues = (fach: Fach | null) => ({
   name: fach?.name ?? '',
   shortName: fach?.shortName ?? '',
-  schriftlichShare: fach?.schriftlichShare ?? '',
-  klausurGewichtung: fach?.klausurGewichtung ?? 1,
-  testGewichtung: fach?.testGewichtung ?? 1,
-  muendlichGewichtung: fach?.muendlichGewichtung ?? 1,
-  gfsGewichtung: fach?.gfsGewichtung ?? 1,
-  sonstigeGewichtung: fach?.sonstigeGewichtung ?? 1,
+  writtenShare: fach?.writtenShare ?? '',
+  klausurWeight: fach?.klausurWeight ?? 1,
+  testWeight: fach?.testWeight ?? 1,
+  muendlichWeight: fach?.muendlichWeight ?? 1,
+  gfsWeight: fach?.gfsWeight ?? 1,
+  sonstigeWeight: fach?.sonstigeWeight ?? 1,
 });

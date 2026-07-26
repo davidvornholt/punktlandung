@@ -16,7 +16,7 @@ import {
 const input = {
   klassenstufe: 'J1' as const,
   schoolYear: '2026/27',
-  number: 1 as const,
+  half: 1 as const,
   startsOn: '2026-08-01',
   endsOn: '2027-01-31',
 };
@@ -35,13 +35,13 @@ describe('Notensystem eines Halbjahrs', () => {
       if (created === undefined) {
         throw new Error('Angelegtes Halbjahr fehlt.');
       }
-      expect(created.notensystem).toBe('punkte');
+      expect(created.system).toBe('punkte');
 
       await provided(
         updateHalbjahr({ ...input, id: created.id, klassenstufe: '10' }),
       );
       const [changed] = await provided(listHalbjahre);
 
-      expect(changed?.notensystem).toBe('sechser');
+      expect(changed?.system).toBe('sechser');
     }));
 });

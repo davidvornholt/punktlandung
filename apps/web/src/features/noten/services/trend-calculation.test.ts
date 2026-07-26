@@ -3,8 +3,8 @@ import { describe, expect, it } from 'bun:test';
 import { calculateTrend } from './trend-calculation.ts';
 
 const equallyWeighted = {
-  schriftlichShare: null,
-  leistungsartGewichtungen: {
+  writtenShare: null,
+  kindWeights: {
     klausur: 1,
     test: 1,
     muendlich: 1,
@@ -37,8 +37,8 @@ describe('calculateTrend', () => {
       note('M', '2026-10-05', 9),
     ]);
     expect(trend).toEqual([
-      { date: '2026-09-20', notenpunkte: 12, average: 12, fachShortName: 'M' },
-      { date: '2026-10-05', notenpunkte: 9, average: 11, fachShortName: 'M' },
+      { datum: '2026-09-20', punkte: 12, schnitt: 12, fachKuerzel: 'M' },
+      { datum: '2026-10-05', punkte: 9, schnitt: 11, fachKuerzel: 'M' },
     ]);
   });
 
@@ -47,18 +47,18 @@ describe('calculateTrend', () => {
   });
 
   it('wendet den schriftlich/mündlich-Anteil trotz ungleicher Anzahl an', () => {
-    const fachGewichtung = { ...equallyWeighted, schriftlichShare: 50 };
+    const fachGewichtung = { ...equallyWeighted, writtenShare: 50 };
     const trend = calculateTrend([
       note('M', '2026-09-01', 11, { fachGewichtung }),
-      ...[2, 3, 4, 5].map((tag) =>
-        note('M', `2026-09-0${tag}`, 5, {
+      ...[2, 3, 4, 5].map((day) =>
+        note('M', `2026-09-0${day}`, 5, {
           wertungsbereich: 'muendlich',
           leistungsart: 'muendlich',
           fachGewichtung,
         }),
       ),
     ]);
-    expect(trend.at(-1)?.average).toBe(8);
+    expect(trend.at(-1)?.schnitt).toBe(8);
   });
 
   it('gewichtet Fächer gleich statt nach ihrer Anzahl an Leistungen', () => {
@@ -68,6 +68,6 @@ describe('calculateTrend', () => {
       note('D', '2026-09-03', 6),
       note('D', '2026-09-04', 6),
     ]);
-    expect(trend.at(-1)?.average).toBe(9);
+    expect(trend.at(-1)?.schnitt).toBe(9);
   });
 });

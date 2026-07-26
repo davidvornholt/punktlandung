@@ -14,8 +14,8 @@ const tenOne: Halbjahr = {
   id: 'A',
   klassenstufe: '10',
   schoolYear: '2025/26',
-  number: 1,
-  notensystem: 'sechser',
+  half: 1,
+  system: 'sechser',
   startsOn: '2025-08-01',
   endsOn: '2026-01-31',
 };
@@ -23,18 +23,18 @@ const tenTwo: Halbjahr = {
   id: 'B',
   klassenstufe: '10',
   schoolYear: '2025/26',
-  number: 2,
-  notensystem: 'sechser',
+  half: 2,
+  system: 'sechser',
   startsOn: '2026-02-01',
   endsOn: '2026-07-31',
 };
 
-describe('neuesHalbjahrVorschlag', () => {
+describe('newHalbjahrSuggestion', () => {
   it('schlägt ohne Bestand das heute laufende Halbjahr vor', () => {
     const suggestion = newHalbjahrSuggestion([], '2026-09-15');
 
     expect(suggestion.schoolYear).toBe('2026/27');
-    expect(suggestion.number).toBe(1);
+    expect(suggestion.half).toBe(1);
     expect(suggestion.startsOn).toBe('2026-08-01');
     expect(suggestion.endsOn).toBe('2027-01-31');
   });
@@ -45,7 +45,7 @@ describe('neuesHalbjahrVorschlag', () => {
     expect(suggestion).toMatchObject({
       klassenstufe: '10',
       schoolYear: '2025/26',
-      number: 2,
+      half: 2,
       startsOn: '2026-02-01',
       endsOn: '2026-07-31',
     });
@@ -57,7 +57,7 @@ describe('neuesHalbjahrVorschlag', () => {
     expect(suggestion).toMatchObject({
       klassenstufe: 'J1',
       schoolYear: '2026/27',
-      number: 1,
+      half: 1,
       startsOn: '2026-08-01',
       endsOn: '2027-01-31',
     });
@@ -75,7 +75,7 @@ describe('neuesHalbjahrVorschlag', () => {
       id: 'C',
       klassenstufe: 'J2',
       schoolYear: '2027/28',
-      notensystem: 'punkte',
+      system: 'punkte',
       startsOn: '2028-02-01',
       endsOn: '2028-07-31',
     };
@@ -84,14 +84,14 @@ describe('neuesHalbjahrVorschlag', () => {
   });
 });
 
-describe('halbjahrFormWerte', () => {
+describe('halbjahrFormValues', () => {
   it('übernimmt beim Bearbeiten den gespeicherten Stand', () => {
     const values = halbjahrFormValues(tenOne, [tenOne], '2026-07-25');
 
     expect(values).toEqual({
       klassenstufe: '10',
       schoolYear: '2025/26',
-      number: 1,
+      half: 1,
       startsOn: '2025-08-01',
       endsOn: '2026-01-31',
       dateRangeAdjusted: false,
@@ -110,11 +110,11 @@ describe('halbjahrFormWerte', () => {
   });
 });
 
-describe('mitAktualisiertemZeitraum', () => {
+describe('withUpdatedDateRange', () => {
   it('zieht den Zeitraum bei einem Halbjahreswechsel nach', () => {
     const values = withUpdatedDateRange({
       ...halbjahrFormValues(tenOne, [], '2026-07-25'),
-      number: 2,
+      half: 2,
     });
 
     expect(values.startsOn).toBe('2026-02-01');
@@ -125,7 +125,7 @@ describe('mitAktualisiertemZeitraum', () => {
     const values = withUpdatedDateRange({
       klassenstufe: '10',
       schoolYear: '2025/26',
-      number: 2,
+      half: 2,
       startsOn: '2026-02-15',
       endsOn: '2026-06-30',
       dateRangeAdjusted: true,
@@ -143,14 +143,14 @@ describe('toHalbjahrInput', () => {
     expect(toHalbjahrInput({ ...values, klassenstufe: 'J1' })).toEqual({
       klassenstufe: 'J1',
       schoolYear: '2025/26',
-      number: 1,
+      half: 1,
       startsOn: '2025-08-01',
       endsOn: '2026-01-31',
     });
   });
 });
 
-describe('belegteHalbjahre', () => {
+describe('occupiedHalbjahre', () => {
   it('meldet vergebene Kombinationen aus Schuljahr und Halbjahr', () => {
     const occupied = occupiedHalbjahre([tenOne, tenTwo], null);
 

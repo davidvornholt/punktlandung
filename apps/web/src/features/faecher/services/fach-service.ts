@@ -20,12 +20,12 @@ export type Fach = {
   readonly id: string;
   readonly name: string;
   readonly shortName: string;
-  readonly schriftlichShare: number | null;
-  readonly klausurGewichtung: number;
-  readonly testGewichtung: number;
-  readonly muendlichGewichtung: number;
-  readonly gfsGewichtung: number;
-  readonly sonstigeGewichtung: number;
+  readonly writtenShare: number | null;
+  readonly klausurWeight: number;
+  readonly testWeight: number;
+  readonly muendlichWeight: number;
+  readonly gfsWeight: number;
+  readonly sonstigeWeight: number;
   readonly sortOrder: number;
 };
 
@@ -33,24 +33,24 @@ const toFach = (row: SchoolYearFach): Fach => ({
   id: row.id,
   name: row.name,
   shortName: row.shortName,
-  schriftlichShare: row.schriftlichShare,
-  klausurGewichtung: Number(row.klausurGewichtung),
-  testGewichtung: Number(row.testGewichtung),
-  muendlichGewichtung: Number(row.muendlichGewichtung),
-  gfsGewichtung: Number(row.gfsGewichtung),
-  sonstigeGewichtung: Number(row.sonstigeGewichtung),
+  writtenShare: row.writtenShare,
+  klausurWeight: Number(row.klausurWeight),
+  testWeight: Number(row.testWeight),
+  muendlichWeight: Number(row.muendlichWeight),
+  gfsWeight: Number(row.gfsWeight),
+  sonstigeWeight: Number(row.sonstigeWeight),
   sortOrder: row.sortOrder,
 });
 
 const toColumns = (input: FachInput | FachUpdate) => ({
   name: input.name,
   shortName: input.shortName,
-  schriftlichShare: input.schriftlichShare,
-  klausurGewichtung: `${input.klausurGewichtung}`,
-  testGewichtung: `${input.testGewichtung}`,
-  muendlichGewichtung: `${input.muendlichGewichtung}`,
-  gfsGewichtung: `${input.gfsGewichtung}`,
-  sonstigeGewichtung: `${input.sonstigeGewichtung}`,
+  writtenShare: input.writtenShare,
+  klausurWeight: `${input.klausurWeight}`,
+  testWeight: `${input.testWeight}`,
+  muendlichWeight: `${input.muendlichWeight}`,
+  gfsWeight: `${input.gfsWeight}`,
+  sonstigeWeight: `${input.sonstigeWeight}`,
 });
 
 const prepareMutation = (schoolYear: string) =>
@@ -91,7 +91,7 @@ export const createFach = (input: FachInput) =>
         });
         yield* db.insert(schoolYearFachTable).values({
           schoolYear: input.schoolYear,
-          fachId: id,
+          subjectId: id,
           sortOrder,
           ...columns,
         });
@@ -112,10 +112,10 @@ export const updateFach = (input: FachUpdate) =>
           .where(
             and(
               eq(schoolYearFachTable.schoolYear, input.schoolYear),
-              eq(schoolYearFachTable.fachId, input.id),
+              eq(schoolYearFachTable.subjectId, input.id),
             ),
           )
-          .returning({ id: schoolYearFachTable.fachId });
+          .returning({ id: schoolYearFachTable.subjectId });
         if (updated.length === 0) {
           return yield* Effect.fail(
             new FachNotFound({
@@ -141,10 +141,10 @@ export const archiveFach = (id: string, schoolYear: string) =>
           .where(
             and(
               eq(schoolYearFachTable.schoolYear, schoolYear),
-              eq(schoolYearFachTable.fachId, id),
+              eq(schoolYearFachTable.subjectId, id),
             ),
           )
-          .returning({ id: schoolYearFachTable.fachId });
+          .returning({ id: schoolYearFachTable.subjectId });
         if (archived.length === 0) {
           return yield* Effect.fail(
             new FachNotFound({ fachId: id, schoolYear }),

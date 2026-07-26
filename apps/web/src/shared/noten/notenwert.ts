@@ -24,8 +24,8 @@ export type Assessment = {
 
 export type Fachgewichtung = {
   /** Anteil schriftlicher Leistungen in Prozent; null = eine Gesamtliste. */
-  readonly schriftlichShare: number | null;
-  readonly leistungsartGewichtungen: Readonly<Record<Leistungsart, number>>;
+  readonly writtenShare: number | null;
+  readonly kindWeights: Readonly<Record<Leistungsart, number>>;
 };
 
 /** Amtliche Umrechnungskonstanten: Punkte = 17 − 3 × Note. */
@@ -36,12 +36,9 @@ const minNotenpunkte = 0;
 const maxNotenpunkte = 15;
 
 /** Normalisiert einen nativen Wert auf die Punkteskala (0–15, dezimal). */
-export const toNotenpunkte = (
-  value: number,
-  notensystem: Notensystem,
-): number => {
+export const toNotenpunkte = (value: number, system: Notensystem): number => {
   const notenpunkte =
-    notensystem === 'punkte'
+    system === 'punkte'
       ? value
       : conversionBase - notenpunktePerNotenstufe * value;
   return Math.min(maxNotenpunkte, Math.max(minNotenpunkte, notenpunkte));
@@ -60,7 +57,7 @@ const weightedAverage = (
   for (const assessment of assessments) {
     const combinedGewichtung =
       assessment.individualGewichtung *
-      fachGewichtung.leistungsartGewichtungen[assessment.leistungsart];
+      fachGewichtung.kindWeights[assessment.leistungsart];
     total += assessment.notenwert * combinedGewichtung;
     totalGewichtung += combinedGewichtung;
   }
@@ -76,7 +73,7 @@ export const fachAverage = (
   assessments: ReadonlyArray<Assessment>,
   fachGewichtung: Fachgewichtung,
 ): number | null => {
-  if (fachGewichtung.schriftlichShare === null) {
+  if (fachGewichtung.writtenShare === null) {
     return weightedAverage(assessments, fachGewichtung);
   }
   const schriftlichAverage = weightedAverage(
@@ -97,6 +94,6 @@ export const fachAverage = (
   if (muendlichAverage === null) {
     return schriftlichAverage;
   }
-  const share = fachGewichtung.schriftlichShare / percentBase;
+  const share = fachGewichtung.writtenShare / percentBase;
   return schriftlichAverage * share + muendlichAverage * (1 - share);
 };

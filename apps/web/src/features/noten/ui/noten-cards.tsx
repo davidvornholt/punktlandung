@@ -39,19 +39,19 @@ const groupByFach = (
     noten: list,
     average: fachAverage(
       list.map((note) => ({
-        notenwert: note.notenwert,
-        individualGewichtung: note.individualGewichtung,
-        leistungsart: note.leistungsart,
-        wertungsbereich: note.wertungsbereich,
+        notenwert: note.wert,
+        individualGewichtung: note.gewicht,
+        leistungsart: note.kind,
+        wertungsbereich: note.area,
       })),
-      first.fachGewichtung,
+      first.gewichtung,
     ),
   }));
 };
 
 const formatDisplayDate = (iso: string): string => {
-  const [year, month, tag] = iso.split('-');
-  return `${tag}.${month}.${year}`;
+  const [year, month, day] = iso.split('-');
+  return `${day}.${month}.${year}`;
 };
 
 /** Notenkarten: je Fach die Einzelnoten und der gewichtete Fachschnitt. */
@@ -59,12 +59,12 @@ export const NotenCards = ({
   deleteMutation,
   noten,
   onDelete,
-  notensystem,
+  system,
 }: {
   readonly deleteMutation: ListMutation<string>;
   readonly noten: ReadonlyArray<NoteWithFach>;
   readonly onDelete: (id: string) => void;
-  readonly notensystem: Notensystem;
+  readonly system: Notensystem;
 }) => (
   <div className="mt-6 space-y-4">
     {groupByFach(noten).map((group) => (
@@ -78,9 +78,7 @@ export const NotenCards = ({
             {group.fachName}
           </h3>
           <p className="font-display text-3xl text-ink tracking-tight">
-            {group.average === null
-              ? '—'
-              : formatNote(group.average, notensystem)}
+            {group.average === null ? '—' : formatNote(group.average, system)}
             <span className="ml-2 text-ink-faint text-xs uppercase tracking-widest">
               Schnitt
             </span>
@@ -95,20 +93,18 @@ export const NotenCards = ({
                 key={note.id}
               >
                 <span className="font-display text-ink text-lg">
-                  {formatNote(note.notenwert, notensystem)}
+                  {formatNote(note.wert, system)}
                 </span>
                 <span className="text-ink-muted text-sm">
-                  {leistungsartLabel[note.leistungsart]} ·{' '}
-                  {wertungsbereichLabel[note.wertungsbereich]}
-                  {note.individualGewichtung === 1
-                    ? ''
-                    : ` · Gewicht ${note.individualGewichtung}`}
+                  {leistungsartLabel[note.kind]} ·{' '}
+                  {wertungsbereichLabel[note.area]}
+                  {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
                 </span>
                 <span className="text-ink-faint text-sm">
-                  {formatDisplayDate(note.date)}
+                  {formatDisplayDate(note.datum)}
                 </span>
-                {note.comment === null ? null : (
-                  <span className="text-ink-faint text-sm">{note.comment}</span>
+                {note.notiz === null ? null : (
+                  <span className="text-ink-faint text-sm">{note.notiz}</span>
                 )}
                 <button
                   className={`${quietButtonClass} ml-auto`}

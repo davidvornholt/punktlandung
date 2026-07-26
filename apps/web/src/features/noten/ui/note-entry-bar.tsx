@@ -14,24 +14,21 @@ import { notenLimits } from '../schemas/note-schema.ts';
 import { createNoteFn } from '../server/noten-fns.ts';
 import { leistungsartLabel } from './leistungsart-label.ts';
 
-const readValues = (form: HTMLFormElement, halbjahrId: string): NoteInput => {
+const readValues = (form: HTMLFormElement, termId: string): NoteInput => {
   const data = new FormData(form);
   const text = (name: string) => `${data.get(name) ?? ''}`.trim();
-  const wertungsbereich = text('wertungsbereich');
-  const comment = text('comment');
-  const individualGewichtung = text('individualGewichtung').replace(',', '.');
+  const area = text('area');
+  const notiz = text('notiz');
+  const gewicht = text('gewicht').replace(',', '.');
   return {
-    halbjahrId,
-    fachId: text('fachId'),
-    leistungsart: text('leistungsart') as NoteInput['leistungsart'],
-    ...(wertungsbereich === 'schriftlich' || wertungsbereich === 'muendlich'
-      ? { wertungsbereich }
-      : {}),
-    notenwert: Number(text('notenwert').replace(',', '.')),
-    individualGewichtung:
-      individualGewichtung === '' ? 1 : Number(individualGewichtung),
-    date: text('date'),
-    comment: comment === '' ? null : comment,
+    termId,
+    subjectId: text('subjectId'),
+    kind: text('kind') as NoteInput['kind'],
+    ...(area === 'schriftlich' || area === 'muendlich' ? { area } : {}),
+    wert: Number(text('wert').replace(',', '.')),
+    gewicht: gewicht === '' ? 1 : Number(gewicht),
+    datum: text('datum'),
+    notiz: notiz === '' ? null : notiz,
   };
 };
 
@@ -42,7 +39,7 @@ export const NoteEntryBar = ({
 }: {
   readonly halbjahr: {
     readonly id: string;
-    readonly notensystem: Notensystem;
+    readonly system: Notensystem;
     readonly startsOn: string;
     readonly endsOn: string;
   };
@@ -63,7 +60,7 @@ export const NoteEntryBar = ({
       ]);
     },
   });
-  const usesNotenpunkte = halbjahr.notensystem === 'punkte';
+  const usesNotenpunkte = halbjahr.system === 'punkte';
 
   return (
     <form
@@ -79,7 +76,7 @@ export const NoteEntryBar = ({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
         <label className={labelClass}>
           Fach
-          <select className={inputClass} name="fachId" required={true}>
+          <select className={inputClass} name="subjectId" required={true}>
             {faecher.map((fach) => (
               <option key={fach.id} value={fach.id}>
                 {fach.name}
@@ -89,7 +86,7 @@ export const NoteEntryBar = ({
         </label>
         <label className={labelClass}>
           Art
-          <select className={inputClass} name="leistungsart">
+          <select className={inputClass} name="kind">
             {Object.entries(leistungsartLabel).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -108,7 +105,7 @@ export const NoteEntryBar = ({
                 : notenLimits.sechserMax
             }
             min={usesNotenpunkte ? 0 : notenLimits.sechserMin}
-            name="notenwert"
+            name="wert"
             required={true}
             step={usesNotenpunkte ? 1 : notenLimits.gewichtungStep}
             type="number"
@@ -125,7 +122,7 @@ export const NoteEntryBar = ({
             )}
             max={halbjahr.endsOn}
             min={halbjahr.startsOn}
-            name="date"
+            name="datum"
             required={true}
             type="date"
           />
@@ -153,14 +150,14 @@ export const NoteEntryBar = ({
               inputMode="decimal"
               max={notenLimits.maxGewichtung}
               min={notenLimits.gewichtungStep}
-              name="individualGewichtung"
+              name="gewicht"
               step={notenLimits.gewichtungStep}
               type="number"
             />
           </label>
           <label className={labelClass}>
             Bereich
-            <select className={inputClass} name="wertungsbereich">
+            <select className={inputClass} name="area">
               <option value="">Automatisch nach Art</option>
               <option value="schriftlich">Schriftlich</option>
               <option value="muendlich">Mündlich</option>
@@ -168,7 +165,7 @@ export const NoteEntryBar = ({
           </label>
           <label className={`${labelClass} col-span-2 sm:col-span-1`}>
             Notiz
-            <input className={inputClass} name="comment" />
+            <input className={inputClass} name="notiz" />
           </label>
         </div>
       </details>

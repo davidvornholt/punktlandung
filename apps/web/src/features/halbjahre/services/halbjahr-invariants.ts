@@ -3,7 +3,7 @@ import type { Notensystem } from '#/shared/noten/notenwert.ts';
 
 type HalbjahrSnapshot = {
   readonly schoolYear: string;
-  readonly notensystem: Notensystem;
+  readonly system: Notensystem;
   readonly startsOn: string;
   readonly endsOn: string;
 };
@@ -19,7 +19,7 @@ export const findHalbjahrViolation = (
   next: HalbjahrSnapshot,
   noteDates: ReadonlyArray<string>,
 ): HalbjahrViolation => {
-  if (noteDates.length > 0 && previous.notensystem !== next.notensystem) {
+  if (noteDates.length > 0 && previous.system !== next.system) {
     return 'notensystem';
   }
   if (noteDates.length > 0 && previous.schoolYear !== next.schoolYear) {

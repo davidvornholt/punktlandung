@@ -5,7 +5,7 @@ import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { Fach } from '../services/fach-service.ts';
 
 const gewichtungRow = (fach: Fach): string =>
-  `Klausur ${fach.klausurGewichtung} · Test ${fach.testGewichtung} · Mündlich ${fach.muendlichGewichtung} · GFS ${fach.gfsGewichtung} · Sonstige ${fach.sonstigeGewichtung}`;
+  `Klausur ${fach.klausurWeight} · Test ${fach.testWeight} · Mündlich ${fach.muendlichWeight} · GFS ${fach.gfsWeight} · Sonstige ${fach.sonstigeWeight}`;
 
 const FachRow = ({
   fach,
@@ -33,9 +33,9 @@ const FachRow = ({
     </div>
     <p className="mt-1 text-ink-muted text-sm">
       {gewichtungRow(fach)}
-      {fach.schriftlichShare === null
+      {fach.writtenShare === null
         ? ' · gemeinsame Liste'
-        : ` · schriftlich ${fach.schriftlichShare} %`}
+        : ` · schriftlich ${fach.writtenShare} %`}
     </p>
     <div className="mt-2 flex gap-3">
       <button

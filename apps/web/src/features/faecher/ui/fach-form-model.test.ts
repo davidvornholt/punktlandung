@@ -7,16 +7,16 @@ const fach = (id: string, base: number): Fach => ({
   id,
   name: `Fach ${id}`,
   shortName: id,
-  schriftlichShare: base,
-  klausurGewichtung: base + 1,
-  testGewichtung: base + 2,
-  muendlichGewichtung: base + 3,
-  gfsGewichtung: base + 4,
-  sonstigeGewichtung: base + 5,
+  writtenShare: base,
+  klausurWeight: base + 1,
+  testWeight: base + 2,
+  muendlichWeight: base + 3,
+  gfsWeight: base + 4,
+  sonstigeWeight: base + 5,
   sortOrder: base,
 });
 
-describe('fachFormWerte', () => {
+describe('fachFormValues', () => {
   it('wechselt beim Zielwechsel sämtliche editierbaren Werte', () => {
     const valuesA = fachFormValues(fach('A', 10));
     const valuesB = fachFormValues(fach('B', 20));

@@ -18,8 +18,8 @@ const yAxisTicks = 6;
 const pointRadius = 2;
 
 const shortDate = (iso: string): string => {
-  const [, month, tag] = iso.split('-');
-  return `${tag}.${month}.`;
+  const [, month, day] = iso.split('-');
+  return `${day}.${month}.`;
 };
 
 /**
@@ -43,7 +43,7 @@ export const TrendChart = ({
           <LineChart data={[...entries]} margin={chartMargin}>
             <CartesianGrid stroke="var(--pl-border)" vertical={false} />
             <XAxis
-              dataKey="date"
+              dataKey="datum"
               stroke="var(--pl-ink-faint)"
               tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
               tickFormatter={shortDate}
@@ -57,7 +57,7 @@ export const TrendChart = ({
               tickLine={false}
             />
             <Line
-              dataKey="notenpunkte"
+              dataKey="punkte"
               dot={{ fill: 'var(--pl-accent)', r: pointRadius, stroke: 'none' }}
               isAnimationActive={false}
               name="Einzelnoten"
@@ -66,7 +66,7 @@ export const TrendChart = ({
               type="monotone"
             />
             <Line
-              dataKey="average"
+              dataKey="schnitt"
               dot={false}
               isAnimationActive={false}
               name="Gesamtschnitt"

@@ -11,12 +11,12 @@ const fach: SchoolYearFach = {
   schoolYear: '2026/27',
   name: 'Mathematik',
   shortName: 'M',
-  schriftlichShare: 50,
-  klausurGewichtung: '1',
-  testGewichtung: '1',
-  muendlichGewichtung: '1',
-  gfsGewichtung: '1',
-  sonstigeGewichtung: '1',
+  writtenShare: 50,
+  klausurWeight: '1',
+  testWeight: '1',
+  muendlichWeight: '1',
+  gfsWeight: '1',
+  sonstigeWeight: '1',
   sortOrder: 0,
   archived: false,
 };
@@ -25,18 +25,18 @@ describe('Jahresvorschau', () => {
   it('verwendet alle Leistungen mit dem verkündeten Bereichsanteil', () => {
     const noten = [
       {
-        fachId: fach.id,
-        notenwert: '2',
-        gewichtung: '1',
-        leistungsart: 'klausur' as const,
-        wertungsbereich: 'schriftlich' as const,
+        subjectId: fach.id,
+        value: '2',
+        weight: '1',
+        kind: 'klausur' as const,
+        area: 'schriftlich' as const,
       },
       ...Array.from({ length: 4 }, () => ({
-        fachId: fach.id,
-        notenwert: '4',
-        gewichtung: '1',
-        leistungsart: 'muendlich' as const,
-        wertungsbereich: 'muendlich' as const,
+        subjectId: fach.id,
+        value: '4',
+        weight: '1',
+        kind: 'muendlich' as const,
+        area: 'muendlich' as const,
       })),
     ];
     expect(calculateJahresvorschau(noten, [fach])).toEqual([
@@ -50,8 +50,8 @@ describe('Jahresvorschau', () => {
   });
 
   it('verlangt ausdrücklich erstes und zweites Halbjahr', () => {
-    expect(isCompleteSchoolYear([{ number: 1 }])).toBe(false);
-    expect(isCompleteSchoolYear([{ number: 1 }, { number: 1 }])).toBe(false);
-    expect(isCompleteSchoolYear([{ number: 2 }, { number: 1 }])).toBe(true);
+    expect(isCompleteSchoolYear([{ half: 1 }])).toBe(false);
+    expect(isCompleteSchoolYear([{ half: 1 }, { half: 1 }])).toBe(false);
+    expect(isCompleteSchoolYear([{ half: 2 }, { half: 1 }])).toBe(true);
   });
 });

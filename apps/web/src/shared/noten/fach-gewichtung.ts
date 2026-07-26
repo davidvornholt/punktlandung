@@ -1,12 +1,12 @@
 import type { Fachgewichtung } from './notenwert.ts';
 
 type FachgewichtungColumns = {
-  readonly schriftlichShare: number | null;
-  readonly klausurGewichtung: string;
-  readonly testGewichtung: string;
-  readonly muendlichGewichtung: string;
-  readonly gfsGewichtung: string;
-  readonly sonstigeGewichtung: string;
+  readonly writtenShare: number | null;
+  readonly klausurWeight: string;
+  readonly testWeight: string;
+  readonly muendlichWeight: string;
+  readonly gfsWeight: string;
+  readonly sonstigeWeight: string;
 };
 
 /**
@@ -16,12 +16,12 @@ type FachgewichtungColumns = {
 export const toFachgewichtung = (
   fach: FachgewichtungColumns,
 ): Fachgewichtung => ({
-  schriftlichShare: fach.schriftlichShare,
-  leistungsartGewichtungen: {
-    klausur: Number(fach.klausurGewichtung),
-    test: Number(fach.testGewichtung),
-    muendlich: Number(fach.muendlichGewichtung),
-    gfs: Number(fach.gfsGewichtung),
-    sonstige: Number(fach.sonstigeGewichtung),
+  writtenShare: fach.writtenShare,
+  kindWeights: {
+    klausur: Number(fach.klausurWeight),
+    test: Number(fach.testWeight),
+    muendlich: Number(fach.muendlichWeight),
+    gfs: Number(fach.gfsWeight),
+    sonstige: Number(fach.sonstigeWeight),
   },
 });

@@ -53,10 +53,10 @@ export const nextSchoolYear = (schoolYear: string): string =>
 /** Amtlicher Zeitraum eines Halbjahrs innerhalb seines Schuljahrs. */
 export const halbjahrDateRange = (
   schoolYear: string,
-  number: 1 | 2,
+  half: 1 | 2,
 ): { readonly startsOn: string; readonly endsOn: string } => {
   const start = schoolYearStartYear(schoolYear);
-  return number === 1
+  return half === 1
     ? { startsOn: `${start}-08-01`, endsOn: `${start + 1}-01-31` }
     : { startsOn: `${start + 1}-02-01`, endsOn: `${start + 1}-07-31` };
 };

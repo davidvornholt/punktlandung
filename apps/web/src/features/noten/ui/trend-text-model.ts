@@ -15,8 +15,8 @@ export type TrendTextModel = {
 };
 
 const longDate = (iso: string): string => {
-  const [year, month, tag] = iso.split('-');
-  return `${tag}.${month}.${year}`;
+  const [year, month, day] = iso.split('-');
+  return `${day}.${month}.${year}`;
 };
 
 export const createTrendTextModel = (
@@ -30,21 +30,21 @@ export const createTrendTextModel = (
   }
   const [first] = entries;
   const last = entries.at(-1) ?? first;
-  const notenpunkte = entries.map((entry) => entry.notenpunkte);
+  const notenpunkte = entries.map((entry) => entry.punkte);
   let direction = 'gleich geblieben';
-  if (last.average > first.average) {
+  if (last.schnitt > first.schnitt) {
     direction = 'gestiegen';
-  } else if (last.average < first.average) {
+  } else if (last.schnitt < first.schnitt) {
     direction = 'gesunken';
   }
   return {
     rows: entries.map((entry, index) => ({
-      id: `${index}-${entry.date}-${entry.fachShortName}`,
-      date: longDate(entry.date),
-      fach: entry.fachShortName,
-      notenpunkte: formatNote(entry.notenpunkte, 'punkte'),
-      average: formatNote(entry.average, 'punkte'),
+      id: `${index}-${entry.datum}-${entry.fachKuerzel}`,
+      date: longDate(entry.datum),
+      fach: entry.fachKuerzel,
+      notenpunkte: formatNote(entry.punkte, 'punkte'),
+      average: formatNote(entry.schnitt, 'punkte'),
     })),
-    summary: `Der laufende Schnitt ist ${direction}. Niedrigster Einzelwert: ${formatNote(Math.min(...notenpunkte), 'punkte')}; höchster Einzelwert: ${formatNote(Math.max(...notenpunkte), 'punkte')}; aktueller Schnitt: ${formatNote(last.average, 'punkte')}.`,
+    summary: `Der laufende Schnitt ist ${direction}. Niedrigster Einzelwert: ${formatNote(Math.min(...notenpunkte), 'punkte')}; höchster Einzelwert: ${formatNote(Math.max(...notenpunkte), 'punkte')}; aktueller Schnitt: ${formatNote(last.schnitt, 'punkte')}.`,
   };
 };

@@ -4,14 +4,14 @@ import { findHalbjahrViolation } from './halbjahr-invariants.ts';
 
 const previous = {
   schoolYear: '2026/27',
-  notensystem: 'sechser' as const,
+  system: 'sechser' as const,
   startsOn: '2026-09-01',
   endsOn: '2027-01-31',
 };
 
 describe('Halbjahr-Invarianten', () => {
   it('erlaubt einen Systemwechsel nur ohne Noten', () => {
-    const notenpunkte = { ...previous, notensystem: 'punkte' as const };
+    const notenpunkte = { ...previous, system: 'punkte' as const };
     expect(findHalbjahrViolation(previous, notenpunkte, [])).toBeNull();
     expect(findHalbjahrViolation(previous, notenpunkte, ['2026-10-01'])).toBe(
       'notensystem',

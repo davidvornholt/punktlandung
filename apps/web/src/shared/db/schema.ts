@@ -43,21 +43,21 @@ export const fachTable = pgTable('subject', {
    * Anteil der schriftlichen Noten in Prozent (0–100), falls die Lehrkraft
    * bereichsweise gewichtet; null = eine gemeinsame gewichtete Liste.
    */
-  schriftlichShare: integer('written_share'),
+  writtenShare: integer('written_share'),
   /** Vorab verkündete Gewichte je Leistungsart, z. B. Klausur doppelt. */
-  klausurGewichtung: numeric('klausur_weight', { precision: 4, scale: 2 })
+  klausurWeight: numeric('klausur_weight', { precision: 4, scale: 2 })
     .notNull()
     .default('1'),
-  testGewichtung: numeric('test_weight', { precision: 4, scale: 2 })
+  testWeight: numeric('test_weight', { precision: 4, scale: 2 })
     .notNull()
     .default('1'),
-  muendlichGewichtung: numeric('muendlich_weight', { precision: 4, scale: 2 })
+  muendlichWeight: numeric('muendlich_weight', { precision: 4, scale: 2 })
     .notNull()
     .default('1'),
-  gfsGewichtung: numeric('gfs_weight', { precision: 4, scale: 2 })
+  gfsWeight: numeric('gfs_weight', { precision: 4, scale: 2 })
     .notNull()
     .default('1'),
-  sonstigeGewichtung: numeric('sonstige_weight', { precision: 4, scale: 2 })
+  sonstigeWeight: numeric('sonstige_weight', { precision: 4, scale: 2 })
     .notNull()
     .default('1'),
   sortOrder: integer('sort_order').notNull().default(0),
@@ -74,25 +74,25 @@ export const schoolYearFachTable = pgTable(
   'school_year_subject',
   {
     schoolYear: text('school_year').notNull(),
-    fachId: text('subject_id')
+    subjectId: text('subject_id')
       .notNull()
       .references(() => fachTable.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     shortName: text('short_name').notNull(),
-    schriftlichShare: integer('written_share'),
-    klausurGewichtung: numeric('klausur_weight', { precision: 4, scale: 2 })
+    writtenShare: integer('written_share'),
+    klausurWeight: numeric('klausur_weight', { precision: 4, scale: 2 })
       .notNull()
       .default('1'),
-    testGewichtung: numeric('test_weight', { precision: 4, scale: 2 })
+    testWeight: numeric('test_weight', { precision: 4, scale: 2 })
       .notNull()
       .default('1'),
-    muendlichGewichtung: numeric('muendlich_weight', { precision: 4, scale: 2 })
+    muendlichWeight: numeric('muendlich_weight', { precision: 4, scale: 2 })
       .notNull()
       .default('1'),
-    gfsGewichtung: numeric('gfs_weight', { precision: 4, scale: 2 })
+    gfsWeight: numeric('gfs_weight', { precision: 4, scale: 2 })
       .notNull()
       .default('1'),
-    sonstigeGewichtung: numeric('sonstige_weight', { precision: 4, scale: 2 })
+    sonstigeWeight: numeric('sonstige_weight', { precision: 4, scale: 2 })
       .notNull()
       .default('1'),
     sortOrder: integer('sort_order').notNull().default(0),
@@ -102,7 +102,7 @@ export const schoolYearFachTable = pgTable(
   (table) => [
     unique('school_year_subject_school_year_subject_id_unique').on(
       table.schoolYear,
-      table.fachId,
+      table.subjectId,
     ),
   ],
 );
@@ -122,35 +122,33 @@ export const halbjahrTable = pgTable(
     /** Schuljahr, z. B. "2026/27". */
     schoolYear: text('school_year').notNull(),
     /** 1 oder 2 innerhalb des Schuljahrs. */
-    number: integer('half').$type<1 | 2>().notNull(),
-    notensystem: notensystemEnum('system').notNull(),
+    half: integer('half').$type<1 | 2>().notNull(),
+    system: notensystemEnum('system').notNull(),
     startsOn: date('starts_on').notNull(),
     endsOn: date('ends_on').notNull(),
   },
   (table) => [
-    unique('term_school_year_half_unique').on(table.schoolYear, table.number),
-    check('term_half_valid', sql`${table.number} in (1, 2)`),
+    unique('term_school_year_half_unique').on(table.schoolYear, table.half),
+    check('term_half_valid', sql`${table.half} in (1, 2)`),
   ],
 );
 
 export const noteTable = pgTable('grade', {
   id: text('id').primaryKey(),
-  fachId: text('subject_id')
+  subjectId: text('subject_id')
     .notNull()
     .references(() => fachTable.id, { onDelete: 'cascade' }),
-  halbjahrId: text('term_id')
+  termId: text('term_id')
     .notNull()
     .references(() => halbjahrTable.id, { onDelete: 'cascade' }),
-  leistungsart: leistungsartEnum('kind').notNull(),
-  wertungsbereich: wertungsbereichEnum('area').notNull(),
+  kind: leistungsartEnum('kind').notNull(),
+  area: wertungsbereichEnum('area').notNull(),
   /** Nativer Wert im System des Halbjahrs (1,00–6,00 bzw. 0–15). */
-  notenwert: numeric('value', { precision: 4, scale: 2 }).notNull(),
+  value: numeric('value', { precision: 4, scale: 2 }).notNull(),
   /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */
-  gewichtung: numeric('weight', { precision: 4, scale: 2 })
-    .notNull()
-    .default('1'),
+  weight: numeric('weight', { precision: 4, scale: 2 }).notNull().default('1'),
   takenOn: date('taken_on').notNull(),
-  comment: text('note'),
+  note: text('note'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -160,16 +158,16 @@ export const studyDayTable = pgTable(
   {
     id: text('id').primaryKey(),
     day: date('day').notNull(),
-    fachId: text('subject_id').references(() => fachTable.id, {
+    subjectId: text('subject_id').references(() => fachTable.id, {
       onDelete: 'set null',
     }),
     minutes: integer('minutes'),
-    comment: text('note'),
+    note: text('note'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     unique('study_day_day_subject_unique')
-      .on(table.day, table.fachId)
+      .on(table.day, table.subjectId)
       .nullsNotDistinct(),
   ],
 );

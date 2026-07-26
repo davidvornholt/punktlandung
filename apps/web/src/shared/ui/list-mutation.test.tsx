@@ -15,41 +15,41 @@ const delayedRejection = () => {
 };
 
 const fach = (id: string): Fach => ({
-  gfsGewichtung: 1,
+  gfsWeight: 1,
   id,
-  klausurGewichtung: 1,
-  muendlichGewichtung: 1,
+  klausurWeight: 1,
+  muendlichWeight: 1,
   name: `Ziel ${id}`,
   shortName: id,
-  sonstigeGewichtung: 1,
+  sonstigeWeight: 1,
   sortOrder: id === 'A' ? 0 : 1,
-  testGewichtung: 1,
-  schriftlichShare: null,
+  testWeight: 1,
+  writtenShare: null,
 });
 
 const gewichtung = {
-  leistungsartGewichtungen: {
+  kindWeights: {
     gfs: 1,
     klausur: 1,
     muendlich: 1,
     sonstige: 1,
     test: 1,
   },
-  schriftlichShare: null,
+  writtenShare: null,
 } as const;
 
 const note = (id: string): NoteWithFach => ({
-  wertungsbereich: 'schriftlich',
-  date: id === 'A' ? '2026-01-01' : '2026-01-02',
+  area: 'schriftlich',
+  datum: id === 'A' ? '2026-01-01' : '2026-01-02',
   fachId: 'mathematik',
-  fachShortName: 'M',
+  fachKuerzel: 'M',
   fachName: 'Mathematik',
-  individualGewichtung: 1,
-  fachGewichtung: gewichtung,
+  gewicht: 1,
+  gewichtung,
   id,
-  leistungsart: 'klausur',
-  comment: `Ziel ${id}`,
-  notenwert: 2,
+  kind: 'klausur',
+  notiz: `Ziel ${id}`,
+  wert: 2,
 });
 
 const pending: ListMutation<string> = {
@@ -114,7 +114,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
         deleteMutation={pending}
         noten={noten}
         onDelete={() => undefined}
-        notensystem="sechser"
+        system="sechser"
       />,
     );
 
@@ -133,7 +133,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
         }}
         noten={noten}
         onDelete={() => undefined}
-        notensystem="sechser"
+        system="sechser"
       />,
     );
     const position = errorPosition(errorMarkup);

@@ -21,7 +21,7 @@ import { loadTrend } from '../services/trend-service.ts';
 export const listNotenFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
   .inputValidator(Schema.standardSchemaV1(NotenQuery))
-  .handler(({ data }) => runtime.runPromise(listNoten(data.halbjahrId)));
+  .handler(({ data }) => runtime.runPromise(listNoten(data.termId)));
 
 export const createNoteFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
@@ -45,7 +45,7 @@ export const trendFn = createServerFn({ method: 'GET' })
 export const notenQueryOptions = (halbjahrId: string) =>
   queryOptions({
     queryKey: ['noten', halbjahrId],
-    queryFn: () => listNotenFn({ data: { halbjahrId } }),
+    queryFn: () => listNotenFn({ data: { termId: halbjahrId } }),
   });
 
 export const trendQueryOptions = queryOptions({

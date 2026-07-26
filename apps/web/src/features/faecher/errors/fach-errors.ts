@@ -1,14 +1,14 @@
 import { Data } from 'effect';
 
 export class FachSchoolYearNotFound extends Data.TaggedError(
-  'FachSchoolYearNotFound',
+  'FachSchuljahrNichtGefunden',
 )<{ readonly schoolYear: string }> {
   override get message(): string {
     return `Das Schuljahr ${this.schoolYear} existiert nicht. Lege zuerst ein Halbjahr dafür an.`;
   }
 }
 
-export class FachNotFound extends Data.TaggedError('FachNotFound')<{
+export class FachNotFound extends Data.TaggedError('FachNichtGefunden')<{
   readonly fachId: string;
   readonly schoolYear: string;
 }> {

@@ -27,8 +27,7 @@ export const HalbjahrList = ({
         </div>
         <p className="mt-1 text-ink-muted text-sm">
           {formatIsoDate(halbjahr.startsOn)} bis{' '}
-          {formatIsoDate(halbjahr.endsOn)} ·{' '}
-          {notensystemText(halbjahr.notensystem)}
+          {formatIsoDate(halbjahr.endsOn)} · {notensystemText(halbjahr.system)}
         </p>
         <div className="mt-2">
           <button

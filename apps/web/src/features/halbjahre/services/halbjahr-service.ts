@@ -40,7 +40,7 @@ const hasConstraint = (value: unknown, constraint: string): boolean => {
 
 const mapOccupancy = (
   error: SqlError,
-  input: Pick<HalbjahrInput, 'schoolYear' | 'number'>,
+  input: Pick<HalbjahrInput, 'schoolYear' | 'half'>,
 ): Effect.Effect<never, HalbjahrAlreadyExists | SqlError> =>
   hasConstraint(error, halbjahrOccupancyConstraint)
     ? Effect.fail(new HalbjahrAlreadyExists(input))
@@ -53,7 +53,7 @@ const withNotensystem = <
   fields: Fields,
 ) => ({
   ...fields,
-  notensystem: notensystemForKlassenstufe(fields.klassenstufe),
+  system: notensystemForKlassenstufe(fields.klassenstufe),
 });
 
 /** Halbjahre, neuestes zuerst (nach Beginn sortiert). */
@@ -76,7 +76,7 @@ export const createHalbjahr = (input: HalbjahrInput) =>
             .insert(halbjahrTable)
             .values({ id: crypto.randomUUID(), ...withNotensystem(input) })
             .onConflictDoNothing({
-              target: [halbjahrTable.schoolYear, halbjahrTable.number],
+              target: [halbjahrTable.schoolYear, halbjahrTable.half],
             })
             .returning({ id: halbjahrTable.id });
           if (inserted.length === 0) {
@@ -109,7 +109,7 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
           const existingNoten = yield* db
             .select({ takenOn: noteTable.takenOn })
             .from(noteTable)
-            .where(eq(noteTable.halbjahrId, input.id));
+            .where(eq(noteTable.termId, input.id));
           const { id, ...next } = withNotensystem(input);
           const violation = findHalbjahrViolation(
             halbjahr,
@@ -120,8 +120,8 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
             return yield* Effect.fail(
               new NotensystemImmutableWithNoten({
                 halbjahrId: input.id,
-                previous: halbjahr.notensystem,
-                next: next.notensystem,
+                previous: halbjahr.system,
+                next: next.system,
               }),
             );
           }

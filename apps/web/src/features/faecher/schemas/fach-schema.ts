@@ -25,14 +25,14 @@ export const FachFields = Schema.Struct({
     Schema.maxLength(fachLimits.maxShortName),
   ),
   /** Anteil schriftlicher Noten in Prozent; null = eine gemeinsame Liste. */
-  schriftlichShare: Schema.NullOr(
+  writtenShare: Schema.NullOr(
     Schema.Int.pipe(Schema.between(0, fachLimits.maxShare)),
   ),
-  klausurGewichtung: Gewichtung,
-  testGewichtung: Gewichtung,
-  muendlichGewichtung: Gewichtung,
-  gfsGewichtung: Gewichtung,
-  sonstigeGewichtung: Gewichtung,
+  klausurWeight: Gewichtung,
+  testWeight: Gewichtung,
+  muendlichWeight: Gewichtung,
+  gfsWeight: Gewichtung,
+  sonstigeWeight: Gewichtung,
 });
 
 export type FachFields = typeof FachFields.Type;

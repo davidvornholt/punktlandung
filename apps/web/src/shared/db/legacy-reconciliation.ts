@@ -6,8 +6,8 @@ type HalbjahrRow = QueryResultRow & {
   readonly id: string;
   readonly label: string | null;
   readonly schoolYear: string;
-  readonly number: number;
-  readonly notensystem: string;
+  readonly half: number;
+  readonly system: string;
   readonly startsOn: string;
   readonly endsOn: string;
 };
@@ -15,9 +15,9 @@ type HalbjahrRow = QueryResultRow & {
 type StudyDayRow = QueryResultRow & {
   readonly id: string;
   readonly day: string;
-  readonly fachId: string | null;
+  readonly subjectId: string | null;
   readonly minutes: number | null;
-  readonly comment: string | null;
+  readonly note: string | null;
 };
 
 export class LegacyDataConflict extends Data.TaggedError('LegacyDataConflict')<{
@@ -58,10 +58,10 @@ const groupItems = <Row>(
  * verwerfen würde.
  */
 const halbjahrMetadata = (row: HalbjahrRow): string =>
-  [row.label, row.notensystem, row.startsOn, row.endsOn].join('\u0000');
+  [row.label, row.system, row.startsOn, row.endsOn].join('\u0000');
 
 const studyDayData = (row: StudyDayRow): string =>
-  JSON.stringify([row.minutes, row.comment]);
+  JSON.stringify([row.minutes, row.note]);
 
 const conflictMessage = (
   halbjahrConflicts: ReadonlyArray<ReadonlyArray<HalbjahrRow>>,
@@ -69,11 +69,11 @@ const conflictMessage = (
 ): string => {
   const halbjahrRows = halbjahrConflicts.map((group) => {
     const [first] = group;
-    return `Halbjahr ${first?.schoolYear}/${first?.number}: Zeilen ${group.map(({ id }) => id).join(', ')} unterscheiden sich in Bezeichnung, Notensystem oder Zeitraum. Gleichen Sie die Metadaten an oder führen Sie die Zeilen samt Noten manuell zusammen.`;
+    return `Halbjahr ${first?.schoolYear}/${first?.half}: Zeilen ${group.map(({ id }) => id).join(', ')} unterscheiden sich in Bezeichnung, Notensystem oder Zeitraum. Gleichen Sie die Metadaten an oder führen Sie die Zeilen samt Noten manuell zusammen.`;
   });
   const studyDayLines = studyDayConflicts.map((group) => {
     const [first] = group;
-    const fach = first?.fachId ?? 'ohne Fach';
+    const fach = first?.subjectId ?? 'ohne Fach';
     return `Lerntag ${first?.day}/${fach}: Zeilen ${group.map(({ id }) => id).join(', ')} haben unterschiedliche Minuten oder Notizen. Führen Sie diese Zeilen manuell zusammen.`;
   });
   return [
@@ -139,8 +139,7 @@ const reconcileInTransaction = (client: PoolClient) =>
     );
     const halbjahre = yield* query<HalbjahrRow>(
       client,
-      `SELECT id, school_year AS "schoolYear", half AS "number",
-              system AS "notensystem",
+      `SELECT id, school_year AS "schoolYear", half, system,
               starts_on AS "startsOn", ends_on AS "endsOn",
               COALESCE(to_jsonb(term) ->> 'label',
                        to_jsonb(term) ->> 'klassenstufe') AS "label"
@@ -149,17 +148,17 @@ const reconcileInTransaction = (client: PoolClient) =>
     );
     const studyDays = yield* query<StudyDayRow>(
       client,
-      `SELECT id, day, subject_id AS "fachId", minutes, note AS "comment"
+      `SELECT id, day, subject_id AS "subjectId", minutes, note
          FROM study_day
         ORDER BY day, subject_id NULLS FIRST, id`,
     );
     const halbjahrGroups = groupItems(
       halbjahre.rows,
-      (row) => `${row.schoolYear}\u0000${row.number}`,
+      (row) => `${row.schoolYear}\u0000${row.half}`,
     );
     const studyDayGroups = groupItems(
       studyDays.rows,
-      (row) => `${row.day}\u0000${row.fachId ?? ''}`,
+      (row) => `${row.day}\u0000${row.subjectId ?? ''}`,
     );
     const halbjahrConflicts = halbjahrGroups.filter(
       (group) => new Set(group.map(halbjahrMetadata)).size > 1,

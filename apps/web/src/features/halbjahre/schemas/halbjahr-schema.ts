@@ -24,7 +24,7 @@ const HalbjahrFields = Schema.Struct({
   klassenstufe: Schema.Literal(...klassenstufen),
   /** Schuljahr, z. B. "2026/27". */
   schoolYear: Schema.String.pipe(Schema.pattern(schoolYearPattern)),
-  number: Schema.Literal(1, 2),
+  half: Schema.Literal(1, 2),
   startsOn: IsoDate,
   endsOn: IsoDate,
 });

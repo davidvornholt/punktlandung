@@ -18,7 +18,7 @@ export const loadTrend = Effect.gen(function* () {
   const rows = yield* db
     .select({ note: noteTable, halbjahr: halbjahrTable })
     .from(noteTable)
-    .innerJoin(halbjahrTable, eq(noteTable.halbjahrId, halbjahrTable.id))
+    .innerJoin(halbjahrTable, eq(noteTable.termId, halbjahrTable.id))
     .orderBy(asc(noteTable.takenOn), asc(noteTable.createdAt));
   const fachSnapshots = new Map<string, ReadonlyArray<SchoolYearFach>>();
   for (const { halbjahr } of rows) {
@@ -33,21 +33,18 @@ export const loadTrend = Effect.gen(function* () {
     rows.flatMap(({ note, halbjahr }) => {
       const fach = fachSnapshots
         .get(halbjahr.schoolYear)
-        ?.find((entry) => entry.id === note.fachId);
+        ?.find((entry) => entry.id === note.subjectId);
       return fach === undefined
         ? []
         : [
             {
               date: note.takenOn,
-              notenpunkte: toNotenpunkte(
-                Number(note.notenwert),
-                halbjahr.notensystem,
-              ),
-              individualGewichtung: Number(note.gewichtung),
+              notenpunkte: toNotenpunkte(Number(note.value), halbjahr.system),
+              individualGewichtung: Number(note.weight),
               fachSnapshotId: `${halbjahr.schoolYear}:${fach.id}`,
               fachShortName: fach.shortName,
-              leistungsart: note.leistungsart,
-              wertungsbereich: note.wertungsbereich,
+              leistungsart: note.kind,
+              wertungsbereich: note.area,
               fachGewichtung: toFachgewichtung(fach),
             },
           ];
