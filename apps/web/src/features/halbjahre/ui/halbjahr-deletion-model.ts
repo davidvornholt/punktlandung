@@ -1,4 +1,5 @@
 import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
+import { restoreFormFocus } from '#/shared/ui/form-focus.ts';
 import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
 
 export type HalbjahrDeletionRequest = {
@@ -39,6 +40,13 @@ export const findAdjacentHalbjahrEditTrigger = (
       '[data-halbjahr-edit-trigger]',
     ) ?? null
   );
+};
+
+export const restoreHalbjahrDeletionFocus = (
+  focusTarget: HTMLButtonElement | null,
+  fallbackTrigger: HTMLButtonElement | null,
+) => {
+  restoreFormFocus(focusTarget, fallbackTrigger);
 };
 
 export const isProtectedHalbjahrDeletionError = (error: unknown): boolean =>

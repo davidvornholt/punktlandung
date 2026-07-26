@@ -8,6 +8,7 @@ import {
   halbjahrDeletionSuccessMessage,
   isFinalHalbjahrInSchoolYear,
   isProtectedHalbjahrDeletionError,
+  restoreHalbjahrDeletionFocus,
 } from './halbjahr-deletion-model.ts';
 
 const halbjahr = (
@@ -72,6 +73,24 @@ describe('Halbjahr deletion model', () => {
     expect(findAdjacentHalbjahrEditTrigger(deletionTrigger)).toBe(
       previousEditTrigger,
     );
+  });
+
+  it('focuses a surviving row or the create fallback after success', () => {
+    const adjacent = {
+      focus: mock(() => undefined),
+      isConnected: true,
+    } as unknown as HTMLButtonElement;
+    const fallback = {
+      focus: mock(() => undefined),
+      isConnected: true,
+    } as unknown as HTMLButtonElement;
+
+    restoreHalbjahrDeletionFocus(adjacent, fallback);
+    expect(adjacent.focus).toHaveBeenCalledTimes(1);
+    expect(fallback.focus).not.toHaveBeenCalled();
+
+    restoreHalbjahrDeletionFocus(null, fallback);
+    expect(fallback.focus).toHaveBeenCalledTimes(1);
   });
 
   it('recognizes only the typed protected deletion rejection', () => {

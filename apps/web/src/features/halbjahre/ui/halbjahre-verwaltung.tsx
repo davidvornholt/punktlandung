@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
-import { restoreFormFocus, useFormFocus } from '#/shared/ui/form-focus.ts';
+import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { determineQueryState } from '#/shared/ui/query-state-model.ts';
 import { halbjahreQueryOptions } from '../server/halbjahr-fns.ts';
 import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
-import { halbjahrDeletionSuccessMessage } from './halbjahr-deletion-model.ts';
+import {
+  halbjahrDeletionSuccessMessage,
+  restoreHalbjahrDeletionFocus,
+} from './halbjahr-deletion-model.ts';
 import { HalbjahrForm } from './halbjahr-form.tsx';
 import { HalbjahrListe } from './halbjahr-liste.tsx';
 import { useHalbjahrMutations } from './halbjahr-mutations.ts';
@@ -54,7 +57,7 @@ export const HalbjahreVerwaltung = () => {
 
   useEffect(() => {
     if (deletionStatus !== '') {
-      restoreFormFocus(
+      restoreHalbjahrDeletionFocus(
         deletionFocusTargetRef.current,
         fokus.fallbackTriggerRef.current,
       );
