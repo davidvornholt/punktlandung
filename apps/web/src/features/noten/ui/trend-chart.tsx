@@ -1,4 +1,3 @@
-import { useId } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -64,8 +63,8 @@ const TrendTooltip = ({ active, payload }: TooltipContentProps) => {
  * Die Verlaufslinie: alle Noten als Notenpunkte (Akzentlinie) und der
  * laufende gewichtete Gesamtschnitt (Primärlinie). Farben kommen
  * ausschließlich aus den Theme-Variablen, da Utility-Klassen auf
- * SVG-Attribute nicht wirken. Die vollständige Textalternative folgt als
- * für Screenreader zugängliche Datentabelle.
+ * SVG-Attribute nicht wirken. Die vollständige Datentabelle folgt in einer
+ * sichtbaren nativen Aufklappfläche.
  */
 export const TrendChart = ({
   entries,
@@ -73,18 +72,13 @@ export const TrendChart = ({
   readonly entries: ReadonlyArray<TrendEntry>;
 }) => {
   const textModel = createTrendTextModel(entries);
-  const descriptionId = useId();
 
   return (
     <figure>
-      <ResponsiveContainer
-        className="[&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-primary [&_.recharts-surface:focus-visible]:outline-offset-2"
-        height={chartHeight}
-        width="100%"
-      >
+      <ResponsiveContainer height={chartHeight} width="100%">
         <LineChart
-          aria-describedby={descriptionId}
-          aria-label="Interaktive Verlaufslinie der Noten"
+          accessibilityLayer={false}
+          aria-hidden="true"
           data={[...entries]}
           margin={chartMargin}
         >
@@ -134,40 +128,44 @@ export const TrendChart = ({
           />
         </LineChart>
       </ResponsiveContainer>
-      <figcaption className="mt-2 text-ink-faint text-sm" id={descriptionId}>
+      <figcaption className="mt-2 text-ink-faint text-sm">
         {textModel.summary} Dünne Linie: Einzelnoten, kräftige Linie: laufender
-        Schnitt. Mit Tab die Verlaufslinie auswählen und mit der linken und
-        rechten Pfeiltaste die Notenpunkte erkunden.
+        Schnitt.
       </figcaption>
-      <div className="sr-only">
-        <table>
-          <caption>Notenverlauf als Datentabelle</caption>
-          <thead>
-            <tr>
-              <th scope="col">Halbjahr</th>
-              <th scope="col">Leistungsart</th>
-              <th scope="col">Datum</th>
-              <th scope="col">Fach</th>
-              <th scope="col">Eingetragene Note</th>
-              <th scope="col">Kurvenwert in Notenpunkten</th>
-              <th scope="col">Laufender Schnitt in Notenpunkten</th>
-            </tr>
-          </thead>
-          <tbody>
-            {textModel.rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.halbjahr}</td>
-                <td>{row.leistungsart}</td>
-                <td>{row.date}</td>
-                <td>{row.fach}</td>
-                <td>{row.note}</td>
-                <td>{row.notenpunkte}</td>
-                <td>{row.average}</td>
+      <details className="mt-4 border border-border bg-surface-sunken">
+        <summary className="cursor-pointer px-3 py-2 text-ink text-sm marker:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">
+          Notenpunkte als Tabelle anzeigen
+        </summary>
+        <div className="overflow-x-auto border-border border-t">
+          <table className="w-full min-w-max border-collapse text-left text-sm">
+            <caption className="sr-only">Notenverlauf als Datentabelle</caption>
+            <thead className="bg-surface text-ink-faint text-xs uppercase tracking-widest">
+              <tr className="[&_th]:px-3 [&_th]:py-2 [&_th]:font-medium">
+                <th scope="col">Halbjahr</th>
+                <th scope="col">Leistungsart</th>
+                <th scope="col">Datum</th>
+                <th scope="col">Fach</th>
+                <th scope="col">Eingetragene Note</th>
+                <th scope="col">Kurvenwert in Notenpunkten</th>
+                <th scope="col">Laufender Schnitt in Notenpunkten</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="[&_td]:border-border [&_td]:border-t [&_td]:px-3 [&_td]:py-2 [&_td]:text-ink-muted">
+              {textModel.rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.halbjahr}</td>
+                  <td>{row.leistungsart}</td>
+                  <td>{row.date}</td>
+                  <td className="text-ink">{row.fach}</td>
+                  <td>{row.note}</td>
+                  <td>{row.notenpunkte}</td>
+                  <td>{row.average}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </figure>
   );
 };
