@@ -30,6 +30,17 @@ export const updateErrorText = (error: unknown) =>
       );
 
 /**
+ * Der Hinweis der leeren Liste. Ohne wählbares Fach nennt er nur die Tatsache:
+ * die Aufforderung, ein Fach anzulegen, steht verlinkt schon im Block über der
+ * Liste, und die Eintragsleiste, auf die er sonst verweist, steht dann gar
+ * nicht da.
+ */
+export const emptyNotenHint = (hasWaehlbaresFach: boolean) =>
+  hasWaehlbaresFach
+    ? 'In diesem Halbjahr sind noch keine Noten eingetragen. Nutze die Eintragsleiste oben, sobald die erste Note zurückkommt.'
+    : 'In diesem Halbjahr sind noch keine Noten eingetragen.';
+
+/**
  * Schließt die Bearbeitung nur, wenn der abgeschlossene Vorgang ihr galt: der
  * Benutzer kann inzwischen eine andere Note geöffnet haben.
  */

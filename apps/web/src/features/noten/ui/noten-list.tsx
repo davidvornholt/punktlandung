@@ -11,6 +11,7 @@ import { NoteForm } from './note-form.tsx';
 import { NotenCards } from './noten-cards.tsx';
 import {
   closeIfSaved,
+  emptyNotenHint,
   isEditPending,
   noUpdateErrors,
   updateErrorText,
@@ -112,16 +113,7 @@ export const NotenList = ({
   if (noten.length === 0) {
     return shell(
       <div className="mt-6 border border-border bg-surface-sunken p-6">
-        <p className="text-ink-muted">
-          {/*
-           * Ohne wählbares Fach gibt es keine Eintragsleiste, auf die dieser
-           * Hinweis verweisen könnte — er schickte den Benutzer sonst zu einem
-           * Feld, das gar nicht dasteht.
-           */}
-          {faecher.length === 0
-            ? 'In diesem Halbjahr sind noch keine Noten eingetragen. Lege zuerst ein Fach an, dann kannst du hier eintragen.'
-            : 'In diesem Halbjahr sind noch keine Noten eingetragen. Nutze die Eintragsleiste oben, sobald die erste Note zurückkommt.'}
-        </p>
+        <p className="text-ink-muted">{emptyNotenHint(faecher.length > 0)}</p>
       </div>,
     );
   }

@@ -22,9 +22,27 @@ const halbjahr = {
 } as const;
 
 const faecher = [
-  { id: 'latein', name: 'Latein' },
-  { id: 'mathe', name: 'Mathematik' },
+  { id: 'latein', kuerzel: 'L', name: 'Latein' },
+  { id: 'mathe', kuerzel: 'M', name: 'Mathematik' },
 ];
+
+/**
+ * Das Fach der Note kommt aus dem gespeicherten Fach, nicht aus der Eingabe:
+ * die Liste gruppiert nach `fachId`/`fachName`, geändert wird `subjectId`.
+ * Führte die Attrappe das nicht nach, bliebe eine Note beim Fachwechsel
+ * scheinbar stehen, wo sie war.
+ */
+const mitFach = (entry: NoteWithFach, subjectId: string): NoteWithFach => {
+  const fach = faecher.find((candidate) => candidate.id === subjectId);
+  return fach === undefined
+    ? entry
+    : {
+        ...entry,
+        fachId: fach.id,
+        fachKuerzel: fach.kuerzel,
+        fachName: fach.name,
+      };
+};
 
 const note = (id: string, wert: number, datum: string): NoteWithFach => ({
   datum,
@@ -97,7 +115,7 @@ export const NotenListStory = ({
         }
         notenRef.current = notenRef.current.map((entry) =>
           entry.id === values.id
-            ? { ...entry, ...values, wert: values.wert }
+            ? mitFach({ ...entry, ...values }, values.subjectId)
             : entry,
         );
       },
