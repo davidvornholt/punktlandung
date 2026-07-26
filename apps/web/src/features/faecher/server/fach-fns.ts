@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
 import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
+import { faecherKey } from '#/shared/query/query-keys.ts';
 import { runtime } from '#/shared/runtime.ts';
 import {
   FachId,
@@ -41,6 +42,6 @@ export const archiveFachFn = createServerFn({ method: 'POST' })
 
 export const faecherQueryOptions = (schoolYear: string) =>
   queryOptions({
-    queryKey: ['faecher', schoolYear],
+    queryKey: faecherKey(schoolYear),
     queryFn: () => listFaecherFn({ data: { schoolYear } }),
   });

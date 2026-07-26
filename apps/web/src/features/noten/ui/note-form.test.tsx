@@ -30,7 +30,11 @@ type FachList = ReadonlyArray<{
 }>;
 
 /** Die Bearbeitungsrolle: das Datum stammt aus der Note, nicht aus einer Vorgabe. */
-const editMarkup = (faecher: FachList, own: NoteWithFach = note) =>
+const editMarkup = (
+  faecher: FachList,
+  own: NoteWithFach = note,
+  pending = false,
+) =>
   renderToStaticMarkup(
     <NoteForm
       error={null}
@@ -40,7 +44,7 @@ const editMarkup = (faecher: FachList, own: NoteWithFach = note) =>
       note={own}
       onCancel={() => undefined}
       onSave={() => undefined}
-      pending={false}
+      pending={pending}
     />,
   );
 
@@ -68,6 +72,12 @@ const fachField = (rendered: string) => {
 
 const submitButton = (rendered: string) => {
   const end = rendered.indexOf('type="submit"');
+  return rendered.slice(rendered.lastIndexOf('<button', end), end);
+};
+
+/** Der Abbrechen-Knopf, den nur die Bearbeitungsrolle rendert. */
+const cancelButton = (rendered: string) => {
+  const end = rendered.indexOf('>Abbrechen<');
   return rendered.slice(rendered.lastIndexOf('<button', end), end);
 };
 
@@ -107,7 +117,30 @@ describe('NoteForm', () => {
     );
 
     expect(field).not.toContain('archiviert');
-    expect(field.match(/<option/gu)).toHaveLength(1);
+    expect(field).toContain('<option value="biologie">Biologie</option>');
+  });
+
+  it('lässt den Schnelleintrag auf einer leeren Fachwahl stehen', () => {
+    const field = fachField(
+      entryMarkup([
+        { id: 'biologie', name: 'Biologie' },
+        { id: 'deutsch', name: 'Deutsch' },
+      ]),
+    );
+
+    expect(field).toContain(
+      '<option value="" selected="">Fach wählen</option>',
+    );
+    expect(field.match(/selected=""/gu)).toHaveLength(1);
+  });
+
+  it('sperrt Abbrechen, solange die Änderung unterwegs ist', () => {
+    const faecher = [{ id: 'latein', name: 'Latein' }];
+
+    expect(cancelButton(editMarkup(faecher, note, true))).toContain(
+      'disabled=""',
+    );
+    expect(cancelButton(editMarkup(faecher))).not.toContain('disabled=""');
   });
 
   it('lässt den Eintragsknopf auf dem Telefon die volle Breite füllen', () => {

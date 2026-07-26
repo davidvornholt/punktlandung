@@ -36,12 +36,11 @@ const note = (id: string): NoteWithFach => ({
   wert: 2,
 });
 
-const idle: ListMutation<string> = {
-  error: null,
-  isError: false,
-  isPending: false,
-  variables: undefined,
-};
+/** Keine Zeile trägt hier einen Änderungsfehler. */
+const noUpdateErrors: ReadonlyMap<string, unknown> = new Map();
+
+/** Zwei Zeilen; der laufende Vorgang sperrt in jeder Bearbeiten und Löschen. */
+const lockedNoteButtons = 2 * 2;
 
 const pending: ListMutation<string> = {
   error: null,
@@ -104,16 +103,19 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
       <NotenCards
         deleteMutation={pending}
         editNoteId={null}
+        editPending={false}
         form={null}
         noten={noten}
         onDelete={() => undefined}
         onEdit={() => undefined}
         system="sechser"
-        updateMutation={idle}
+        updateErrors={noUpdateErrors}
       />,
     );
 
-    expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(2);
+    expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(
+      lockedNoteButtons,
+    );
     expect(pendingMarkup.match(/>Wird gelöscht …</gu)).toHaveLength(1);
 
     delay.reject(new Error('A ist fehlgeschlagen'));
@@ -127,12 +129,13 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
           variables: 'A',
         }}
         editNoteId={null}
+        editPending={false}
         form={null}
         noten={noten}
         onDelete={() => undefined}
         onEdit={() => undefined}
         system="sechser"
-        updateMutation={idle}
+        updateErrors={noUpdateErrors}
       />,
     );
     const position = errorPosition(errorMarkup);

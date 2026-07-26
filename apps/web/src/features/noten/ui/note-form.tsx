@@ -47,6 +47,40 @@ const fachOptions = (faecher: FachOptions, note: NoteWithFach | null) =>
     ? faecher
     : [...faecher, { id: note.fachId, name: `${note.fachName} (archiviert)` }];
 
+/** Das Fachfeld beider Rollen. */
+const FachField = ({
+  faecher,
+  note,
+  selected,
+}: {
+  readonly faecher: FachOptions;
+  readonly note: NoteWithFach | null;
+  readonly selected: string;
+}) => (
+  <label className={labelClass}>
+    Fach
+    <select
+      className={inputClass}
+      defaultValue={selected}
+      name="subjectId"
+      required={true}
+    >
+      {/*
+       * Der Schnelleintrag startet ohne Fach. Ohne diese leere Wahl stünde die
+       * Vorbelegung auf keinem Eintrag, der Browser zeigte das erste Fach an
+       * und `required` griffe nicht — die Note landete stillschweigend im
+       * falschen Fach.
+       */}
+      {note === null ? <option value="">Fach wählen</option> : null}
+      {fachOptions(faecher, note).map((fach) => (
+        <option key={fach.id} value={fach.id}>
+          {fach.name}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
 type NoteFormShared = {
   readonly faecher: FachOptions;
   readonly halbjahr: {
@@ -106,21 +140,7 @@ export const NoteForm = (props: NoteFormProps) => {
     >
       {isEdit ? <p className={`${labelClass} mb-3`}>Note bearbeiten</p> : null}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
-        <label className={labelClass}>
-          Fach
-          <select
-            className={inputClass}
-            defaultValue={values.subjectId}
-            name="subjectId"
-            required={true}
-          >
-            {fachOptions(faecher, note).map((fach) => (
-              <option key={fach.id} value={fach.id}>
-                {fach.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FachField faecher={faecher} note={note} selected={values.subjectId} />
         <label className={labelClass}>
           Art
           <select className={inputClass} defaultValue={values.kind} name="kind">
@@ -172,6 +192,12 @@ export const NoteForm = (props: NoteFormProps) => {
           {onCancel === null ? null : (
             <button
               className={secondaryButtonClass}
+              /*
+               * Abbrechen schließt nur das Formular; die abgeschickte Änderung
+               * bräche es nicht ab. Bliebe der Knopf bedienbar, landete die
+               * Änderung nach dem Abbrechen trotzdem in der Note.
+               */
+              disabled={pending}
               onClick={onCancel}
               type="button"
             >

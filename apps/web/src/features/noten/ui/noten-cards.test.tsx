@@ -21,29 +21,33 @@ const note = (id: string, datum = '2026-01-01'): NoteWithFach => ({
   wert: 2,
 });
 
-const idle = {
+const idle: ListMutation<string> = {
   error: null,
   isError: false,
   isPending: false,
   variables: undefined,
 };
 
+const noUpdateErrors: ReadonlyMap<string, unknown> = new Map();
+
 const noten = [note('A'), note('B', '2026-02-02')] as const;
 
 const cards = (
   editNoteId: string | null,
-  updateMutation: ListMutation<string> = idle,
+  updateErrors: ReadonlyMap<string, unknown> = noUpdateErrors,
+  list: ReadonlyArray<NoteWithFach> = noten,
 ) =>
   renderToStaticMarkup(
     <NotenCards
       deleteMutation={idle}
       editNoteId={editNoteId}
+      editPending={false}
       form={<p>Formular</p>}
-      noten={noten}
+      noten={list}
       onDelete={() => undefined}
       onEdit={() => undefined}
       system="sechser"
-      updateMutation={updateMutation}
+      updateErrors={updateErrors}
     />,
   );
 
@@ -71,6 +75,7 @@ const editButton = (editNoteId: string | null, onEdit: unknown) =>
     NotenCards({
       deleteMutation: idle,
       editNoteId,
+      editPending: false,
       form: null,
       noten: [note('A')],
       onDelete: () => undefined,
@@ -79,7 +84,7 @@ const editButton = (editNoteId: string | null, onEdit: unknown) =>
         trigger: HTMLButtonElement,
       ) => void,
       system: 'sechser',
-      updateMutation: idle,
+      updateErrors: noUpdateErrors,
     }),
   )[0]?.props as {
     readonly onClick: (event: {
@@ -107,40 +112,21 @@ describe('NotenCards', () => {
     expect(cards(null).match(/>Bearbeiten</gu)).toHaveLength(2);
   });
 
-  it('benennt die Aktionen jeder Zeile mit ihrer Note', () => {
-    const markup = cards(null);
+  it('benennt zwei ununterscheidbare Noten derselben Karte verschieden', () => {
+    const twins = [note('A'), note('B')];
+    /** Das Label der Fachkarte, dazu Bearbeiten und Löschen je Note. */
+    const labelsOfTwoRows = 5;
 
-    expect(markup).toContain(
-      'aria-label="Bearbeiten: Note 2, Klausur vom 01.01.2026"',
+    const labels = cards(null, noUpdateErrors, twins).match(
+      /aria-label="[^"]*"/gu,
     );
-    expect(markup).toContain(
-      'aria-label="Löschen: Note 2, Klausur vom 01.01.2026"',
-    );
-    expect(markup).toContain(
-      'aria-label="Bearbeiten: Note 2, Klausur vom 02.02.2026"',
-    );
-    expect(markup).toContain(
-      'aria-label="Löschen: Note 2, Klausur vom 02.02.2026"',
-    );
-  });
 
-  it('meldet die offene Zeile als aufgeklappt und bleibt bedienbar', () => {
-    const markup = cards('A');
-
-    expect(markup).toContain('aria-controls="notenformular-A"');
-    expect(markup).toContain('aria-expanded="true"');
-    expect(markup).toContain('id="notenformular-A"');
-    expect(markup.match(/aria-expanded="false"/gu)).toHaveLength(1);
-    expect(markup).not.toContain('disabled=""');
+    expect(labels).toHaveLength(labelsOfTwoRows);
+    expect(new Set(labels).size).toBe(labelsOfTwoRows);
   });
 
   it('meldet eine gescheiterte Änderung in der Zeile, deren Formular schon zu ist', () => {
-    const failed: ListMutation<string> = {
-      error: new Error('Verbindung weg'),
-      isError: true,
-      isPending: false,
-      variables: 'A',
-    };
+    const failed = new Map<string, unknown>([['A', new Error('Verbindung')]]);
     const markup = cards(null, failed);
 
     expect(markup.match(/role="alert"/gu)).toHaveLength(1);

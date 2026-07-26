@@ -1,12 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { RefObject } from 'react';
 import { useState } from 'react';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
-import type { ListMutation } from '#/shared/ui/list-mutation.ts';
-import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import type { NoteUpdate } from '../schemas/note-schema.ts';
 import {
@@ -31,50 +28,23 @@ type FachList = ReadonlyArray<{
   readonly name: string;
 }>;
 
-/**
- * Das Bearbeitungsformular einer Note. Ladezustand und Fehler stammen aus der
- * geteilten Änderungsmutation, gelten aber nur, wenn diese gerade zu dieser
- * Note gehört: sonst zeigte ein Speichervorgang für eine andere Note hier
- * seinen Zustand an.
- */
-const NoteEditForm = ({
-  faecher,
-  formRef,
-  halbjahr,
-  note,
-  onCancel,
-  onSave,
-  updateMutation,
-}: {
-  readonly faecher: FachList;
-  readonly formRef: RefObject<HTMLFormElement | null>;
-  readonly halbjahr: Halbjahr;
-  readonly note: NoteWithFach;
-  readonly onCancel: () => void;
-  readonly onSave: (values: NoteUpdate) => void;
-  readonly updateMutation: ListMutation<string>;
-}) => {
-  const state = listMutationState(updateMutation, note.id);
-  return (
-    <NoteForm
-      error={
-        state.error === null
-          ? null
-          : actionErrorText(
-              state.error,
-              'Die Note konnte nicht geändert werden. Die Eingaben bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
-            )
-      }
-      faecher={faecher}
-      formRef={formRef}
-      halbjahr={halbjahr}
-      note={note}
-      onCancel={onCancel}
-      onSave={(values) => onSave({ ...values, id: note.id })}
-      pending={state.pending}
-    />
-  );
+type UpdateErrors = ReadonlyMap<string, unknown>;
+
+const noUpdateErrors: UpdateErrors = new Map();
+
+const withoutNote = (errors: UpdateErrors, id: string): UpdateErrors => {
+  const rest = new Map(errors);
+  rest.delete(id);
+  return rest;
 };
+
+const updateErrorText = (error: unknown) =>
+  error === undefined
+    ? null
+    : actionErrorText(
+        error,
+        'Die Note konnte nicht geändert werden. Die Eingaben bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
+      );
 
 export const NotenList = ({
   halbjahr,
@@ -86,14 +56,34 @@ export const NotenList = ({
   const queryClient = useQueryClient();
   const notenQuery = useQuery(notenQueryOptions(halbjahr.id));
   const [editTarget, setEditTarget] = useState<NoteWithFach | null>(null);
+  /*
+   * Gescheiterte Änderungen, je Note festgehalten. Die geteilte Mutation kennt
+   * nur ihren letzten Ausgang: das Speichern einer zweiten Note verwarf sonst
+   * den Fehler der ersten, und diese bliebe stillschweigend ungeändert.
+   */
+  const [updateErrors, setUpdateErrors] =
+    useState<UpdateErrors>(noUpdateErrors);
   const focus = useFormFocus<HTMLElement>(editTarget?.id ?? null);
+
+  const forgetUpdateError = (id: string) =>
+    setUpdateErrors((errors) => withoutNote(errors, id));
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteNoteFn({ data: { id } }),
-    onSuccess: () => invalidateNotenQueries(queryClient, halbjahr.id),
+    /*
+     * Mit der gelöschten Zeile verschwindet ihr Löschknopf; ohne das
+     * Auffangziel fiele der Fokus auf <body>.
+     */
+    onSuccess: (_result, id) =>
+      invalidateNotenQueries(queryClient, halbjahr.id).then(() => {
+        forgetUpdateError(id);
+        focus.fallbackTriggerRef.current?.focus();
+      }),
   });
   const updateMutation = useMutation({
     mutationFn: (values: NoteUpdate) => updateNoteFn({ data: values }),
+    onError: (error, values) =>
+      setUpdateErrors((errors) => new Map(errors).set(values.id, error)),
     /*
      * Erst die Listen erneuern, dann schließen: schließt das Formular vorher,
      * gibt die Fokusrückgabe den Fokus an den Zeilenknopf, den der folgende
@@ -106,12 +96,12 @@ export const NotenList = ({
         setEditTarget((open) => (open?.id === values.id ? null : open));
       }),
   });
-  const updateState: ListMutation<string> = {
-    error: updateMutation.error,
-    isError: updateMutation.isError,
-    isPending: updateMutation.isPending,
-    variables: updateMutation.variables?.id,
-  };
+
+  /** Läuft gerade das Speichern der offenen Bearbeitung? */
+  const editPending =
+    updateMutation.isPending &&
+    editTarget !== null &&
+    updateMutation.variables?.id === editTarget.id;
 
   const noten = notenQuery.data;
   if (notenQuery.isPending) {
@@ -146,7 +136,7 @@ export const NotenList = ({
     /*
      * Auffangziel für den Fokus: der Zeilenknopf, der das Formular geöffnet
      * hat, verschwindet mit dem Neuabruf, wenn die Note ihr Fach gewechselt
-     * hat. Ohne dieses Ziel landete der Fokus auf <body>.
+     * hat oder gelöscht wurde. Ohne dieses Ziel landete der Fokus auf <body>.
      */
     <section
       aria-label="Notenliste"
@@ -156,9 +146,11 @@ export const NotenList = ({
       <NotenCards
         deleteMutation={deleteMutation}
         editNoteId={editTarget?.id ?? null}
+        editPending={editPending}
         form={
           editTarget === null ? null : (
-            <NoteEditForm
+            <NoteForm
+              error={updateErrorText(updateErrors.get(editTarget.id))}
               faecher={faecher}
               formRef={focus.formRef}
               halbjahr={halbjahr}
@@ -166,10 +158,10 @@ export const NotenList = ({
               note={editTarget}
               onCancel={() => setEditTarget(null)}
               onSave={(values) => {
-                updateMutation.reset();
-                updateMutation.mutate(values);
+                forgetUpdateError(editTarget.id);
+                updateMutation.mutate({ ...values, id: editTarget.id });
               }}
-              updateMutation={updateState}
+              pending={editPending}
             />
           )
         }
@@ -180,10 +172,18 @@ export const NotenList = ({
         }}
         onEdit={(note, trigger) => {
           focus.rememberTrigger(trigger);
+          /*
+           * Wer eine gescheiterte Note erneut öffnet, hat den Fehler gesehen;
+           * er darf weder das frische Formular noch die wieder geschlossene
+           * Zeile weiter behaupten.
+           */
+          if (note !== null) {
+            forgetUpdateError(note.id);
+          }
           setEditTarget(note);
         }}
         system={halbjahr.system}
-        updateMutation={updateState}
+        updateErrors={updateErrors}
       />
     </section>
   );

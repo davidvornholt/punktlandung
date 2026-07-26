@@ -6,8 +6,7 @@ import { faecherQueryOptions } from '#/features/faecher/server/fach-fns.ts';
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
 import { currentHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
 import { HalbjahrSelect } from '#/features/halbjahre/ui/halbjahr-select.tsx';
-import { NoteEntryBar } from '#/features/noten/ui/note-entry-bar.tsx';
-import { NotenList } from '#/features/noten/ui/noten-list.tsx';
+import { NotenSection } from '#/features/noten/ui/noten-section.tsx';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
@@ -93,34 +92,12 @@ const NotenPage = () => {
               value={halbjahr.id}
             />
           </div>
-          {(faecher ?? []).length === 0 ? (
-            <div className="mt-6 border border-border bg-surface-sunken p-8">
-              <p className="text-ink">Noch keine Fächer.</p>
-              <p className="mt-2 text-ink-muted">
-                Lege unter{' '}
-                <Link className="underline underline-offset-4" to="/faecher">
-                  Fächer
-                </Link>{' '}
-                deine Fächer samt Gewichtung an, dann kannst du hier Noten
-                eintragen.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="mt-4">
-                <NoteEntryBar
-                  faecher={faecher ?? []}
-                  key={halbjahr.id}
-                  halbjahr={halbjahr}
-                />
-              </div>
-              <NotenList
-                faecher={faecher ?? []}
-                halbjahr={halbjahr}
-                key={halbjahr.id}
-              />
-            </>
-          )}
+          {/* Der Halbjahrwechsel setzt Eintragsleiste und Liste neu auf. */}
+          <NotenSection
+            faecher={faecher ?? []}
+            halbjahr={halbjahr}
+            key={halbjahr.id}
+          />
         </>
       )}
     </>
