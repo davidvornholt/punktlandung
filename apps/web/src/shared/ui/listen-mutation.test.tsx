@@ -52,6 +52,13 @@ const note = (id: string): NoteMitFach => ({
   wert: 2,
 });
 
+const ruhend: ListenMutation<string> = {
+  error: null,
+  isError: false,
+  isPending: false,
+  variables: undefined,
+};
+
 const ausstehend: ListenMutation<string> = {
   error: null,
   isError: false,
@@ -111,6 +118,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     const noten = [note('A'), note('B')];
     const pendingMarkup = renderToStaticMarkup(
       <NotenKarten
+        aenderung={ruhend}
         bearbeitungId={null}
         formular={null}
         loeschung={ausstehend}
@@ -128,6 +136,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     const fehler = await laufVonA;
     const fehlerMarkup = renderToStaticMarkup(
       <NotenKarten
+        aenderung={ruhend}
         bearbeitungId={null}
         formular={null}
         loeschung={{

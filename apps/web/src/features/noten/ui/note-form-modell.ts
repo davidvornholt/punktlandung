@@ -16,18 +16,26 @@ const zahl = (roh: string) => Number(roh.replace(',', '.'));
 const bereichVorbelegung = (note: NoteMitFach) =>
   note.area === standardBereich(note.kind) ? '' : note.area;
 
-/**
- * Vorbelegung der Notenfelder: bestehende Note beim Bearbeiten, sonst leer
- * mit dem vorgeschlagenen Datum für den Schnelleintrag.
- */
-export const noteFormWerte = (note: NoteMitFach | null, datum: string) => ({
-  subjectId: note?.fachId ?? '',
-  kind: note?.kind ?? 'klausur',
-  area: note === null ? '' : bereichVorbelegung(note),
-  wert: note === null ? '' : `${note.wert}`,
-  gewicht: note?.gewicht ?? 1,
-  datum: note?.datum ?? datum,
-  notiz: note?.notiz ?? '',
+/** Vorbelegung für den Schnelleintrag: leere Felder mit vorgeschlagenem Datum. */
+export const leereNoteEingaben = (vorgabeDatum: string): NoteEingaben => ({
+  subjectId: '',
+  kind: 'klausur',
+  area: '',
+  wert: '',
+  gewicht: '1',
+  datum: vorgabeDatum,
+  notiz: '',
+});
+
+/** Vorbelegung beim Bearbeiten: die gespeicherten Werte der Note. */
+export const noteEingaben = (note: NoteMitFach): NoteEingaben => ({
+  subjectId: note.fachId,
+  kind: note.kind,
+  area: bereichVorbelegung(note),
+  wert: `${note.wert}`,
+  gewicht: `${note.gewicht}`,
+  datum: note.datum,
+  notiz: note.notiz ?? '',
 });
 
 /**

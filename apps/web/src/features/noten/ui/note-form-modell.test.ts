@@ -2,7 +2,11 @@ import { describe, expect, it } from 'bun:test';
 
 import type { NoteMitFach } from '../services/noten-service.ts';
 import type { NoteEingaben } from './note-form-modell.ts';
-import { noteFelderAusEingaben, noteFormWerte } from './note-form-modell.ts';
+import {
+  leereNoteEingaben,
+  noteEingaben,
+  noteFelderAusEingaben,
+} from './note-form-modell.ts';
 
 const leereEingaben: NoteEingaben = {
   subjectId: 'fach-1',
@@ -70,36 +74,48 @@ describe('noteFelderAusEingaben', () => {
   });
 });
 
-describe('noteFormWerte', () => {
+describe('noteEingaben', () => {
   it('belegt das Formular beim Bearbeiten mit der bestehenden Note vor', () => {
-    expect(noteFormWerte(note, '2026-07-26')).toEqual({
+    expect(noteEingaben(note)).toEqual({
       subjectId: 'fach-2',
       kind: 'gfs',
       area: 'muendlich',
       wert: '2.5',
-      gewicht: 1.5,
+      gewicht: '1.5',
       datum: '2026-02-11',
       notiz: 'Referat Photosynthese',
     });
   });
 
   it('behält einen Bereich, der vom Standard der Art abweicht', () => {
-    expect(noteFormWerte(note, '2026-07-26').area).toBe('muendlich');
+    expect(noteEingaben(note).area).toBe('muendlich');
   });
 
   it('gibt einen aus der Art abgeleiteten Bereich wieder frei', () => {
-    const felder = noteFormWerte(
-      { ...note, kind: 'klausur', area: 'schriftlich' },
-      '2026-07-26',
-    );
+    const felder = noteEingaben({
+      ...note,
+      kind: 'klausur',
+      area: 'schriftlich',
+    });
 
     expect(felder.area).toBe('');
   });
 
+  it('liefert jedes Feld als Text, wie das Formular es erwartet', () => {
+    expect(
+      Object.values(noteEingaben(note)).every(
+        (wert) => typeof wert === 'string',
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('leereNoteEingaben', () => {
   it('schlägt beim Neueintrag das übergebene Datum vor', () => {
-    const werte = noteFormWerte(null, '2026-07-26');
+    const werte = leereNoteEingaben('2026-07-26');
 
     expect(werte.datum).toBe('2026-07-26');
     expect(werte.wert).toBe('');
+    expect(werte.gewicht).toBe('1');
   });
 });

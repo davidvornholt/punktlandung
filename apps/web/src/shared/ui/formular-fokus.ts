@@ -12,10 +12,20 @@ export const stelleFormularFokusWiederHer = (
   (ausloeser?.isConnected ? ausloeser : ersatzAusloeser)?.focus();
 };
 
-export const useFormularFokus = (formularKennung: string | null) => {
+/**
+ * Fokusführung für ein Formular, das über einen Auslöser geöffnet wird. Der
+ * Ersatzauslöser fängt den Fokus auf, wenn der ursprüngliche Auslöser beim
+ * Schließen nicht mehr im Dokument steht; sein Elementtyp ist wählbar, weil
+ * nicht jede Ansicht einen bleibenden Knopf anbietet.
+ */
+export const useFormularFokus = <
+  Ersatz extends HTMLElement = HTMLButtonElement,
+>(
+  formularKennung: string | null,
+) => {
   const formularRef = useRef<HTMLFormElement>(null);
   const ausloeserRef = useRef<HTMLElement | null>(null);
-  const ersatzAusloeserRef = useRef<HTMLButtonElement>(null);
+  const ersatzAusloeserRef = useRef<Ersatz>(null);
   const warOffenRef = useRef(false);
 
   useEffect(() => {

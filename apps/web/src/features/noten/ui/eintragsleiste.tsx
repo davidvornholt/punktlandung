@@ -8,6 +8,7 @@ import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
 import type { NotenFelder } from '../schemas/note-schema.ts';
 import { createNoteFn } from '../server/noten-fns.ts';
 import { NoteForm } from './note-form.tsx';
+import { aktualisiereNotenAbfragen } from './noten-aktualisierung.ts';
 
 /** Die Eintragsleiste: eine Note direkt nach der Rückgabe erfassen. */
 export const Eintragsleiste = ({
@@ -32,10 +33,7 @@ export const Eintragsleiste = ({
       createNoteFn({ data: { ...werte, termId: term.id } }),
     onSuccess: () => {
       formRef.current?.reset();
-      return Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['noten', term.id] }),
-        queryClient.invalidateQueries({ queryKey: ['verlauf'] }),
-      ]);
+      return aktualisiereNotenAbfragen(queryClient, term.id);
     },
   });
 

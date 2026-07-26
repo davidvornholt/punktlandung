@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { isValidElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import type { ListenMutation } from '#/shared/ui/listen-mutation.ts';
 import type { NoteMitFach } from '../services/noten-service.ts';
 import { NotenKarten } from './noten-karten.tsx';
 
@@ -40,9 +41,13 @@ const ruhend = {
 
 const noten = [note('A'), note('B', '2026-02-02')] as const;
 
-const karten = (bearbeitungId: string | null) =>
+const karten = (
+  bearbeitungId: string | null,
+  aenderung: ListenMutation<string> = ruhend,
+) =>
   renderToStaticMarkup(
     <NotenKarten
+      aenderung={aenderung}
       bearbeitungId={bearbeitungId}
       formular={<p>Formular</p>}
       loeschung={ruhend}
@@ -78,6 +83,7 @@ const bearbeitenKnopf = (
 ) =>
   knoepfe(
     NotenKarten({
+      aenderung: ruhend,
       bearbeitungId,
       formular: null,
       loeschung: ruhend,
@@ -140,6 +146,26 @@ describe('NotenKarten', () => {
     expect(markup).toContain('id="notenformular-A"');
     expect(markup.match(/aria-expanded="false"/gu)).toHaveLength(1);
     expect(markup).not.toContain('disabled=""');
+  });
+
+  it('meldet eine gescheiterte Änderung in der Zeile, deren Formular schon zu ist', () => {
+    const gescheitert: ListenMutation<string> = {
+      error: new Error('Verbindung weg'),
+      isError: true,
+      isPending: false,
+      variables: 'A',
+    };
+    const markup = karten(null, gescheitert);
+
+    expect(markup.match(/role="alert"/gu)).toHaveLength(1);
+    expect(markup.indexOf('role="alert"')).toBeGreaterThan(
+      markup.indexOf('Notiz A'),
+    );
+    expect(markup.indexOf('role="alert"')).toBeLessThan(
+      markup.indexOf('Notiz B'),
+    );
+    expect(markup).toContain('Die Änderung an dieser Note wurde nicht');
+    expect(karten('A', gescheitert)).not.toContain('role="alert"');
   });
 
   it('öffnet mit dem Auslöser die geschlossene Zeile', () => {

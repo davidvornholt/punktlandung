@@ -3,6 +3,10 @@ import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
 import { sitzungErforderlich } from '#/shared/auth/auth-middleware.ts';
+import {
+  notenSchluessel,
+  verlaufSchluessel,
+} from '#/shared/query/abfrageschluessel.ts';
 import { runtime } from '#/shared/runtime.ts';
 import {
   NoteAktualisierung,
@@ -44,11 +48,11 @@ export const verlaufFn = createServerFn({ method: 'GET' })
 
 export const notenQueryOptions = (termId: string) =>
   queryOptions({
-    queryKey: ['noten', termId],
+    queryKey: notenSchluessel(termId),
     queryFn: () => listNotenFn({ data: { termId } }),
   });
 
 export const verlaufQueryOptions = queryOptions({
-  queryKey: ['verlauf'],
+  queryKey: verlaufSchluessel,
   queryFn: () => verlaufFn(),
 });

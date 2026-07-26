@@ -12,7 +12,11 @@ import { notenGrenzen } from '../schemas/note-schema.ts';
 import type { NoteMitFach } from '../services/noten-service.ts';
 import { leistungsartLabel } from './leistungsart-label.ts';
 import type { NoteEingaben } from './note-form-modell.ts';
-import { noteFelderAusEingaben, noteFormWerte } from './note-form-modell.ts';
+import {
+  leereNoteEingaben,
+  noteEingaben,
+  noteFelderAusEingaben,
+} from './note-form-modell.ts';
 
 const liesWerte = (form: HTMLFormElement): NotenFelder => {
   const daten = new FormData(form);
@@ -44,23 +48,7 @@ const fachAuswahl = (faecher: Fachauswahl, note: NoteMitFach | null) =>
     ? faecher
     : [...faecher, { id: note.fachId, name: `${note.fachName} (archiviert)` }];
 
-/**
- * Das Notenformular in beiden Rollen: als Eintragsleiste für den
- * Schnelleintrag (`note === null`) und als Bearbeitungsformular für eine
- * bestehende Note.
- */
-export const NoteForm = ({
-  note,
-  faecher,
-  term,
-  beschaeftigt,
-  fehler,
-  formularRef,
-  onSpeichern,
-  onAbbrechen,
-  vorgabeDatum,
-}: {
-  readonly note: NoteMitFach | null;
+type NoteFormGemeinsam = {
   readonly faecher: Fachauswahl;
   readonly term: {
     readonly system: Notensystem;
@@ -71,10 +59,44 @@ export const NoteForm = ({
   readonly fehler: string | null;
   readonly formularRef: RefObject<HTMLFormElement | null>;
   readonly onSpeichern: (werte: NotenFelder) => void;
-  readonly onAbbrechen: (() => void) | null;
-  readonly vorgabeDatum: string;
-}) => {
-  const werte = noteFormWerte(note, vorgabeDatum);
+};
+
+/**
+ * Die beiden Rollen des Formulars. Nur der Schnelleintrag braucht ein
+ * vorgeschlagenes Datum; beim Bearbeiten kommt es aus der Note selbst, und
+ * abbrechen lässt sich nur eine offene Bearbeitung.
+ */
+type NoteFormEigenschaften =
+  | (NoteFormGemeinsam & {
+      readonly note: null;
+      readonly onAbbrechen: null;
+      readonly vorgabeDatum: string;
+    })
+  | (NoteFormGemeinsam & {
+      readonly note: NoteMitFach;
+      readonly onAbbrechen: () => void;
+    });
+
+/**
+ * Das Notenformular in beiden Rollen: als Eintragsleiste für den
+ * Schnelleintrag (`note === null`) und als Bearbeitungsformular für eine
+ * bestehende Note.
+ */
+export const NoteForm = (eigenschaften: NoteFormEigenschaften) => {
+  const {
+    beschaeftigt,
+    faecher,
+    fehler,
+    formularRef,
+    note,
+    onAbbrechen,
+    onSpeichern,
+    term,
+  } = eigenschaften;
+  const werte =
+    eigenschaften.note === null
+      ? leereNoteEingaben(eigenschaften.vorgabeDatum)
+      : noteEingaben(eigenschaften.note);
   const bearbeitet = note !== null;
   const punkteSystem = term.system === 'punkte';
   const knopfText = beschaeftigt

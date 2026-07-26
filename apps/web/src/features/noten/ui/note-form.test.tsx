@@ -27,24 +27,36 @@ const term = {
   system: 'sechser',
 } as const;
 
-const markup = (
-  eigene: {
-    readonly note: NoteMitFach | null;
-    readonly faecher: ReadonlyArray<{
-      readonly id: string;
-      readonly name: string;
-    }>;
-  },
-  abbrechbar: boolean,
-) =>
+type Fachliste = ReadonlyArray<{
+  readonly id: string;
+  readonly name: string;
+}>;
+
+/** Die Bearbeitungsrolle: das Datum stammt aus der Note, nicht aus einer Vorgabe. */
+const bearbeitungsMarkup = (faecher: Fachliste, eigene: NoteMitFach = note) =>
   renderToStaticMarkup(
     <NoteForm
       beschaeftigt={false}
-      faecher={eigene.faecher}
+      faecher={faecher}
       fehler={null}
       formularRef={{ current: null }}
-      note={eigene.note}
-      onAbbrechen={abbrechbar ? () => undefined : null}
+      note={eigene}
+      onAbbrechen={() => undefined}
+      onSpeichern={() => undefined}
+      term={term}
+    />,
+  );
+
+/** Die Eintragsrolle: leere Felder mit vorgeschlagenem Datum. */
+const eintragsMarkup = (faecher: Fachliste) =>
+  renderToStaticMarkup(
+    <NoteForm
+      beschaeftigt={false}
+      faecher={faecher}
+      fehler={null}
+      formularRef={{ current: null }}
+      note={null}
+      onAbbrechen={null}
       onSpeichern={() => undefined}
       term={term}
       vorgabeDatum="2026-02-11"
@@ -65,16 +77,10 @@ const absendeknopf = (gerendert: string) => {
 describe('NoteForm', () => {
   it('hält das archivierte Fach der bearbeiteten Note wählbar und ausgewählt', () => {
     const feld = fachfeld(
-      markup(
-        {
-          faecher: [
-            { id: 'biologie', name: 'Biologie' },
-            { id: 'deutsch', name: 'Deutsch' },
-          ],
-          note,
-        },
-        true,
-      ),
+      bearbeitungsMarkup([
+        { id: 'biologie', name: 'Biologie' },
+        { id: 'deutsch', name: 'Deutsch' },
+      ]),
     );
 
     expect(feld).toContain(
@@ -85,16 +91,10 @@ describe('NoteForm', () => {
 
   it('führt ein noch geführtes Fach genau einmal und ausgewählt', () => {
     const feld = fachfeld(
-      markup(
-        {
-          faecher: [
-            { id: 'latein', name: 'Latein' },
-            { id: 'deutsch', name: 'Deutsch' },
-          ],
-          note,
-        },
-        true,
-      ),
+      bearbeitungsMarkup([
+        { id: 'latein', name: 'Latein' },
+        { id: 'deutsch', name: 'Deutsch' },
+      ]),
     );
 
     expect(feld.match(/value="latein"/gu)).toHaveLength(1);
@@ -106,10 +106,7 @@ describe('NoteForm', () => {
 
   it('bietet beim Neueintrag keine archivierten Fächer an', () => {
     const feld = fachfeld(
-      markup(
-        { faecher: [{ id: 'biologie', name: 'Biologie' }], note: null },
-        false,
-      ),
+      eintragsMarkup([{ id: 'biologie', name: 'Biologie' }]),
     );
 
     expect(feld).not.toContain('archiviert');
@@ -118,20 +115,23 @@ describe('NoteForm', () => {
 
   it('lässt den Eintragsknopf auf dem Telefon die volle Breite füllen', () => {
     expect(
-      absendeknopf(
-        markup(
-          { faecher: [{ id: 'biologie', name: 'Biologie' }], note: null },
-          false,
-        ),
-      ),
+      absendeknopf(eintragsMarkup([{ id: 'biologie', name: 'Biologie' }])),
     ).toContain('w-full sm:w-auto');
   });
 
+  it('belegt beim Bearbeiten Datum und Gewicht aus der Note', () => {
+    const gerendert = bearbeitungsMarkup([{ id: 'latein', name: 'Latein' }], {
+      ...note,
+      datum: '2026-03-05',
+      gewicht: 1.5,
+    });
+
+    expect(gerendert).toContain('value="2026-03-05"');
+    expect(gerendert).toContain('value="1.5"');
+  });
+
   it('lässt Speichern und Abbrechen beim Bearbeiten nebeneinander stehen', () => {
-    const gerendert = markup(
-      { faecher: [{ id: 'latein', name: 'Latein' }], note },
-      true,
-    );
+    const gerendert = bearbeitungsMarkup([{ id: 'latein', name: 'Latein' }]);
 
     expect(absendeknopf(gerendert)).not.toContain('w-full');
     expect(gerendert).toContain('Abbrechen');

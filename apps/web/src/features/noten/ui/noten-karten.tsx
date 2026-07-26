@@ -60,8 +60,25 @@ const datumAnzeige = (iso: string): string => {
 const noteBezeichnung = (note: NoteMitFach, system: Notensystem): string =>
   `Note ${formatNote(note.wert, system)}, ${leistungsartLabel[note.kind]} vom ${datumAnzeige(note.datum)}`;
 
+/** Ein Fehler, der genau zu dieser Zeile gehört. */
+const Zeilenfehler = ({
+  ersatztext,
+  fehler,
+}: {
+  readonly ersatztext: string;
+  readonly fehler: unknown;
+}) => (
+  <p
+    className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
+    role="alert"
+  >
+    {aktionsfehlerText(fehler, ersatztext)}
+  </p>
+);
+
 /** Eine Notenzeile mit ihren Aktionen und, beim Bearbeiten, dem Formular. */
 const Notenzeile = ({
+  aenderung,
   formular,
   loeschung,
   note,
@@ -70,6 +87,7 @@ const Notenzeile = ({
   system,
   wirdBearbeitet,
 }: {
+  readonly aenderung: ListenMutation<string>;
   readonly formular: ReactNode;
   readonly loeschung: ListenMutation<string>;
   readonly note: NoteMitFach;
@@ -82,6 +100,15 @@ const Notenzeile = ({
   readonly wirdBearbeitet: boolean;
 }) => {
   const anzeige = listenMutationsanzeige(loeschung, note.id);
+  /**
+   * Eine gescheiterte Änderung zeigt ihren Fehler im offenen Formular. Ist die
+   * Zeile längst wieder zu — weil der Speichervorgang erst nach dem Schließen
+   * scheiterte —, gehört der Fehler in die Zeile, sonst bliebe die Note
+   * stillschweigend ungeändert.
+   */
+  const aenderungsfehler = wirdBearbeitet
+    ? null
+    : listenMutationsanzeige(aenderung, note.id).fehler;
   const bezeichnung = noteBezeichnung(note, system);
   const formularId = `notenformular-${note.id}`;
   const loeschenText = anzeige.laeuft ? 'Wird gelöscht …' : 'Löschen';
@@ -127,15 +154,16 @@ const Notenzeile = ({
         </div>
       ) : null}
       {anzeige.fehler === null ? null : (
-        <p
-          className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
-          role="alert"
-        >
-          {aktionsfehlerText(
-            anzeige.fehler,
-            'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
-          )}
-        </p>
+        <Zeilenfehler
+          ersatztext="Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut."
+          fehler={anzeige.fehler}
+        />
+      )}
+      {aenderungsfehler === null ? null : (
+        <Zeilenfehler
+          ersatztext="Die Änderung an dieser Note wurde nicht gespeichert. Öffne sie erneut zum Bearbeiten und versuche es noch einmal."
+          fehler={aenderungsfehler}
+        />
       )}
     </li>
   );
@@ -143,6 +171,7 @@ const Notenzeile = ({
 
 /** Notenkarten: je Fach die Einzelnoten und der gewichtete Fachschnitt. */
 export const NotenKarten = ({
+  aenderung,
   bearbeitungId,
   formular,
   loeschung,
@@ -151,6 +180,8 @@ export const NotenKarten = ({
   onLoeschen,
   system,
 }: {
+  /** Die geteilte Änderungsmutation; ihr Fehler gehört zur betroffenen Zeile. */
+  readonly aenderung: ListenMutation<string>;
   readonly bearbeitungId: string | null;
   /** Das Bearbeitungsformular; erscheint unter der bearbeiteten Note. */
   readonly formular: ReactNode;
@@ -185,6 +216,7 @@ export const NotenKarten = ({
         <ul className="mt-3 divide-y divide-border">
           {gruppe.noten.map((note) => (
             <Notenzeile
+              aenderung={aenderung}
               formular={formular}
               key={note.id}
               loeschung={loeschung}
