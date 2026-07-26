@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
+import { ConversionReference } from '#/features/halbjahre/ui/conversion-reference.tsx';
 import { HalbjahreManagement } from '#/features/halbjahre/ui/halbjahre-management.tsx';
 import { pageTitle } from '#/shared/ui/page-title.ts';
 
@@ -13,6 +14,9 @@ const SettingsPage = () => (
     </p>
     <div className="mt-6">
       <HalbjahreManagement />
+    </div>
+    <div className="mt-10">
+      <ConversionReference />
     </div>
   </>
 );
