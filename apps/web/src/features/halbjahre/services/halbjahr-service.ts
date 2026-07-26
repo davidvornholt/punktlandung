@@ -7,6 +7,7 @@ import { Effect } from 'effect';
 import { grade, term } from '#/shared/db/schema.ts';
 import {
   materialisiereNeuesSchuljahr,
+  sperreSchuljahrLifecycle,
   verwerfeFachstandOhneHalbjahr,
 } from '#/shared/noten/schuljahr-fachstand.ts';
 import type { Klassenstufe } from '#/shared/schule/klassenstufe.ts';
@@ -74,6 +75,20 @@ export const listHalbjahre = Effect.gen(function* () {
     .orderBy(desc(term.startsOn));
 });
 
+const ladeGesperrtesHalbjahr = (id: string) =>
+  Effect.gen(function* () {
+    const db = yield* PgDrizzle;
+    const [halbjahr] = yield* db
+      .select()
+      .from(term)
+      .where(eq(term.id, id))
+      .for('update');
+    return (
+      halbjahr ??
+      (yield* Effect.fail(new HalbjahrNichtGefunden({ halbjahrId: id })))
+    );
+  });
+
 export const createHalbjahr = (eingabe: HalbjahrEingabe) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
@@ -89,6 +104,7 @@ export const createHalbjahr = (eingabe: HalbjahrEingabe) =>
           if (eingefuegt.length === 0) {
             return yield* Effect.fail(new HalbjahrBelegungDoppelt(eingabe));
           }
+          yield* sperreSchuljahrLifecycle(eingabe.schoolYear);
           yield* materialisiereNeuesSchuljahr(eingabe.schoolYear);
         }),
       )
@@ -104,17 +120,11 @@ export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
-          const vorhanden = yield* db
-            .select()
-            .from(term)
-            .where(eq(term.id, eingabe.id))
-            .for('update');
-          const [halbjahr] = vorhanden;
-          if (halbjahr === undefined) {
-            return yield* Effect.fail(
-              new HalbjahrNichtGefunden({ halbjahrId: eingabe.id }),
-            );
-          }
+          const halbjahr = yield* ladeGesperrtesHalbjahr(eingabe.id);
+          yield* sperreSchuljahrLifecycle(
+            halbjahr.schoolYear,
+            eingabe.schoolYear,
+          );
           const vorhandeneNoten = yield* db
             .select({ takenOn: grade.takenOn })
             .from(grade)
@@ -154,6 +164,9 @@ export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
           }
           yield* db.update(term).set(neu).where(eq(term.id, id));
           yield* materialisiereNeuesSchuljahr(eingabe.schoolYear);
+          if (halbjahr.schoolYear !== eingabe.schoolYear) {
+            yield* verwerfeFachstandOhneHalbjahr(halbjahr.schoolYear);
+          }
         }),
       )
       .pipe(
@@ -172,17 +185,8 @@ export const deleteHalbjahr = (id: string) =>
     yield* sql.withTransaction(
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
-        const vorhanden = yield* db
-          .select()
-          .from(term)
-          .where(eq(term.id, id))
-          .for('update');
-        const [halbjahr] = vorhanden;
-        if (halbjahr === undefined) {
-          return yield* Effect.fail(
-            new HalbjahrNichtGefunden({ halbjahrId: id }),
-          );
-        }
+        const halbjahr = yield* ladeGesperrtesHalbjahr(id);
+        yield* sperreSchuljahrLifecycle(halbjahr.schoolYear);
         const [notenstand] = yield* db
           .select({ anzahl: count(grade.id) })
           .from(grade)
@@ -190,7 +194,10 @@ export const deleteHalbjahr = (id: string) =>
         const anzahl = notenstand?.anzahl ?? 0;
         if (anzahl > 0) {
           return yield* Effect.fail(
-            new HalbjahrMitNotenNichtLoeschbar({ halbjahrId: id, anzahl }),
+            new HalbjahrMitNotenNichtLoeschbar({
+              halbjahrId: id,
+              anzahl,
+            }),
           );
         }
         yield* db.delete(term).where(eq(term.id, id));

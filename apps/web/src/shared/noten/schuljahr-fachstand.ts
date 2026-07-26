@@ -1,3 +1,4 @@
+import { SqlClient } from '@effect/sql/SqlClient';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { and, asc, desc, eq, lt, min, ne } from 'drizzle-orm';
 import { Effect } from 'effect';
@@ -21,17 +22,34 @@ export type SchuljahrFach = {
   readonly archived: boolean;
 };
 
-type LegacyFach = typeof subject.$inferSelect;
+const lifecycleSperrbereich = 1_416_129_093;
+
+/** Serialisiert den Fachstand-Lifecycle bis zum Transaktionsende. */
+export const sperreSchuljahrLifecycle = (
+  ...schoolYears: ReadonlyArray<string>
+) =>
+  Effect.gen(function* () {
+    const client = yield* SqlClient;
+    for (const schoolYear of [...new Set(schoolYears)].sort()) {
+      yield* client`SELECT pg_advisory_xact_lock(
+        ${lifecycleSperrbereich}, hashtext(${schoolYear})
+      )`;
+    }
+  });
 
 /**
  * Einziger Dekodierpunkt der Gewichtung: ab hier ist sie getypt, sodass jede
  * Auswertung stromabwärts total bleibt.
  */
-const ausLegacy = (fach: LegacyFach, schoolYear: string) =>
-  dekodiereGewichtung(fach.weighting, fach.id).pipe(
+const ausFach = (
+  fach: typeof subject.$inferSelect | typeof schoolYearSubject.$inferSelect,
+  id: string,
+  schoolYear: string,
+) =>
+  dekodiereGewichtung(fach.weighting, id).pipe(
     Effect.map(
       (gewichtung): SchuljahrFach => ({
-        id: fach.id,
+        id,
         schoolYear,
         name: fach.name,
         shortName: fach.shortName,
@@ -42,20 +60,11 @@ const ausLegacy = (fach: LegacyFach, schoolYear: string) =>
     ),
   );
 
+const ausLegacy = (fach: typeof subject.$inferSelect, schoolYear: string) =>
+  ausFach(fach, fach.id, schoolYear);
+
 const ausSchuljahr = (fach: typeof schoolYearSubject.$inferSelect) =>
-  dekodiereGewichtung(fach.weighting, fach.subjectId).pipe(
-    Effect.map(
-      (gewichtung): SchuljahrFach => ({
-        id: fach.subjectId,
-        schoolYear: fach.schoolYear,
-        name: fach.name,
-        shortName: fach.shortName,
-        gewichtung,
-        sortOrder: fach.sortOrder,
-        archived: fach.archived,
-      }),
-    ),
-  );
+  ausFach(fach, fach.subjectId, fach.schoolYear);
 
 const zuSchuljahrZeile = (fach: SchuljahrFach) => ({
   schoolYear: fach.schoolYear,
@@ -65,6 +74,14 @@ const zuSchuljahrZeile = (fach: SchuljahrFach) => ({
   weighting: fach.gewichtung,
   sortOrder: fach.sortOrder,
   archived: fach.archived,
+});
+
+const ladeLegacyFaecher = Effect.gen(function* () {
+  const db = yield* PgDrizzle;
+  return yield* db
+    .select()
+    .from(subject)
+    .orderBy(asc(subject.sortOrder), asc(subject.name));
 });
 
 /**
@@ -79,10 +96,7 @@ export const ladeSchuljahrFachstand = (schoolYear: string) =>
       .from(schoolYearSubjectSet)
       .where(eq(schoolYearSubjectSet.schoolYear, schoolYear));
     if (marker.length === 0) {
-      const legacy = yield* db
-        .select()
-        .from(subject)
-        .orderBy(asc(subject.sortOrder), asc(subject.name));
+      const legacy = yield* ladeLegacyFaecher;
       return yield* Effect.forEach(legacy, (fach) =>
         ausLegacy(fach, schoolYear),
       );
@@ -123,10 +137,7 @@ export const materialisiereBestehendeSchuljahre = Effect.gen(function* () {
     .select({ schoolYear: schoolYearSubjectSet.schoolYear })
     .from(schoolYearSubjectSet);
   const fixiert = new Set(marker.map((eintrag) => eintrag.schoolYear));
-  const legacy = yield* db
-    .select()
-    .from(subject)
-    .orderBy(asc(subject.sortOrder), asc(subject.name));
+  const legacy = yield* ladeLegacyFaecher;
   for (const { schoolYear } of schuljahre) {
     if (!fixiert.has(schoolYear)) {
       yield* speichereFachstand(
@@ -168,15 +179,9 @@ export const materialisiereNeuesSchuljahr = (schoolYear: string) =>
       .limit(1);
     const faecher =
       quelle[0] === undefined
-        ? yield* db
-            .select()
-            .from(subject)
-            .orderBy(asc(subject.sortOrder), asc(subject.name))
-            .pipe(
-              Effect.flatMap((legacy) =>
-                Effect.forEach(legacy, (fach) => ausLegacy(fach, schoolYear)),
-              ),
-            )
+        ? yield* Effect.forEach(yield* ladeLegacyFaecher, (fach) =>
+            ausLegacy(fach, schoolYear),
+          )
         : (yield* ladeSchuljahrFachstand(quelle[0].schoolYear)).map((fach) => ({
             ...fach,
             schoolYear,
