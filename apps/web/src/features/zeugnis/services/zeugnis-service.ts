@@ -3,7 +3,6 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { grade, term } from '#/shared/db/schema.ts';
-import { zuFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { Leistung, Notensystem } from '#/shared/noten/notenwert.ts';
 import { fachschnitt } from '#/shared/noten/notenwert.ts';
 import type { SchuljahrFach } from '#/shared/noten/schuljahr-fachstand.ts';
@@ -43,14 +42,13 @@ export type Zeugnis = {
 
 type NotenZeile = Pick<
   typeof grade.$inferSelect,
-  'subjectId' | 'value' | 'weight' | 'kind' | 'area'
+  'subjectId' | 'value' | 'weight' | 'kind'
 >;
 
 const zuLeistung = (note: NotenZeile): Leistung => ({
   value: Number(note.value),
   weight: Number(note.weight),
   kind: note.kind,
-  area: note.area,
 });
 
 const notenProFach = (noten: ReadonlyArray<NotenZeile>) => {
@@ -78,7 +76,7 @@ export const berechneJahresvorschau = (
   return faecher.flatMap((fach): ReadonlyArray<JahresvorschauZeile> => {
     const schnitt = fachschnitt(
       (gruppen.get(fach.id) ?? []).map(zuLeistung),
-      zuFachgewichtung(fach),
+      fach.gewichtung,
     );
     if (schnitt === null) {
       return [];
@@ -121,10 +119,7 @@ export const ladeZeugnis = (termId: string) =>
     const halbnoten: Array<number> = [];
     const zeilen = faecher.map((fach): ZeugnisZeile => {
       const fachNoten = gruppen.get(fach.id) ?? [];
-      const schnitt = fachschnitt(
-        fachNoten.map(zuLeistung),
-        zuFachgewichtung(fach),
-      );
+      const schnitt = fachschnitt(fachNoten.map(zuLeistung), fach.gewichtung);
       const halbnote =
         schnitt === null ? null : halbjahresnote(schnitt, halbjahr.system);
       if (halbnote !== null) {

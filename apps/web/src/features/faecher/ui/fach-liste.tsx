@@ -1,11 +1,9 @@
+import { gewichtungsZeile } from '#/shared/noten/gewichtung-text.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { Fach } from '../services/fach-service.ts';
-
-const gewichtszeile = (fach: Fach): string =>
-  `Klausur ${fach.klausurWeight} · Test ${fach.testWeight} · Mündlich ${fach.muendlichWeight} · GFS ${fach.gfsWeight} · Sonstige ${fach.sonstigeWeight}`;
 
 const FachZeile = ({
   fach,
@@ -32,10 +30,7 @@ const FachZeile = ({
       </span>
     </div>
     <p className="mt-1 text-ink-muted text-sm">
-      {gewichtszeile(fach)}
-      {fach.writtenShare === null
-        ? ' · gemeinsame Liste'
-        : ` · schriftlich ${fach.writtenShare} %`}
+      {gewichtungsZeile(fach.gewichtung)}
     </p>
     <div className="mt-2 flex gap-3">
       <button
@@ -81,16 +76,16 @@ export const FachListe = ({
 }) => (
   <ul className="mt-4 space-y-3">
     {faecher.map((fach) => {
-      const anzeige = listMutationState(archivierung, fach.id);
+      const zeilenstatus = listMutationState(archivierung, fach.id);
       return (
         <FachZeile
-          archivFehler={anzeige.error}
+          archivFehler={zeilenstatus.error}
           fach={fach}
           key={fach.id}
           onArchivieren={() => onArchivieren(fach.id)}
           onBearbeiten={(ausloeser) => onBearbeiten(fach, ausloeser)}
-          wirdArchiviert={anzeige.pending}
-          wirdArchivierungAusgefuehrt={anzeige.disabled}
+          wirdArchiviert={zeilenstatus.pending}
+          wirdArchivierungAusgefuehrt={zeilenstatus.disabled}
         />
       );
     })}

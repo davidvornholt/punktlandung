@@ -1,19 +1,12 @@
 import { Schema } from 'effect';
 
+import { FachgewichtungSchema } from '#/shared/noten/fach-gewichtung.ts';
+
 /** Eingabegrenzen — auch die Formulare nutzen sie für ihre Attribute. */
 export const fachGrenzen = {
   nameMax: 100,
   kuerzelMax: 10,
-  anteilMax: 100,
-  gewichtMax: 10,
-  gewichtSchritt: 0.25,
 } as const;
-
-/** Gewicht einer Leistungsart, wie von der Lehrkraft verkündet. */
-const Gewicht = Schema.Number.pipe(
-  Schema.positive(),
-  Schema.lessThanOrEqualTo(fachGrenzen.gewichtMax),
-);
 
 export const FachFelder = Schema.Struct({
   name: Schema.String.pipe(
@@ -24,15 +17,7 @@ export const FachFelder = Schema.Struct({
     Schema.minLength(1),
     Schema.maxLength(fachGrenzen.kuerzelMax),
   ),
-  /** Anteil schriftlicher Noten in Prozent; null = eine gemeinsame Liste. */
-  writtenShare: Schema.NullOr(
-    Schema.Int.pipe(Schema.between(0, fachGrenzen.anteilMax)),
-  ),
-  klausurWeight: Gewicht,
-  testWeight: Gewicht,
-  muendlichWeight: Gewicht,
-  gfsWeight: Gewicht,
-  sonstigeWeight: Gewicht,
+  gewichtung: FachgewichtungSchema,
 });
 
 export type FachFelder = typeof FachFelder.Type;

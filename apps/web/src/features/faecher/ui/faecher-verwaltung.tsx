@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+
+import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
   inputClass,
@@ -46,13 +48,36 @@ const fachFormularFehler = (
   return null;
 };
 
+/** Ein Schuljahr mit dem Notensystem, in dem seine Halbjahre gewertet werden. */
+export type Schuljahrwahl = {
+  readonly schoolYear: string;
+  readonly system: Notensystem;
+};
+
+const systemFuer = (
+  schuljahre: ReadonlyArray<Schuljahrwahl>,
+  schoolYear: string,
+): Notensystem =>
+  schuljahre.find((jahr) => jahr.schoolYear === schoolYear)?.system ??
+  'sechser';
+
+const OhneHalbjahr = () => (
+  <section className="border border-border bg-surface-sunken p-6">
+    <h2 className="font-display text-2xl text-ink tracking-tight">Fächer</h2>
+    <p className="mt-2 text-ink-muted">
+      Lege zuerst ein Halbjahr an. Danach verwaltest du die Fächer für das
+      zugehörige Schuljahr.
+    </p>
+  </section>
+);
+
 export const FaecherVerwaltung = ({
-  schoolYears,
+  schuljahre,
 }: {
-  readonly schoolYears: ReadonlyArray<string>;
+  readonly schuljahre: ReadonlyArray<Schuljahrwahl>;
 }) => {
   const queryClient = useQueryClient();
-  const [schoolYear, setSchoolYear] = useState(schoolYears[0] ?? '');
+  const [schoolYear, setSchoolYear] = useState(schuljahre[0]?.schoolYear ?? '');
   const faecherAbfrage = useQuery({
     ...faecherQueryOptions(schoolYear),
     enabled: schoolYear !== '',
@@ -83,7 +108,7 @@ export const FaecherVerwaltung = ({
       queryClient.invalidateQueries({ queryKey: ['faecher', schoolYear] }),
   });
   const faecher = faecherAbfrage.data;
-  const abfrageZustand = determineQueryState({
+  const queryState = determineQueryState({
     data: faecher,
     isError: faecherAbfrage.isError,
     isPending: faecherAbfrage.isPending,
@@ -92,17 +117,7 @@ export const FaecherVerwaltung = ({
   const formularFehler = fachFormularFehler(anlegen, aendern);
 
   if (schoolYear === '') {
-    return (
-      <section className="border border-border bg-surface-sunken p-6">
-        <h2 className="font-display text-2xl text-ink tracking-tight">
-          Fächer
-        </h2>
-        <p className="mt-2 text-ink-muted">
-          Lege zuerst ein Halbjahr an. Danach verwaltest du die Fächer für das
-          zugehörige Schuljahr.
-        </p>
-      </section>
-    );
+    return <OhneHalbjahr />;
   }
 
   return (
@@ -123,9 +138,9 @@ export const FaecherVerwaltung = ({
               }}
               value={schoolYear}
             >
-              {schoolYears.map((jahr) => (
-                <option key={jahr} value={jahr}>
-                  {jahr}
+              {schuljahre.map((jahr) => (
+                <option key={jahr.schoolYear} value={jahr.schoolYear}>
+                  {jahr.schoolYear}
                 </option>
               ))}
             </select>
@@ -165,16 +180,17 @@ export const FaecherVerwaltung = ({
                 aendern.mutate({ ...werte, id: bearbeitung.id });
               }
             }}
+            system={systemFuer(schuljahre, schoolYear)}
             titel={bearbeitung === 'neu' ? 'Neues Fach' : 'Fach bearbeiten'}
           />
         </div>
       )}
-      {abfrageZustand === 'pending' ? (
+      {queryState === 'pending' ? (
         <div className="mt-4">
           <LoadingHint text="Fächer werden geladen …" />
         </div>
       ) : null}
-      {abfrageZustand === 'error' ? (
+      {queryState === 'error' ? (
         <div className="mt-4">
           <QueryError
             onRetry={() => faecherAbfrage.refetch()}
@@ -182,7 +198,7 @@ export const FaecherVerwaltung = ({
           />
         </div>
       ) : null}
-      {abfrageZustand === 'success' && faecher !== undefined ? (
+      {queryState === 'success' && faecher !== undefined ? (
         <FachListe
           archivierung={archivieren}
           faecher={faecher}
@@ -198,7 +214,7 @@ export const FaecherVerwaltung = ({
           }}
         />
       ) : null}
-      {abfrageZustand === 'empty' && bearbeitung === null ? (
+      {queryState === 'empty' && bearbeitung === null ? (
         <div className="mt-4 border border-border bg-surface-sunken p-6">
           <p className="text-ink-muted">
             Noch keine Fächer. Lege dein erstes Fach an — mit der Gewichtung,

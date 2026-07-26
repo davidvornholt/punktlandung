@@ -2,7 +2,6 @@ import type {
   Fachgewichtung,
   Leistung,
   Leistungsart,
-  Wertungsbereich,
 } from '#/shared/noten/notenwert.ts';
 import { fachschnitt } from '#/shared/noten/notenwert.ts';
 
@@ -14,7 +13,6 @@ export type VerlaufsNote = {
   readonly fachStandId: string;
   readonly fachKuerzel: string;
   readonly kind: Leistungsart;
-  readonly area: Wertungsbereich;
   readonly gewichtung: Fachgewichtung;
 };
 
@@ -54,7 +52,6 @@ export const berechneVerlauf = (
       value: note.punkte,
       weight: note.gewicht,
       kind: note.kind,
-      area: note.area,
     });
     proFach.set(note.fachStandId, fach);
     const fachSchnitte = [...proFach.values()].flatMap(

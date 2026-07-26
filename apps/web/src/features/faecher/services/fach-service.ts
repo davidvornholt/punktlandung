@@ -4,6 +4,7 @@ import { and, eq, max } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { schoolYearSubject, subject, term } from '#/shared/db/schema.ts';
+import type { Fachgewichtung } from '#/shared/noten/notenwert.ts';
 import type { SchuljahrFach } from '#/shared/noten/schuljahr-fachstand.ts';
 import {
   ladeSchuljahrFachstand,
@@ -22,12 +23,7 @@ export type Fach = {
   readonly id: string;
   readonly name: string;
   readonly shortName: string;
-  readonly writtenShare: number | null;
-  readonly klausurWeight: number;
-  readonly testWeight: number;
-  readonly muendlichWeight: number;
-  readonly gfsWeight: number;
-  readonly sonstigeWeight: number;
+  readonly gewichtung: Fachgewichtung;
   readonly sortOrder: number;
 };
 
@@ -35,24 +31,14 @@ const zuFach = (zeile: SchuljahrFach): Fach => ({
   id: zeile.id,
   name: zeile.name,
   shortName: zeile.shortName,
-  writtenShare: zeile.writtenShare,
-  klausurWeight: Number(zeile.klausurWeight),
-  testWeight: Number(zeile.testWeight),
-  muendlichWeight: Number(zeile.muendlichWeight),
-  gfsWeight: Number(zeile.gfsWeight),
-  sonstigeWeight: Number(zeile.sonstigeWeight),
+  gewichtung: zeile.gewichtung,
   sortOrder: zeile.sortOrder,
 });
 
 const zuSpalten = (eingabe: FachEingabe | FachAktualisierung) => ({
   name: eingabe.name,
   shortName: eingabe.shortName,
-  writtenShare: eingabe.writtenShare,
-  klausurWeight: `${eingabe.klausurWeight}`,
-  testWeight: `${eingabe.testWeight}`,
-  muendlichWeight: `${eingabe.muendlichWeight}`,
-  gfsWeight: `${eingabe.gfsWeight}`,
-  sonstigeWeight: `${eingabe.sonstigeWeight}`,
+  weighting: eingabe.gewichtung,
 });
 
 const bereiteMutationVor = (schoolYear: string) =>

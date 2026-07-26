@@ -4,12 +4,10 @@ import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { isIsoDateInRange } from '#/shared/date/date-range.ts';
 import { grade, term } from '#/shared/db/schema.ts';
-import { zuFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type {
   Fachgewichtung,
   Leistungsart,
   Notensystem,
-  Wertungsbereich,
 } from '#/shared/noten/notenwert.ts';
 import { ladeSchuljahrFachstand } from '#/shared/noten/schuljahr-fachstand.ts';
 import {
@@ -23,12 +21,11 @@ import type {
   NoteAktualisierung,
   NoteEingabe,
 } from '../schemas/note-schema.ts';
-import { istWertGueltig, standardBereich } from './notenpruefung.ts';
+import { istWertGueltig } from './notenpruefung.ts';
 
 export type NoteMitFach = {
   readonly id: string;
   readonly kind: Leistungsart;
-  readonly area: Wertungsbereich;
   readonly wert: number;
   readonly gewicht: number;
   readonly datum: string;
@@ -107,7 +104,6 @@ export const listNoten = (termId: string) =>
         {
           id: note.id,
           kind: note.kind,
-          area: note.area,
           wert: Number(note.value),
           gewicht: Number(note.weight),
           datum: note.takenOn,
@@ -115,7 +111,7 @@ export const listNoten = (termId: string) =>
           fachId: fach.id,
           fachName: fach.name,
           fachKuerzel: fach.shortName,
-          gewichtung: zuFachgewichtung(fach),
+          gewichtung: fach.gewichtung,
         },
       ];
     });
@@ -136,7 +132,6 @@ export const createNote = (eingabe: NoteEingabe) =>
           subjectId: eingabe.subjectId,
           termId: eingabe.termId,
           kind: eingabe.kind,
-          area: eingabe.area ?? standardBereich(eingabe.kind),
           value: `${eingabe.wert}`,
           weight: `${eingabe.gewicht}`,
           takenOn: eingabe.datum,
@@ -172,7 +167,6 @@ export const updateNote = (eingabe: NoteAktualisierung) =>
           .set({
             subjectId: eingabe.subjectId,
             kind: eingabe.kind,
-            area: eingabe.area ?? standardBereich(eingabe.kind),
             value: `${eingabe.wert}`,
             weight: `${eingabe.gewicht}`,
             takenOn: eingabe.datum,

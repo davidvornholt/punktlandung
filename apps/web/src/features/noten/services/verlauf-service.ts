@@ -3,7 +3,6 @@ import { asc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { grade, term } from '#/shared/db/schema.ts';
-import { zuFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { zuPunkten } from '#/shared/noten/notenwert.ts';
 import type { SchuljahrFach } from '#/shared/noten/schuljahr-fachstand.ts';
 import { ladeSchuljahrFachstand } from '#/shared/noten/schuljahr-fachstand.ts';
@@ -44,8 +43,7 @@ export const ladeVerlauf = Effect.gen(function* () {
               fachStandId: `${halbjahr.schoolYear}:${fach.id}`,
               fachKuerzel: fach.shortName,
               kind: note.kind,
-              area: note.area,
-              gewichtung: zuFachgewichtung(fach),
+              gewichtung: fach.gewichtung,
             },
           ];
     }),

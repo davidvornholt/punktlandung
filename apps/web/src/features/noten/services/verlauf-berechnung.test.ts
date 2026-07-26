@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'bun:test';
 
+import type { Fachgewichtung } from '#/shared/noten/notenwert.ts';
 import { berechneVerlauf } from './verlauf-berechnung.ts';
 
-const gleichgewichtet = {
-  writtenShare: null,
-  kindWeights: { klausur: 1, test: 1, muendlich: 1, gfs: 1, sonstige: 1 },
-} as const;
+/** Jede Note zählt für sich — die Sammelregel prüft notenwert.test.ts. */
+const gleichgewichtet: Fachgewichtung = {
+  verhaeltnis: null,
+  arten: {
+    klausur: { gewicht: 1, sammlung: 'einzeln' },
+    test: { gewicht: 1, sammlung: 'einzeln' },
+    muendlich: { gewicht: 1, sammlung: 'einzeln' },
+    gfs: { gewicht: 1, sammlung: 'einzeln' },
+    sonstige: { gewicht: 1, sammlung: 'einzeln' },
+  },
+};
 
 const note = (
   fachStandId: string,
@@ -19,7 +27,6 @@ const note = (
   fachStandId,
   fachKuerzel: fachStandId,
   kind: 'klausur' as const,
-  area: 'schriftlich' as const,
   gewichtung: gleichgewichtet,
   ...overrides,
 });
@@ -41,15 +48,14 @@ describe('berechneVerlauf', () => {
   });
 
   it('wendet den schriftlich/mündlich-Anteil trotz ungleicher Anzahl an', () => {
-    const gewichtung = { ...gleichgewichtet, writtenShare: 50 };
+    const gewichtung: Fachgewichtung = {
+      ...gleichgewichtet,
+      verhaeltnis: { schriftlich: 50, muendlich: 50 },
+    };
     const verlauf = berechneVerlauf([
       note('M', '2026-09-01', 11, { gewichtung }),
       ...[2, 3, 4, 5].map((tag) =>
-        note('M', `2026-09-0${tag}`, 5, {
-          area: 'muendlich',
-          kind: 'muendlich',
-          gewichtung,
-        }),
+        note('M', `2026-09-0${tag}`, 5, { kind: 'muendlich', gewichtung }),
       ),
     ]);
     expect(verlauf.at(-1)?.schnitt).toBe(8);

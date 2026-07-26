@@ -1,19 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { istWertGueltig, standardBereich } from './notenpruefung.ts';
-
-describe('standardBereich', () => {
-  it('ordnet Klausur, Test und GFS dem schriftlichen Bereich zu', () => {
-    expect(standardBereich('klausur')).toBe('schriftlich');
-    expect(standardBereich('test')).toBe('schriftlich');
-    expect(standardBereich('gfs')).toBe('schriftlich');
-  });
-
-  it('ordnet Mündlich und Sonstige dem mündlichen Bereich zu', () => {
-    expect(standardBereich('muendlich')).toBe('muendlich');
-    expect(standardBereich('sonstige')).toBe('muendlich');
-  });
-});
+import { istWertGueltig } from './notenpruefung.ts';
 
 describe('istWertGueltig', () => {
   it('sechser: erlaubt 1,00 bis 6,00 einschließlich Zwischenwerten', () => {

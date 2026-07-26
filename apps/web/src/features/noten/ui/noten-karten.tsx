@@ -1,12 +1,18 @@
+import {
+  bereichLabel,
+  leistungsartLabel,
+} from '#/shared/noten/leistungsart-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { fachschnitt } from '#/shared/noten/notenwert.ts';
+import {
+  bereichDerLeistungsart,
+  fachschnitt,
+} from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { NoteMitFach } from '../services/noten-service.ts';
-import { bereichLabel, leistungsartLabel } from './leistungsart-label.ts';
 
 type FachGruppe = {
   readonly fachId: string;
@@ -39,7 +45,6 @@ const gruppiereNachFach = (
         value: note.wert,
         weight: note.gewicht,
         kind: note.kind,
-        area: note.area,
       })),
       erste.gewichtung,
     ),
@@ -83,7 +88,7 @@ export const NotenKarten = ({
         </div>
         <ul className="mt-3 divide-y divide-border">
           {gruppe.noten.map((note) => {
-            const anzeige = listMutationState(loeschung, note.id);
+            const zeilenstatus = listMutationState(loeschung, note.id);
             return (
               <li
                 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
@@ -93,7 +98,10 @@ export const NotenKarten = ({
                   {formatNote(note.wert, system)}
                 </span>
                 <span className="text-ink-muted text-sm">
-                  {leistungsartLabel[note.kind]} · {bereichLabel[note.area]}
+                  {leistungsartLabel[note.kind]}
+                  {note.gewichtung.verhaeltnis === null
+                    ? ''
+                    : ` · ${bereichLabel[bereichDerLeistungsart[note.kind]]}`}
                   {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
                 </span>
                 <span className="text-ink-faint text-sm">
@@ -104,19 +112,19 @@ export const NotenKarten = ({
                 )}
                 <button
                   className={`${quietButtonClass} ml-auto`}
-                  disabled={anzeige.disabled}
+                  disabled={zeilenstatus.disabled}
                   onClick={() => onLoeschen(note.id)}
                   type="button"
                 >
-                  {anzeige.pending ? 'Wird gelöscht …' : 'Löschen'}
+                  {zeilenstatus.pending ? 'Wird gelöscht …' : 'Löschen'}
                 </button>
-                {anzeige.error === null ? null : (
+                {zeilenstatus.error === null ? null : (
                   <p
                     className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
                     role="alert"
                   >
                     {actionErrorText(
-                      anzeige.error,
+                      zeilenstatus.error,
                       'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
                     )}
                   </p>

@@ -8,67 +8,61 @@ import {
   subject,
   term,
 } from '#/shared/db/schema.ts';
+import { dekodiereGewichtung } from './fach-gewichtung.ts';
+import type { Fachgewichtung } from './notenwert.ts';
 
 export type SchuljahrFach = {
   readonly id: string;
   readonly schoolYear: string;
   readonly name: string;
   readonly shortName: string;
-  readonly writtenShare: number | null;
-  readonly klausurWeight: string;
-  readonly testWeight: string;
-  readonly muendlichWeight: string;
-  readonly gfsWeight: string;
-  readonly sonstigeWeight: string;
+  readonly gewichtung: Fachgewichtung;
   readonly sortOrder: number;
   readonly archived: boolean;
 };
 
 type LegacyFach = typeof subject.$inferSelect;
 
-const ausLegacy = (fach: LegacyFach, schoolYear: string): SchuljahrFach => ({
-  id: fach.id,
-  schoolYear,
-  name: fach.name,
-  shortName: fach.shortName,
-  writtenShare: fach.writtenShare,
-  klausurWeight: fach.klausurWeight,
-  testWeight: fach.testWeight,
-  muendlichWeight: fach.muendlichWeight,
-  gfsWeight: fach.gfsWeight,
-  sonstigeWeight: fach.sonstigeWeight,
-  sortOrder: fach.sortOrder,
-  archived: fach.archived,
-});
+/**
+ * Einziger Dekodierpunkt der Gewichtung: ab hier ist sie getypt, sodass jede
+ * Auswertung stromabwärts total bleibt.
+ */
+const ausLegacy = (fach: LegacyFach, schoolYear: string) =>
+  dekodiereGewichtung(fach.weighting, fach.id).pipe(
+    Effect.map(
+      (gewichtung): SchuljahrFach => ({
+        id: fach.id,
+        schoolYear,
+        name: fach.name,
+        shortName: fach.shortName,
+        gewichtung,
+        sortOrder: fach.sortOrder,
+        archived: fach.archived,
+      }),
+    ),
+  );
 
-const ausSchuljahr = (
-  fach: typeof schoolYearSubject.$inferSelect,
-): SchuljahrFach => ({
-  id: fach.subjectId,
-  schoolYear: fach.schoolYear,
-  name: fach.name,
-  shortName: fach.shortName,
-  writtenShare: fach.writtenShare,
-  klausurWeight: fach.klausurWeight,
-  testWeight: fach.testWeight,
-  muendlichWeight: fach.muendlichWeight,
-  gfsWeight: fach.gfsWeight,
-  sonstigeWeight: fach.sonstigeWeight,
-  sortOrder: fach.sortOrder,
-  archived: fach.archived,
-});
+const ausSchuljahr = (fach: typeof schoolYearSubject.$inferSelect) =>
+  dekodiereGewichtung(fach.weighting, fach.subjectId).pipe(
+    Effect.map(
+      (gewichtung): SchuljahrFach => ({
+        id: fach.subjectId,
+        schoolYear: fach.schoolYear,
+        name: fach.name,
+        shortName: fach.shortName,
+        gewichtung,
+        sortOrder: fach.sortOrder,
+        archived: fach.archived,
+      }),
+    ),
+  );
 
 const zuSchuljahrZeile = (fach: SchuljahrFach) => ({
   schoolYear: fach.schoolYear,
   subjectId: fach.id,
   name: fach.name,
   shortName: fach.shortName,
-  writtenShare: fach.writtenShare,
-  klausurWeight: fach.klausurWeight,
-  testWeight: fach.testWeight,
-  muendlichWeight: fach.muendlichWeight,
-  gfsWeight: fach.gfsWeight,
-  sonstigeWeight: fach.sonstigeWeight,
+  weighting: fach.gewichtung,
   sortOrder: fach.sortOrder,
   archived: fach.archived,
 });
@@ -89,14 +83,16 @@ export const ladeSchuljahrFachstand = (schoolYear: string) =>
         .select()
         .from(subject)
         .orderBy(asc(subject.sortOrder), asc(subject.name));
-      return legacy.map((fach) => ausLegacy(fach, schoolYear));
+      return yield* Effect.forEach(legacy, (fach) =>
+        ausLegacy(fach, schoolYear),
+      );
     }
     const faecher = yield* db
       .select()
       .from(schoolYearSubject)
       .where(eq(schoolYearSubject.schoolYear, schoolYear))
       .orderBy(asc(schoolYearSubject.sortOrder), asc(schoolYearSubject.name));
-    return faecher.map(ausSchuljahr);
+    return yield* Effect.forEach(faecher, ausSchuljahr);
   });
 
 const speichereFachstand = (
@@ -135,7 +131,7 @@ export const materialisiereBestehendeSchuljahre = Effect.gen(function* () {
     if (!fixiert.has(schoolYear)) {
       yield* speichereFachstand(
         schoolYear,
-        legacy.map((fach) => ausLegacy(fach, schoolYear)),
+        yield* Effect.forEach(legacy, (fach) => ausLegacy(fach, schoolYear)),
       );
     }
   }
@@ -177,8 +173,8 @@ export const materialisiereNeuesSchuljahr = (schoolYear: string) =>
             .from(subject)
             .orderBy(asc(subject.sortOrder), asc(subject.name))
             .pipe(
-              Effect.map((legacy) =>
-                legacy.map((fach) => ausLegacy(fach, schoolYear)),
+              Effect.flatMap((legacy) =>
+                Effect.forEach(legacy, (fach) => ausLegacy(fach, schoolYear)),
               ),
             )
         : (yield* ladeSchuljahrFachstand(quelle[0].schoolYear)).map((fach) => ({

@@ -4,6 +4,7 @@ import type { Fach } from '#/features/faecher/services/fach-service.ts';
 import { FachListe } from '#/features/faecher/ui/fach-liste.tsx';
 import type { NoteMitFach } from '#/features/noten/services/noten-service.ts';
 import { NotenKarten } from '#/features/noten/ui/noten-karten.tsx';
+import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { ListMutation } from './list-mutation.ts';
 
 const verzoegerteAblehnung = () => {
@@ -15,37 +16,20 @@ const verzoegerteAblehnung = () => {
 };
 
 const fach = (id: string): Fach => ({
-  gfsWeight: 1,
+  gewichtung: standardgewichtung,
   id,
-  klausurWeight: 1,
-  muendlichWeight: 1,
   name: `Ziel ${id}`,
   shortName: id,
-  sonstigeWeight: 1,
   sortOrder: id === 'A' ? 0 : 1,
-  testWeight: 1,
-  writtenShare: null,
 });
 
-const gewichtung = {
-  kindWeights: {
-    gfs: 1,
-    klausur: 1,
-    muendlich: 1,
-    sonstige: 1,
-    test: 1,
-  },
-  writtenShare: null,
-} as const;
-
 const note = (id: string): NoteMitFach => ({
-  area: 'schriftlich',
   datum: id === 'A' ? '2026-01-01' : '2026-01-02',
   fachId: 'mathematik',
   fachKuerzel: 'M',
   fachName: 'Mathematik',
   gewicht: 1,
-  gewichtung,
+  gewichtung: standardgewichtung,
   id,
   kind: 'klausur',
   notiz: `Ziel ${id}`,

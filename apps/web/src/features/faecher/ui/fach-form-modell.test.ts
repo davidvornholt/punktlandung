@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
+import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { Fach } from '../services/fach-service.ts';
 import { fachFormWerte } from './fach-form-modell.ts';
 
@@ -7,12 +8,10 @@ const fach = (id: string, basis: number): Fach => ({
   id,
   name: `Fach ${id}`,
   shortName: id,
-  writtenShare: basis,
-  klausurWeight: basis + 1,
-  testWeight: basis + 2,
-  muendlichWeight: basis + 3,
-  gfsWeight: basis + 4,
-  sonstigeWeight: basis + 5,
+  gewichtung: {
+    ...standardgewichtung,
+    verhaeltnis: { schriftlich: basis, muendlich: 1 },
+  },
   sortOrder: basis,
 });
 

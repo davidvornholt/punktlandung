@@ -35,8 +35,15 @@ const FaecherSeite = () => {
       </>
     );
   }
-  const schoolYears = [
-    ...new Set(halbjahre.map((halbjahr) => halbjahr.schoolYear)),
+  // Ein Schuljahr ist eine Klassenstufe: seine Halbjahre teilen das
+  // Notensystem, deshalb genügt eines davon für die Vorschau im Formular.
+  const schuljahre = [
+    ...new Map(
+      halbjahre.map((halbjahr) => [
+        halbjahr.schoolYear,
+        { schoolYear: halbjahr.schoolYear, system: halbjahr.system },
+      ]),
+    ).values(),
   ];
   return (
     <>
@@ -46,7 +53,7 @@ const FaecherSeite = () => {
         verkündet hat. Änderungen gelten nur für das gewählte Schuljahr.
       </p>
       <div className="mt-6">
-        <FaecherVerwaltung schoolYears={schoolYears} />
+        <FaecherVerwaltung schuljahre={schuljahre} />
       </div>
     </>
   );

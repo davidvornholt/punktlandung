@@ -109,7 +109,10 @@ describe('FaecherVerwaltung', () => {
     ];
 
     const ansicht = FaecherVerwaltung({
-      schoolYears: ['2025/26', '2026/27'],
+      schuljahre: [
+        { schoolYear: '2025/26', system: 'sechser' },
+        { schoolYear: '2026/27', system: 'punkte' },
+      ],
     });
     const select = findeElement(ansicht, 'select');
     const { onChange } = select.props as {
