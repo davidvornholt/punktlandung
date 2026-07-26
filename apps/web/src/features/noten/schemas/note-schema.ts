@@ -20,7 +20,7 @@ const Leistungsart = Schema.Literal(
 
 const Wertungsbereich = Schema.Literal('schriftlich', 'muendlich');
 
-const NotenFelder = Schema.Struct({
+export const NotenFelder = Schema.Struct({
   subjectId: Schema.String,
   kind: Leistungsart,
   /** Ohne Angabe leitet der Service den Bereich aus der Leistungsart ab. */
@@ -34,6 +34,8 @@ const NotenFelder = Schema.Struct({
   datum: Schema.String.pipe(Schema.pattern(isoDatumMuster)),
   notiz: Schema.NullOr(Schema.String),
 });
+
+export type NotenFelder = typeof NotenFelder.Type;
 
 export const NoteEingabe = Schema.Struct({
   termId: Schema.String,

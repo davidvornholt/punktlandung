@@ -114,7 +114,11 @@ const NotenSeite = () => {
                   term={halbjahr}
                 />
               </div>
-              <Notenliste term={halbjahr} />
+              <Notenliste
+                faecher={faecher ?? []}
+                key={halbjahr.id}
+                term={halbjahr}
+              />
             </>
           )}
         </>

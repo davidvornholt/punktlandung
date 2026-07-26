@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { fachschnitt } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
@@ -51,15 +52,95 @@ const datumAnzeige = (iso: string): string => {
   return `${tag}.${monat}.${jahr}`;
 };
 
+/** Eine Notenzeile mit ihren Aktionen und, beim Bearbeiten, dem Formular. */
+const Notenzeile = ({
+  formular,
+  loeschung,
+  note,
+  onBearbeiten,
+  onLoeschen,
+  system,
+  wirdBearbeitet,
+}: {
+  readonly formular: ReactNode;
+  readonly loeschung: ListenMutation<string>;
+  readonly note: NoteMitFach;
+  readonly onBearbeiten: (
+    note: NoteMitFach,
+    ausloeser: HTMLButtonElement,
+  ) => void;
+  readonly onLoeschen: (id: string) => void;
+  readonly system: Notensystem;
+  readonly wirdBearbeitet: boolean;
+}) => {
+  const anzeige = listenMutationsanzeige(loeschung, note.id);
+  return (
+    <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+      <span className="font-display text-ink text-lg">
+        {formatNote(note.wert, system)}
+      </span>
+      <span className="text-ink-muted text-sm">
+        {leistungsartLabel[note.kind]} · {bereichLabel[note.area]}
+        {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
+      </span>
+      <span className="text-ink-faint text-sm">{datumAnzeige(note.datum)}</span>
+      {note.notiz === null ? null : (
+        <span className="text-ink-faint text-sm">{note.notiz}</span>
+      )}
+      <button
+        className={`${leiseKnopfKlasse} ml-auto`}
+        onClick={(ereignis) => onBearbeiten(note, ereignis.currentTarget)}
+        type="button"
+      >
+        Bearbeiten
+      </button>
+      {wirdBearbeitet ? null : (
+        <button
+          className={leiseKnopfKlasse}
+          disabled={anzeige.gesperrt}
+          onClick={() => onLoeschen(note.id)}
+          type="button"
+        >
+          {anzeige.laeuft ? 'Wird gelöscht …' : 'Löschen'}
+        </button>
+      )}
+      {wirdBearbeitet ? (
+        <div className="mt-2 basis-full">{formular}</div>
+      ) : null}
+      {anzeige.fehler === null ? null : (
+        <p
+          className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
+          role="alert"
+        >
+          {aktionsfehlerText(
+            anzeige.fehler,
+            'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
+          )}
+        </p>
+      )}
+    </li>
+  );
+};
+
 /** Notenkarten: je Fach die Einzelnoten und der gewichtete Fachschnitt. */
 export const NotenKarten = ({
+  bearbeitungId,
+  formular,
   loeschung,
   noten,
+  onBearbeiten,
   onLoeschen,
   system,
 }: {
+  readonly bearbeitungId: string | null;
+  /** Das Bearbeitungsformular; erscheint unter der bearbeiteten Note. */
+  readonly formular: ReactNode;
   readonly loeschung: ListenMutation<string>;
   readonly noten: ReadonlyArray<NoteMitFach>;
+  readonly onBearbeiten: (
+    note: NoteMitFach,
+    ausloeser: HTMLButtonElement,
+  ) => void;
   readonly onLoeschen: (id: string) => void;
   readonly system: Notensystem;
 }) => (
@@ -82,48 +163,18 @@ export const NotenKarten = ({
           </p>
         </div>
         <ul className="mt-3 divide-y divide-border">
-          {gruppe.noten.map((note) => {
-            const anzeige = listenMutationsanzeige(loeschung, note.id);
-            return (
-              <li
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
-                key={note.id}
-              >
-                <span className="font-display text-ink text-lg">
-                  {formatNote(note.wert, system)}
-                </span>
-                <span className="text-ink-muted text-sm">
-                  {leistungsartLabel[note.kind]} · {bereichLabel[note.area]}
-                  {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
-                </span>
-                <span className="text-ink-faint text-sm">
-                  {datumAnzeige(note.datum)}
-                </span>
-                {note.notiz === null ? null : (
-                  <span className="text-ink-faint text-sm">{note.notiz}</span>
-                )}
-                <button
-                  className={`${leiseKnopfKlasse} ml-auto`}
-                  disabled={anzeige.gesperrt}
-                  onClick={() => onLoeschen(note.id)}
-                  type="button"
-                >
-                  {anzeige.laeuft ? 'Wird gelöscht …' : 'Löschen'}
-                </button>
-                {anzeige.fehler === null ? null : (
-                  <p
-                    className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
-                    role="alert"
-                  >
-                    {aktionsfehlerText(
-                      anzeige.fehler,
-                      'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
-                    )}
-                  </p>
-                )}
-              </li>
-            );
-          })}
+          {gruppe.noten.map((note) => (
+            <Notenzeile
+              formular={formular}
+              key={note.id}
+              loeschung={loeschung}
+              note={note}
+              onBearbeiten={onBearbeiten}
+              onLoeschen={onLoeschen}
+              system={system}
+              wirdBearbeitet={note.id === bearbeitungId}
+            />
+          ))}
         </ul>
       </section>
     ))}

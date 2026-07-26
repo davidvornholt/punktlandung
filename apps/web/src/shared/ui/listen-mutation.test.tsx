@@ -111,8 +111,11 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     const noten = [note('A'), note('B')];
     const pendingMarkup = renderToStaticMarkup(
       <NotenKarten
+        bearbeitungId={null}
+        formular={null}
         loeschung={ausstehend}
         noten={noten}
+        onBearbeiten={() => undefined}
         onLoeschen={() => undefined}
         system="sechser"
       />,
@@ -125,6 +128,8 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     const fehler = await laufVonA;
     const fehlerMarkup = renderToStaticMarkup(
       <NotenKarten
+        bearbeitungId={null}
+        formular={null}
         loeschung={{
           error: fehler,
           isError: true,
@@ -132,6 +137,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
           variables: 'A',
         }}
         noten={noten}
+        onBearbeiten={() => undefined}
         onLoeschen={() => undefined}
         system="sechser"
       />,
