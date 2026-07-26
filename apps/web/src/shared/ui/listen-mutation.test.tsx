@@ -122,7 +122,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     );
 
     expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(2);
-    expect(pendingMarkup.match(/Wird gelöscht …/gu)).toHaveLength(1);
+    expect(pendingMarkup.match(/>Wird gelöscht …</gu)).toHaveLength(1);
 
     verzoegerung.ablehnen(new Error('A ist fehlgeschlagen'));
     const fehler = await laufVonA;

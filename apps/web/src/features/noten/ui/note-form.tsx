@@ -28,6 +28,22 @@ const liesWerte = (form: HTMLFormElement): NotenFelder => {
   });
 };
 
+type Fachauswahl = ReadonlyArray<{
+  readonly id: string;
+  readonly name: string;
+}>;
+
+/**
+ * Wählbare Fächer: der aktuelle Fachstand und zusätzlich das Fach der
+ * bearbeiteten Note, falls es archiviert wurde. Ohne diese Option fiele das
+ * Auswahlfeld auf das erste Fach zurück und das Speichern verschöbe die Note
+ * stillschweigend in ein fremdes Fach.
+ */
+const fachAuswahl = (faecher: Fachauswahl, note: NoteMitFach | null) =>
+  note === null || faecher.some((fach) => fach.id === note.fachId)
+    ? faecher
+    : [...faecher, { id: note.fachId, name: `${note.fachName} (archiviert)` }];
+
 /**
  * Das Notenformular in beiden Rollen: als Eintragsleiste für den
  * Schnelleintrag (`note === null`) und als Bearbeitungsformular für eine
@@ -45,10 +61,7 @@ export const NoteForm = ({
   vorgabeDatum,
 }: {
   readonly note: NoteMitFach | null;
-  readonly faecher: ReadonlyArray<{
-    readonly id: string;
-    readonly name: string;
-  }>;
+  readonly faecher: Fachauswahl;
   readonly term: {
     readonly system: Notensystem;
     readonly startsOn: string;
@@ -90,7 +103,7 @@ export const NoteForm = ({
             name="subjectId"
             required={true}
           >
-            {faecher.map((fach) => (
+            {fachAuswahl(faecher, note).map((fach) => (
               <option key={fach.id} value={fach.id}>
                 {fach.name}
               </option>
@@ -141,7 +154,7 @@ export const NoteForm = ({
         </label>
         <div className="col-span-2 flex gap-3 sm:col-span-1">
           <button
-            className={primaerKnopfKlasse}
+            className={`${primaerKnopfKlasse} ${onAbbrechen === null ? 'w-full sm:w-auto' : ''}`}
             disabled={beschaeftigt}
             type="submit"
           >

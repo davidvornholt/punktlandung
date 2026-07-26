@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
+import type { ReactElement } from 'react';
+import { isValidElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { NoteMitFach } from '../services/noten-service.ts';
@@ -15,9 +17,9 @@ const gewichtung = {
   writtenShare: null,
 } as const;
 
-const note = (id: string): NoteMitFach => ({
+const note = (id: string, datum = '2026-01-01'): NoteMitFach => ({
   area: 'schriftlich',
-  datum: '2026-01-01',
+  datum,
   fachId: 'mathematik',
   fachKuerzel: 'M',
   fachName: 'Mathematik',
@@ -36,18 +38,62 @@ const ruhend = {
   variables: undefined,
 };
 
+const noten = [note('A'), note('B', '2026-02-02')] as const;
+
 const karten = (bearbeitungId: string | null) =>
   renderToStaticMarkup(
     <NotenKarten
       bearbeitungId={bearbeitungId}
       formular={<p>Formular</p>}
       loeschung={ruhend}
-      noten={[note('A'), note('B')]}
+      noten={noten}
       onBearbeiten={() => undefined}
       onLoeschen={() => undefined}
       system="sechser"
     />,
   );
+
+/** Sammelt die gerenderten Knöpfe samt ihrer Eigenschaften. */
+const knoepfe = (knoten: unknown): ReadonlyArray<ReactElement> => {
+  if (Array.isArray(knoten)) {
+    return knoten.flatMap(knoepfe);
+  }
+  if (!isValidElement(knoten)) {
+    return [];
+  }
+  const eigenschaften = knoten.props as { readonly children?: unknown };
+  if (typeof knoten.type === 'function') {
+    const komponente = knoten.type as (props: unknown) => unknown;
+    return knoepfe(komponente(knoten.props));
+  }
+  return [
+    ...(knoten.type === 'button' ? [knoten] : []),
+    ...knoepfe(eigenschaften.children),
+  ];
+};
+
+const bearbeitenKnopf = (
+  bearbeitungId: string | null,
+  aufBearbeiten: unknown,
+) =>
+  knoepfe(
+    NotenKarten({
+      bearbeitungId,
+      formular: null,
+      loeschung: ruhend,
+      noten: [note('A')],
+      onBearbeiten: aufBearbeiten as (
+        note: NoteMitFach | null,
+        ausloeser: HTMLButtonElement,
+      ) => void,
+      onLoeschen: () => undefined,
+      system: 'sechser',
+    }),
+  )[0]?.props as {
+    readonly onClick: (ereignis: {
+      readonly currentTarget: HTMLButtonElement;
+    }) => void;
+  };
 
 describe('NotenKarten', () => {
   it('zeigt das Formular unter der bearbeiteten Note', () => {
@@ -61,11 +107,60 @@ describe('NotenKarten', () => {
   });
 
   it('blendet Löschen nur für die Note aus, die gerade bearbeitet wird', () => {
-    expect(karten('A').match(/Löschen/gu)).toHaveLength(1);
-    expect(karten(null).match(/Löschen/gu)).toHaveLength(2);
+    expect(karten('A').match(/>Löschen</gu)).toHaveLength(1);
+    expect(karten(null).match(/>Löschen</gu)).toHaveLength(2);
   });
 
   it('bietet jede Note zum Bearbeiten an', () => {
-    expect(karten(null).match(/Bearbeiten/gu)).toHaveLength(2);
+    expect(karten(null).match(/>Bearbeiten</gu)).toHaveLength(2);
+  });
+
+  it('benennt die Aktionen jeder Zeile mit ihrer Note', () => {
+    const markup = karten(null);
+
+    expect(markup).toContain(
+      'aria-label="Bearbeiten: Note 2, Klausur vom 01.01.2026"',
+    );
+    expect(markup).toContain(
+      'aria-label="Löschen: Note 2, Klausur vom 01.01.2026"',
+    );
+    expect(markup).toContain(
+      'aria-label="Bearbeiten: Note 2, Klausur vom 02.02.2026"',
+    );
+    expect(markup).toContain(
+      'aria-label="Löschen: Note 2, Klausur vom 02.02.2026"',
+    );
+  });
+
+  it('meldet die offene Zeile als aufgeklappt und bleibt bedienbar', () => {
+    const markup = karten('A');
+
+    expect(markup).toContain('aria-controls="notenformular-A"');
+    expect(markup).toContain('aria-expanded="true"');
+    expect(markup).toContain('id="notenformular-A"');
+    expect(markup.match(/aria-expanded="false"/gu)).toHaveLength(1);
+    expect(markup).not.toContain('disabled=""');
+  });
+
+  it('öffnet mit dem Auslöser die geschlossene Zeile', () => {
+    const ausloeser = {} as HTMLButtonElement;
+    const aufBearbeiten = mock(
+      (_note: NoteMitFach | null, _ausloeser: HTMLButtonElement) => undefined,
+    );
+
+    bearbeitenKnopf(null, aufBearbeiten).onClick({ currentTarget: ausloeser });
+
+    expect(aufBearbeiten).toHaveBeenCalledWith(note('A'), ausloeser);
+  });
+
+  it('schließt die offene Zeile, statt sie wirkungslos erneut zu öffnen', () => {
+    const ausloeser = {} as HTMLButtonElement;
+    const aufBearbeiten = mock(
+      (_note: NoteMitFach | null, _ausloeser: HTMLButtonElement) => undefined,
+    );
+
+    bearbeitenKnopf('A', aufBearbeiten).onClick({ currentTarget: ausloeser });
+
+    expect(aufBearbeiten).toHaveBeenCalledWith(null, ausloeser);
   });
 });

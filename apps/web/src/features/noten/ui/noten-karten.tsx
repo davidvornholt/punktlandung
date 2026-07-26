@@ -52,6 +52,14 @@ const datumAnzeige = (iso: string): string => {
   return `${tag}.${monat}.${jahr}`;
 };
 
+/**
+ * Benennt die Note, auf die eine Zeilenaktion wirkt. Eine Fachkarte trägt
+ * viele Zeilen, deren Knöpfe sonst alle gleich heißen — und einer davon
+ * löscht.
+ */
+const noteBezeichnung = (note: NoteMitFach, system: Notensystem): string =>
+  `Note ${formatNote(note.wert, system)}, ${leistungsartLabel[note.kind]} vom ${datumAnzeige(note.datum)}`;
+
 /** Eine Notenzeile mit ihren Aktionen und, beim Bearbeiten, dem Formular. */
 const Notenzeile = ({
   formular,
@@ -66,7 +74,7 @@ const Notenzeile = ({
   readonly loeschung: ListenMutation<string>;
   readonly note: NoteMitFach;
   readonly onBearbeiten: (
-    note: NoteMitFach,
+    note: NoteMitFach | null,
     ausloeser: HTMLButtonElement,
   ) => void;
   readonly onLoeschen: (id: string) => void;
@@ -74,6 +82,9 @@ const Notenzeile = ({
   readonly wirdBearbeitet: boolean;
 }) => {
   const anzeige = listenMutationsanzeige(loeschung, note.id);
+  const bezeichnung = noteBezeichnung(note, system);
+  const formularId = `notenformular-${note.id}`;
+  const loeschenText = anzeige.laeuft ? 'Wird gelöscht …' : 'Löschen';
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
       <span className="font-display text-ink text-lg">
@@ -88,24 +99,32 @@ const Notenzeile = ({
         <span className="text-ink-faint text-sm">{note.notiz}</span>
       )}
       <button
+        aria-controls={wirdBearbeitet ? formularId : undefined}
+        aria-expanded={wirdBearbeitet}
+        aria-label={`Bearbeiten: ${bezeichnung}`}
         className={`${leiseKnopfKlasse} ml-auto`}
-        onClick={(ereignis) => onBearbeiten(note, ereignis.currentTarget)}
+        onClick={(ereignis) =>
+          onBearbeiten(wirdBearbeitet ? null : note, ereignis.currentTarget)
+        }
         type="button"
       >
         Bearbeiten
       </button>
       {wirdBearbeitet ? null : (
         <button
+          aria-label={`${loeschenText}: ${bezeichnung}`}
           className={leiseKnopfKlasse}
           disabled={anzeige.gesperrt}
           onClick={() => onLoeschen(note.id)}
           type="button"
         >
-          {anzeige.laeuft ? 'Wird gelöscht …' : 'Löschen'}
+          {loeschenText}
         </button>
       )}
       {wirdBearbeitet ? (
-        <div className="mt-2 basis-full">{formular}</div>
+        <div className="mt-2 basis-full" id={formularId}>
+          {formular}
+        </div>
       ) : null}
       {anzeige.fehler === null ? null : (
         <p
@@ -137,8 +156,9 @@ export const NotenKarten = ({
   readonly formular: ReactNode;
   readonly loeschung: ListenMutation<string>;
   readonly noten: ReadonlyArray<NoteMitFach>;
+  /** Öffnet das Formular für die Note; `null` schließt die offene Zeile. */
   readonly onBearbeiten: (
-    note: NoteMitFach,
+    note: NoteMitFach | null,
     ausloeser: HTMLButtonElement,
   ) => void;
   readonly onLoeschen: (id: string) => void;

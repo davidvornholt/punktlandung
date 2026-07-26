@@ -83,6 +83,19 @@ describe('noteFormWerte', () => {
     });
   });
 
+  it('behält einen Bereich, der vom Standard der Art abweicht', () => {
+    expect(noteFormWerte(note, '2026-07-26').area).toBe('muendlich');
+  });
+
+  it('gibt einen aus der Art abgeleiteten Bereich wieder frei', () => {
+    const felder = noteFormWerte(
+      { ...note, kind: 'klausur', area: 'schriftlich' },
+      '2026-07-26',
+    );
+
+    expect(felder.area).toBe('');
+  });
+
   it('schlägt beim Neueintrag das übergebene Datum vor', () => {
     const werte = noteFormWerte(null, '2026-07-26');
 

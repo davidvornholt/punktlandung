@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 
-import { istWertGueltig, standardBereich } from './notenpruefung.ts';
+import {
+  istFachWaehlbar,
+  istWertGueltig,
+  standardBereich,
+} from './notenpruefung.ts';
 
 describe('standardBereich', () => {
   it('ordnet Klausur, Test und GFS dem schriftlichen Bereich zu', () => {
@@ -12,6 +16,30 @@ describe('standardBereich', () => {
   it('ordnet Mündlich und Sonstige dem mündlichen Bereich zu', () => {
     expect(standardBereich('muendlich')).toBe('muendlich');
     expect(standardBereich('sonstige')).toBe('muendlich');
+  });
+});
+
+describe('istFachWaehlbar', () => {
+  const gefuehrt = { id: 'biologie', archived: false };
+  const archiviert = { id: 'latein', archived: true };
+
+  it('lehnt ein Fach ab, das nicht zum Schuljahr gehört', () => {
+    expect(istFachWaehlbar(undefined, null)).toBe(false);
+    expect(istFachWaehlbar(undefined, 'latein')).toBe(false);
+  });
+
+  it('erlaubt jedes geführte Fach', () => {
+    expect(istFachWaehlbar(gefuehrt, null)).toBe(true);
+    expect(istFachWaehlbar(gefuehrt, 'latein')).toBe(true);
+  });
+
+  it('lässt eine Note an ihrem archivierten Fach korrigierbar', () => {
+    expect(istFachWaehlbar(archiviert, 'latein')).toBe(true);
+  });
+
+  it('lässt keine Note in ein archiviertes Fach umziehen', () => {
+    expect(istFachWaehlbar(archiviert, null)).toBe(false);
+    expect(istFachWaehlbar(archiviert, 'biologie')).toBe(false);
   });
 });
 

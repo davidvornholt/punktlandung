@@ -2,28 +2,29 @@ import { SqlClient } from '@effect/sql/SqlClient';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { istIsoDatumImZeitraum } from '#/shared/datum/zeitraum.ts';
 import { grade, term } from '#/shared/db/schema.ts';
 import { zuFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type {
   Fachgewichtung,
   Leistungsart,
-  Notensystem,
   Wertungsbereich,
 } from '#/shared/noten/notenwert.ts';
 import { ladeSchuljahrFachstand } from '#/shared/noten/schuljahr-fachstand.ts';
 import {
-  FachNichtImSchuljahr,
   HalbjahrNichtGefunden,
-  NoteAusserhalbHalbjahr,
   NoteNichtGefunden,
-  UngueltigerNotenwert,
 } from '../errors/noten-errors.ts';
 import type {
   NoteAktualisierung,
   NoteEingabe,
 } from '../schemas/note-schema.ts';
-import { istWertGueltig, standardBereich } from './notenpruefung.ts';
+import {
+  ladeHalbjahrGesperrt,
+  pruefeDatum,
+  pruefeFach,
+  pruefeWert,
+} from './noten-invarianten.ts';
+import { standardBereich } from './notenpruefung.ts';
 
 export type NoteMitFach = {
   readonly id: string;
@@ -38,49 +39,6 @@ export type NoteMitFach = {
   readonly fachKuerzel: string;
   readonly gewichtung: Fachgewichtung;
 };
-
-const pruefeWert = (wert: number, system: Notensystem) =>
-  istWertGueltig(wert, system)
-    ? Effect.void
-    : Effect.fail(new UngueltigerNotenwert({ wert, system }));
-
-const pruefeDatum = (
-  datum: string,
-  halbjahr: Pick<typeof term.$inferSelect, 'startsOn' | 'endsOn'>,
-) =>
-  istIsoDatumImZeitraum(datum, halbjahr.startsOn, halbjahr.endsOn)
-    ? Effect.void
-    : Effect.fail(
-        new NoteAusserhalbHalbjahr({
-          datum,
-          startsOn: halbjahr.startsOn,
-          endsOn: halbjahr.endsOn,
-        }),
-      );
-
-const ladeHalbjahrGesperrt = (termId: string) =>
-  Effect.gen(function* () {
-    const db = yield* PgDrizzle;
-    const zeilen = yield* db
-      .select()
-      .from(term)
-      .where(eq(term.id, termId))
-      .for('share');
-    const [halbjahr] = zeilen;
-    return (
-      halbjahr ?? (yield* Effect.fail(new HalbjahrNichtGefunden({ termId })))
-    );
-  });
-
-const pruefeFach = (subjectId: string, schoolYear: string) =>
-  Effect.gen(function* () {
-    const faecher = yield* ladeSchuljahrFachstand(schoolYear);
-    if (!faecher.some((fach) => fach.id === subjectId && !fach.archived)) {
-      return yield* Effect.fail(
-        new FachNichtImSchuljahr({ fachId: subjectId, schoolYear }),
-      );
-    }
-  });
 
 /** Noten eines Halbjahrs samt historischem Fachstand und Gewichtung. */
 export const listNoten = (termId: string) =>
@@ -130,7 +88,7 @@ export const createNote = (eingabe: NoteEingabe) =>
         const halbjahr = yield* ladeHalbjahrGesperrt(eingabe.termId);
         yield* pruefeWert(eingabe.wert, halbjahr.system);
         yield* pruefeDatum(eingabe.datum, halbjahr);
-        yield* pruefeFach(eingabe.subjectId, halbjahr.schoolYear);
+        yield* pruefeFach(eingabe.subjectId, halbjahr.schoolYear, null);
         yield* db.insert(grade).values({
           id: crypto.randomUUID(),
           subjectId: eingabe.subjectId,
@@ -153,7 +111,7 @@ export const updateNote = (eingabe: NoteAktualisierung) =>
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
         const vorhanden = yield* db
-          .select({ termId: grade.termId })
+          .select({ termId: grade.termId, subjectId: grade.subjectId })
           .from(grade)
           .where(eq(grade.id, eingabe.id))
           .for('update');
@@ -166,7 +124,11 @@ export const updateNote = (eingabe: NoteAktualisierung) =>
         const halbjahr = yield* ladeHalbjahrGesperrt(zeile.termId);
         yield* pruefeWert(eingabe.wert, halbjahr.system);
         yield* pruefeDatum(eingabe.datum, halbjahr);
-        yield* pruefeFach(eingabe.subjectId, halbjahr.schoolYear);
+        yield* pruefeFach(
+          eingabe.subjectId,
+          halbjahr.schoolYear,
+          zeile.subjectId,
+        );
         yield* db
           .update(grade)
           .set({
