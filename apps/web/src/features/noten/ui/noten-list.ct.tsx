@@ -56,6 +56,27 @@ it('gibt den Fokus nach dem Abbrechen an den Zeilenknopf zurück', async ({
 });
 
 /**
+ * Sind alle Fächer des Schuljahrs archiviert, liefert die Fächerliste nichts
+ * mehr — die Noten hängen aber weiter an ihnen. Verschwände die Notenliste mit
+ * der Fächerliste, wäre genau dann keine Note mehr korrigierbar.
+ */
+it('lässt eine Note auch dann korrigieren, wenn kein Fach mehr wählbar ist', async ({
+  mount,
+}) => {
+  const component = await mount(<NotenListStory scenario="ohne-fach" />);
+  await expect(
+    component.getByRole('form', { name: 'Note eintragen' }),
+  ).toHaveCount(0);
+
+  await openEditor(firstRow(component));
+
+  await expect(
+    editForm(component).getByRole('combobox', { name: 'Fach' }),
+  ).toHaveValue('latein');
+  await expect(editForm(component)).toContainText('Latein (archiviert)');
+});
+
+/**
  * Mit der gelöschten Zeile verschwindet ihr Löschknopf. Ohne das Auffangziel
  * der Liste fiele der Fokus auf <body>.
  */
@@ -122,4 +143,36 @@ it('meldet nur die gespeicherte Note als beschäftigt und lässt die andere offe
 
   await settle(component, 'complete');
   await expect(secondRow(component).locator('form')).toHaveCount(1);
+});
+
+/**
+ * Auch die letzte Note lässt sich löschen. Trüge das Auffangziel nur die
+ * gefüllte Liste, verschwände es genau mit der letzten Zeile und der Fokus
+ * fiele auf <body>.
+ */
+it('hält den Fokus, wenn die letzte Note gelöscht wird', async ({ mount }) => {
+  const component = await mount(<NotenListStory scenario="letzte-note" />);
+  await firstRow(component).getByRole('button', { name: 'Löschen' }).click();
+  await settle(component, 'complete');
+
+  const liste = component.getByRole('region', { name: 'Notenliste' });
+  await expect(liste).toContainText('noch keine Noten eingetragen');
+  await expect(liste).toBeFocused();
+});
+
+/**
+ * Ohne wählbares Fach steht keine Eintragsleiste über der Liste. Der leere
+ * Hinweis darf dann nicht auf sie verweisen, sonst sucht der Benutzer ein Feld,
+ * das gar nicht dasteht.
+ */
+it('verweist ohne wählbares Fach nicht auf die Eintragsleiste', async ({
+  mount,
+}) => {
+  const component = await mount(
+    <NotenListStory scenario="ohne-fach-ohne-note" />,
+  );
+
+  const liste = component.getByRole('region', { name: 'Notenliste' });
+  await expect(liste).toContainText('Lege zuerst ein Fach an');
+  await expect(liste).not.toContainText('Eintragsleiste');
 });

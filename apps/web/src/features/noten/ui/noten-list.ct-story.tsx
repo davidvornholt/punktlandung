@@ -7,6 +7,12 @@ import { NotenList } from './noten-list.tsx';
 import type { NotenOperations } from './noten-operations.ts';
 
 type Outcome = 'failure' | 'success';
+/** `ohne-fach…`: jedes Fach des Schuljahrs ist archiviert. */
+type Scenario =
+  | 'letzte-note'
+  | 'ohne-fach-ohne-note'
+  | 'ohne-fach'
+  | 'standard';
 
 const halbjahr = {
   endsOn: '2027-01-31',
@@ -36,18 +42,30 @@ const note = (id: string, wert: number, datum: string): NoteWithFach => ({
 /* Zwei unterschiedliche Noten, damit die Zeilen auseinanderzuhalten sind. */
 const zwei = 2;
 const drei = 3;
-const initialNoten = [
-  note('note-a', zwei, '2026-09-14'),
-  note('note-b', drei, '2026-11-02'),
-];
+const noteA = note('note-a', zwei, '2026-09-14');
+const noteB = note('note-b', drei, '2026-11-02');
+
+const initialNoten = (scenario: Scenario) => {
+  if (scenario === 'ohne-fach-ohne-note') {
+    return [];
+  }
+  return scenario === 'letzte-note' ? [noteA] : [noteA, noteB];
+};
+
+const waehlbareFaecher = (scenario: Scenario) =>
+  scenario === 'ohne-fach' || scenario === 'ohne-fach-ohne-note' ? [] : faecher;
 
 /**
  * Die Notenliste mit erfundenen Serveraufrufen. Ändern und Löschen hängen an
  * den verborgenen Knöpfen, damit ein Test den Zustand während des laufenden
  * Vorgangs prüfen und den Ausgang selbst bestimmen kann.
  */
-export const NotenListStory = () => {
-  const notenRef = useRef<ReadonlyArray<NoteWithFach>>(initialNoten);
+export const NotenListStory = ({
+  scenario = 'standard',
+}: {
+  readonly scenario?: Scenario;
+}) => {
+  const notenRef = useRef<ReadonlyArray<NoteWithFach>>(initialNoten(scenario));
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
   const [queryClient] = useState(
     () =>
@@ -90,7 +108,7 @@ export const NotenListStory = () => {
     <QueryClientProvider client={queryClient}>
       <main className="p-4">
         <NotenList
-          faecher={faecher}
+          faecher={waehlbareFaecher(scenario)}
           halbjahr={halbjahr}
           operations={operations}
         />
