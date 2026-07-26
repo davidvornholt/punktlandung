@@ -1,4 +1,6 @@
+import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
+import { formatHalbjahrLabel } from '#/shared/school/klassenstufe.ts';
 import type { TrendEntry } from '../services/trend-calculation.ts';
 
 export type TrendTextRow = {
@@ -14,10 +16,38 @@ export type TrendTextModel = {
   readonly summary: string;
 };
 
+export type TrendPointText = {
+  /** Halbjahr, Leistungsart und Datum als Metazeile über der Note. */
+  readonly meta: ReadonlyArray<string>;
+  readonly fach: string;
+  /** Die Note, wie sie eingetragen wurde. */
+  readonly note: string;
+  /** Der Punktwert der Kurve, sofern die Note nicht ohnehin so eingetragen ist. */
+  readonly notenpunkte: string | null;
+};
+
 const longDate = (iso: string): string => {
   const [year, month, day] = iso.split('-');
   return `${day}.${month}.${year}`;
 };
+
+/**
+ * Ein einzelner Kurvenpunkt für den Tooltip. Die Linie läuft über alle
+ * Schuljahre, deshalb verortet das Halbjahr den Punkt. Und weil sie alles auf
+ * Notenpunkte normalisiert, steht in sechser-Halbjahren zusätzlich der
+ * Punktwert daneben, auf dem der Punkt tatsächlich sitzt.
+ */
+export const createTrendPointText = (entry: TrendEntry): TrendPointText => ({
+  meta: [
+    formatHalbjahrLabel(entry),
+    leistungsartLabel[entry.leistungsart],
+    longDate(entry.datum),
+  ],
+  fach: entry.fachName,
+  note: formatNote(entry.notenwert, entry.notensystem),
+  notenpunkte:
+    entry.notensystem === 'punkte' ? null : formatNote(entry.punkte, 'punkte'),
+});
 
 export const createTrendTextModel = (
   entries: ReadonlyArray<TrendEntry>,

@@ -125,6 +125,12 @@ describe('server response wire contract', () => {
       expect(keys(trend)).toEqual([
         'datum',
         'fachKuerzel',
+        'fachName',
+        'half',
+        'klassenstufe',
+        'leistungsart',
+        'notensystem',
+        'notenwert',
         'punkte',
         'schnitt',
       ]);

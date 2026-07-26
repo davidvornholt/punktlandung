@@ -3,17 +3,25 @@ import type {
   Assessment,
   Fachgewichtung,
   Leistungsart,
+  Notensystem,
 } from '#/shared/noten/notenwert.ts';
+import type { Klassenstufe } from '#/shared/school/klassenstufe.ts';
 
 export type TrendNote = {
   readonly date: string;
   /** Auf Notenpunkte (0–15) normalisierter Wert. */
   readonly notenpunkte: number;
+  /** Der eingetragene Wert im Notensystem seines Halbjahrs. */
+  readonly notenwert: number;
+  readonly notensystem: Notensystem;
   readonly individualGewichtung: number;
   readonly fachSnapshotId: string;
   readonly fachShortName: string;
+  readonly fachName: string;
   readonly leistungsart: Leistungsart;
   readonly fachGewichtung: Fachgewichtung;
+  readonly klassenstufe: Klassenstufe;
+  readonly half: 1 | 2;
 };
 
 export type TrendEntry = {
@@ -22,6 +30,14 @@ export type TrendEntry = {
   /** Laufender gewichteter Schnitt in Notenpunkten. */
   readonly schnitt: number;
   readonly fachKuerzel: string;
+  readonly fachName: string;
+  /** Der eingetragene Wert im Notensystem seines Halbjahrs. */
+  readonly notenwert: number;
+  readonly notensystem: Notensystem;
+  readonly leistungsart: Leistungsart;
+  /** Verortet den Punkt auf der über alle Schuljahre laufenden Linie. */
+  readonly klassenstufe: Klassenstufe;
+  readonly half: 1 | 2;
 };
 
 const roundingFactor = 100;
@@ -67,6 +83,12 @@ export const calculateTrend = (
       punkte: roundToPrecision(note.notenpunkte),
       schnitt: roundToPrecision(total),
       fachKuerzel: note.fachShortName,
+      fachName: note.fachName,
+      notenwert: note.notenwert,
+      notensystem: note.notensystem,
+      leistungsart: note.leistungsart,
+      klassenstufe: note.klassenstufe,
+      half: note.half,
     };
   });
 };
