@@ -12,6 +12,7 @@ import {
   createNote,
   updateNote,
 } from '#/features/noten/services/noten-service.ts';
+import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
   postgresTestLayer,
@@ -41,9 +42,12 @@ describe('PostgreSQL-Kalenderdaten', () => {
     withPostgresTestDatabase(async (pool) => {
       Bun.env.TZ = 'Europe/Berlin';
       await Effect.runPromise(migrateDatabase(pool));
+      await pool.query(
+        `INSERT INTO subject (id, name, short_name, weighting)
+         VALUES ('mathe', 'Mathematik', 'M', $1::jsonb);`,
+        [JSON.stringify(standardgewichtung)],
+      );
       await pool.query(`
-        INSERT INTO subject (id, name, short_name)
-        VALUES ('mathe', 'Mathematik', 'M');
         INSERT INTO term (id, klassenstufe, school_year, half, system, starts_on, ends_on)
         VALUES
           ('term-alt', '10', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29'),

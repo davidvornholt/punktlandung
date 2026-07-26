@@ -10,14 +10,17 @@ import { determineQueryState } from '#/shared/ui/query-state-model.ts';
 import type { HalbjahrEingabe } from '../schemas/halbjahr-schema.ts';
 import {
   createHalbjahrFn,
+  deleteHalbjahrFn,
   halbjahreQueryOptions,
   updateHalbjahrFn,
 } from '../server/halbjahr-fns.ts';
-import type { Halbjahr } from '../services/halbjahr-service.ts';
+import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
 import { HalbjahrForm } from './halbjahr-form.tsx';
 import { HalbjahrListe } from './halbjahr-liste.tsx';
 
-const bearbeitungskennung = (bearbeitung: Halbjahr | 'neu' | null) => {
+const bearbeitungskennung = (
+  bearbeitung: HalbjahrMitNotenAnzahl | 'neu' | null,
+) => {
   if (bearbeitung === null || bearbeitung === 'neu') {
     return bearbeitung;
   }
@@ -46,7 +49,9 @@ const halbjahrFormularFehler = (
 export const HalbjahreVerwaltung = () => {
   const queryClient = useQueryClient();
   const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
-  const [bearbeitung, setBearbeitung] = useState<Halbjahr | 'neu' | null>(null);
+  const [bearbeitung, setBearbeitung] = useState<
+    HalbjahrMitNotenAnzahl | 'neu' | null
+  >(null);
   const formularKennung = bearbeitungskennung(bearbeitung);
   const fokus = useFormFocus(formularKennung);
 
@@ -63,8 +68,21 @@ export const HalbjahreVerwaltung = () => {
       updateHalbjahrFn({ data: werte }),
     onSuccess: schliesseNachErfolg,
   });
+  const loeschen = useMutation({
+    mutationFn: (id: string) => deleteHalbjahrFn({ data: { id } }),
+    onSuccess: (_ergebnis, id) => {
+      setBearbeitung((offen) =>
+        offen !== null && offen !== 'neu' && offen.id === id ? null : offen,
+      );
+      // Mit dem letzten Halbjahr eines Schuljahrs entfällt dessen Fachstand.
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['halbjahre'] }),
+        queryClient.invalidateQueries({ queryKey: ['faecher'] }),
+      ]);
+    },
+  });
   const halbjahre = halbjahreAbfrage.data;
-  const abfrageZustand = determineQueryState({
+  const queryState = determineQueryState({
     data: halbjahre,
     isError: halbjahreAbfrage.isError,
     isPending: halbjahreAbfrage.isPending,
@@ -120,12 +138,12 @@ export const HalbjahreVerwaltung = () => {
           />
         </div>
       )}
-      {abfrageZustand === 'pending' ? (
+      {queryState === 'pending' ? (
         <div className="mt-4">
           <LoadingHint text="Halbjahre werden geladen …" />
         </div>
       ) : null}
-      {abfrageZustand === 'error' ? (
+      {queryState === 'error' ? (
         <div className="mt-4">
           <QueryError
             onRetry={() => halbjahreAbfrage.refetch()}
@@ -133,18 +151,23 @@ export const HalbjahreVerwaltung = () => {
           />
         </div>
       ) : null}
-      {abfrageZustand === 'success' && halbjahre !== undefined ? (
+      {queryState === 'success' && halbjahre !== undefined ? (
         <HalbjahrListe
           halbjahre={halbjahre}
+          loeschung={loeschen}
           onBearbeiten={(halbjahr, ausloeser) => {
             fokus.rememberTrigger(ausloeser);
             anlegen.reset();
             aendern.reset();
             setBearbeitung(halbjahr);
           }}
+          onLoeschen={(id) => {
+            loeschen.reset();
+            loeschen.mutate(id);
+          }}
         />
       ) : null}
-      {abfrageZustand === 'empty' && bearbeitung === null ? (
+      {queryState === 'empty' && bearbeitung === null ? (
         <div className="mt-4 border border-border bg-surface-sunken p-6">
           <p className="text-ink-muted">
             Noch keine Halbjahre. Lege zuerst das laufende Halbjahr an — du

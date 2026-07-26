@@ -41,3 +41,7 @@ export const HalbjahrAktualisierung = Schema.Struct({
 }).pipe(Schema.filter(zeitraumGueltig));
 
 export type HalbjahrAktualisierung = typeof HalbjahrAktualisierung.Type;
+
+export const HalbjahrKennung = Schema.Struct({
+  id: Schema.String,
+});

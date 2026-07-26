@@ -183,3 +183,28 @@ export const materialisiereNeuesSchuljahr = (schoolYear: string) =>
           }));
     yield* speichereFachstand(schoolYear, faecher);
   });
+
+/**
+ * Gegenstück zur Materialisierung: verliert ein Schuljahr sein letztes
+ * Halbjahr, gibt es auch seinen fixierten Fachstand frei. Sonst überlebte ein
+ * Stand ohne Schuljahr und ein später erneut angelegtes Schuljahr erbte ihn
+ * still, statt vom dann aktuellen Vorjahr abzuleiten.
+ */
+export const verwerfeFachstandOhneHalbjahr = (schoolYear: string) =>
+  Effect.gen(function* () {
+    const db = yield* PgDrizzle;
+    const verbleibende = yield* db
+      .select({ id: term.id })
+      .from(term)
+      .where(eq(term.schoolYear, schoolYear))
+      .limit(1);
+    if (verbleibende.length > 0) {
+      return;
+    }
+    yield* db
+      .delete(schoolYearSubject)
+      .where(eq(schoolYearSubject.schoolYear, schoolYear));
+    yield* db
+      .delete(schoolYearSubjectSet)
+      .where(eq(schoolYearSubjectSet.schoolYear, schoolYear));
+  });

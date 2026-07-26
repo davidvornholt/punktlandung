@@ -7,9 +7,11 @@ import { runtime } from '#/shared/runtime.ts';
 import {
   HalbjahrAktualisierung,
   HalbjahrEingabe,
+  HalbjahrKennung,
 } from '../schemas/halbjahr-schema.ts';
 import {
   createHalbjahr,
+  deleteHalbjahr,
   listHalbjahre,
   updateHalbjahr,
 } from '../services/halbjahr-service.ts';
@@ -27,6 +29,11 @@ export const updateHalbjahrFn = createServerFn({ method: 'POST' })
   .middleware([sitzungErforderlich])
   .inputValidator(Schema.standardSchemaV1(HalbjahrAktualisierung))
   .handler(({ data }) => runtime.runPromise(updateHalbjahr(data)));
+
+export const deleteHalbjahrFn = createServerFn({ method: 'POST' })
+  .middleware([sitzungErforderlich])
+  .inputValidator(Schema.standardSchemaV1(HalbjahrKennung))
+  .handler(({ data }) => runtime.runPromise(deleteHalbjahr(data.id)));
 
 export const halbjahreQueryOptions = queryOptions({
   queryKey: ['halbjahre'],

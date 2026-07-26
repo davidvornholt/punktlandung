@@ -1,15 +1,19 @@
 import { SqlClient } from '@effect/sql/SqlClient';
 import type { SqlError } from '@effect/sql/SqlError';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
-import { desc, eq } from 'drizzle-orm';
+import { count, desc, eq, getTableColumns } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { grade, term } from '#/shared/db/schema.ts';
-import { materialisiereNeuesSchuljahr } from '#/shared/noten/schuljahr-fachstand.ts';
+import {
+  materialisiereNeuesSchuljahr,
+  verwerfeFachstandOhneHalbjahr,
+} from '#/shared/noten/schuljahr-fachstand.ts';
 import type { Klassenstufe } from '#/shared/schule/klassenstufe.ts';
 import { notensystemFuerKlassenstufe } from '#/shared/schule/klassenstufe.ts';
 import {
   HalbjahrBelegungDoppelt,
+  HalbjahrMitNotenNichtLoeschbar,
   HalbjahrNichtGefunden,
   HalbjahrSchliesstNotenAus,
   NotensystemMitNotenUnveraenderlich,
@@ -22,6 +26,14 @@ import type {
 import { halbjahrVerstoss } from './halbjahr-invarianten.ts';
 
 export type Halbjahr = typeof term.$inferSelect;
+
+/**
+ * Ein Halbjahr mit der Anzahl seiner Noten: Sie entscheidet, ob es noch
+ * gelöscht werden darf, und gehört deshalb schon in die Liste.
+ */
+export type HalbjahrMitNotenAnzahl = Halbjahr & {
+  readonly notenAnzahl: number;
+};
 
 const termBelegungConstraint = 'term_school_year_half_unique';
 
@@ -51,10 +63,15 @@ const mitNotensystem = <Felder extends { readonly klassenstufe: Klassenstufe }>(
   felder: Felder,
 ) => ({ ...felder, system: notensystemFuerKlassenstufe(felder.klassenstufe) });
 
-/** Halbjahre, neuestes zuerst (nach Beginn sortiert). */
+/** Halbjahre samt Notenanzahl, neuestes zuerst (nach Beginn sortiert). */
 export const listHalbjahre = Effect.gen(function* () {
   const db = yield* PgDrizzle;
-  return yield* db.select().from(term).orderBy(desc(term.startsOn));
+  return yield* db
+    .select({ ...getTableColumns(term), notenAnzahl: count(grade.id) })
+    .from(term)
+    .leftJoin(grade, eq(grade.termId, term.id))
+    .groupBy(term.id)
+    .orderBy(desc(term.startsOn));
 });
 
 export const createHalbjahr = (eingabe: HalbjahrEingabe) =>
@@ -142,4 +159,42 @@ export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
       .pipe(
         Effect.catchTag('SqlError', (fehler) => mappeBelegung(fehler, eingabe)),
       );
+  });
+
+/**
+ * Löscht ein Halbjahr, solange es leer ist. Noten hängen per Fremdschlüssel
+ * kaskadierend daran; die Prüfung hier ist der einzige Löschweg, damit die
+ * Kaskade nie über Noten entscheidet.
+ */
+export const deleteHalbjahr = (id: string) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    yield* sql.withTransaction(
+      Effect.gen(function* () {
+        const db = yield* PgDrizzle;
+        const vorhanden = yield* db
+          .select()
+          .from(term)
+          .where(eq(term.id, id))
+          .for('update');
+        const [halbjahr] = vorhanden;
+        if (halbjahr === undefined) {
+          return yield* Effect.fail(
+            new HalbjahrNichtGefunden({ halbjahrId: id }),
+          );
+        }
+        const [notenstand] = yield* db
+          .select({ anzahl: count(grade.id) })
+          .from(grade)
+          .where(eq(grade.termId, id));
+        const anzahl = notenstand?.anzahl ?? 0;
+        if (anzahl > 0) {
+          return yield* Effect.fail(
+            new HalbjahrMitNotenNichtLoeschbar({ halbjahrId: id, anzahl }),
+          );
+        }
+        yield* db.delete(term).where(eq(term.id, id));
+        yield* verwerfeFachstandOhneHalbjahr(halbjahr.schoolYear);
+      }),
+    );
   });
