@@ -43,6 +43,25 @@ describe('Gewichtungseditor', () => {
     ]);
     expect(geloest.gewichtung.arten.gfs.gewicht).toBe(1);
   });
+});
+
+describe('Gewichtungseditor-Persistenz', () => {
+  it('bewahrt beide gültigen Test-Sammlungen beim Öffnen unverändert', () => {
+    for (const sammlung of ['einzeln', 'gesammelt'] as const) {
+      const gewichtung = {
+        ...standardgewichtung,
+        arten: {
+          ...standardgewichtung.arten,
+          test: {
+            gewicht: sammlung === 'einzeln' ? 0.5 : 1,
+            sammlung,
+          },
+        },
+      };
+
+      expect(gewichtungStateFrom(gewichtung).gewichtung).toEqual(gewichtung);
+    }
+  });
 
   it('holt die GFS beim erneuten Ankoppeln zurück auf die Klausur', () => {
     const zustand = nach([

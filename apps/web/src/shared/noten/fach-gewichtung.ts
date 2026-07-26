@@ -24,6 +24,14 @@ const ArtgewichtungSchema = Schema.Struct({
   sammlung: Schema.Literal('einzeln', 'gesammelt'),
 });
 
+const EinzelgewichtungSchema = ArtgewichtungSchema.pipe(
+  Schema.filter(
+    (art) =>
+      art.sammlung === 'einzeln' ||
+      'Nur Tests dürfen als Sammlung gewichtet werden.',
+  ),
+);
+
 const BereichsverhaeltnisSchema = Schema.Struct({
   schriftlich: Anteil,
   muendlich: Anteil,
@@ -43,11 +51,11 @@ const BereichsverhaeltnisSchema = Schema.Struct({
 export const FachgewichtungSchema = Schema.Struct({
   verhaeltnis: Schema.NullOr(BereichsverhaeltnisSchema),
   arten: Schema.Struct({
-    klausur: ArtgewichtungSchema,
-    gfs: ArtgewichtungSchema,
+    klausur: EinzelgewichtungSchema,
+    gfs: EinzelgewichtungSchema,
     test: ArtgewichtungSchema,
-    muendlich: ArtgewichtungSchema,
-    sonstige: ArtgewichtungSchema,
+    muendlich: EinzelgewichtungSchema,
+    sonstige: EinzelgewichtungSchema,
   }),
 });
 
