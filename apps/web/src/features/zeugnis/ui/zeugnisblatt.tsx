@@ -33,19 +33,19 @@ const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
           </tr>
         </thead>
         <tbody>
-          {zeugnis.jahresvorschau.map((zeile) => (
-            <tr className="border-border border-b" key={zeile.fachId}>
+          {zeugnis.jahresvorschau.map((row) => (
+            <tr className="border-border border-b" key={row.fachId}>
               <th
                 className="py-2 pr-3 text-left font-normal text-ink"
                 scope="row"
               >
-                {zeile.fachName}
+                {row.fachName}
               </th>
               <td className="py-2">
                 <span className="font-display text-ink text-xl">
-                  {zeile.note}
+                  {row.note}
                 </span>
-                {zeile.grenzfall ? (
+                {row.grenzfall ? (
                   <span className="ml-3 border border-critical bg-critical-subtle px-2 py-0.5 text-ink text-xs uppercase tracking-widest">
                     * Grenzfall — pädagogisches Ermessen
                   </span>
@@ -59,22 +59,26 @@ const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
   );
 
 /** Das Zeugnisblatt: formale Vorschau eines Halbjahreszeugnisses. */
-export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
-  const zeugnisAbfrage = useQuery(zeugnisQueryOptions(termId));
-  const zeugnis = zeugnisAbfrage.data;
+export const Zeugnisblatt = ({
+  halbjahrId,
+}: {
+  readonly halbjahrId: string;
+}) => {
+  const zeugnisQuery = useQuery(zeugnisQueryOptions(halbjahrId));
+  const zeugnis = zeugnisQuery.data;
 
-  if (zeugnisAbfrage.isPending) {
+  if (zeugnisQuery.isPending) {
     return (
       <div className="mt-6">
         <LoadingHint text="Zeugnis wird berechnet …" />
       </div>
     );
   }
-  if (zeugnisAbfrage.isError || zeugnis === undefined) {
+  if (zeugnisQuery.isError || zeugnis === undefined) {
     return (
       <div className="mt-6">
         <QueryError
-          onRetry={() => zeugnisAbfrage.refetch()}
+          onRetry={() => zeugnisQuery.refetch()}
           text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>
@@ -115,19 +119,19 @@ export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
           </tr>
         </thead>
         <tbody>
-          {zeugnis.zeilen.map((zeile) => (
-            <tr className="border-border border-b" key={zeile.fachId}>
+          {zeugnis.rows.map((row) => (
+            <tr className="border-border border-b" key={row.fachId}>
               <th
                 className="py-2 pr-3 text-left font-normal text-ink"
                 scope="row"
               >
-                {zeile.fachName}
+                {row.fachName}
               </th>
               <td className="py-2 pr-3 text-ink-muted text-sm">
-                {zeile.anzahlNoten}
+                {row.noteCount}
               </td>
               <td className="py-2 font-display text-ink text-xl">
-                {zeile.anzeige ?? '—'}
+                {row.display ?? '—'}
               </td>
             </tr>
           ))}
@@ -138,10 +142,10 @@ export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
           Schnitt aller Halbjahresnoten
         </span>
         <span className="font-display text-4xl text-ink tracking-tight">
-          {zeugnis.gesamtschnitt ?? '—'}
+          {zeugnis.overallAverage ?? '—'}
         </span>
       </p>
-      {zeugnis.zeilen.length === 0 ? (
+      {zeugnis.rows.length === 0 ? (
         <div className="mt-4 border border-border bg-surface-sunken p-4">
           <p className="text-ink-muted">
             Ohne Fächer bleibt das Zeugnisblatt leer. Lege zuerst Fächer an.

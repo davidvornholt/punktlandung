@@ -1,14 +1,14 @@
 import { Schema } from 'effect';
 
-export const notenGrenzen = {
-  gewichtMax: 10,
-  gewichtSchritt: 0.25,
-  punkteMax: 15,
+export const notenLimits = {
+  maxGewichtung: 10,
+  gewichtungStep: 0.25,
+  maxNotenpunkte: 15,
   sechserMin: 1,
   sechserMax: 6,
 } as const;
 
-const isoDatumMuster = /^\d{4}-\d{2}-\d{2}$/u;
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
 const Leistungsart = Schema.Literal(
   'klausur',
@@ -20,39 +20,39 @@ const Leistungsart = Schema.Literal(
 
 const Wertungsbereich = Schema.Literal('schriftlich', 'muendlich');
 
-const NotenFelder = Schema.Struct({
-  subjectId: Schema.String,
-  kind: Leistungsart,
+const NotenFields = Schema.Struct({
+  fachId: Schema.String,
+  leistungsart: Leistungsart,
   /** Ohne Angabe leitet der Service den Bereich aus der Leistungsart ab. */
-  area: Schema.optional(Wertungsbereich),
+  wertungsbereich: Schema.optional(Wertungsbereich),
   /** Nativer Wert; die Systemprüfung übernimmt der Service anhand des Halbjahrs. */
-  wert: Schema.Number,
-  gewicht: Schema.Number.pipe(
+  notenwert: Schema.Number,
+  individualGewichtung: Schema.Number.pipe(
     Schema.positive(),
-    Schema.lessThanOrEqualTo(notenGrenzen.gewichtMax),
+    Schema.lessThanOrEqualTo(notenLimits.maxGewichtung),
   ),
-  datum: Schema.String.pipe(Schema.pattern(isoDatumMuster)),
-  notiz: Schema.NullOr(Schema.String),
+  date: Schema.String.pipe(Schema.pattern(isoDatePattern)),
+  comment: Schema.NullOr(Schema.String),
 });
 
-export const NoteEingabe = Schema.Struct({
-  termId: Schema.String,
-  ...NotenFelder.fields,
+export const NoteInput = Schema.Struct({
+  halbjahrId: Schema.String,
+  ...NotenFields.fields,
 });
 
-export type NoteEingabe = typeof NoteEingabe.Type;
+export type NoteInput = typeof NoteInput.Type;
 
-export const NoteAktualisierung = Schema.Struct({
+export const NoteUpdate = Schema.Struct({
   id: Schema.String,
-  ...NotenFelder.fields,
+  ...NotenFields.fields,
 });
 
-export type NoteAktualisierung = typeof NoteAktualisierung.Type;
+export type NoteUpdate = typeof NoteUpdate.Type;
 
-export const NoteKennung = Schema.Struct({
+export const NoteId = Schema.Struct({
   id: Schema.String,
 });
 
-export const NotenAbfrage = Schema.Struct({
-  termId: Schema.String,
+export const NotenQuery = Schema.Struct({
+  halbjahrId: Schema.String,
 });

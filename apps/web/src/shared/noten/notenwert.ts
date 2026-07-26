@@ -15,51 +15,56 @@ export type Leistungsart =
 
 export type Wertungsbereich = 'schriftlich' | 'muendlich';
 
-export type Leistung = {
-  readonly value: number;
-  readonly weight: number;
-  readonly kind: Leistungsart;
-  readonly area: Wertungsbereich;
+export type Assessment = {
+  readonly notenwert: number;
+  readonly individualGewichtung: number;
+  readonly leistungsart: Leistungsart;
+  readonly wertungsbereich: Wertungsbereich;
 };
 
 export type Fachgewichtung = {
   /** Anteil schriftlicher Leistungen in Prozent; null = eine Gesamtliste. */
-  readonly writtenShare: number | null;
-  readonly kindWeights: Readonly<Record<Leistungsart, number>>;
+  readonly schriftlichShare: number | null;
+  readonly leistungsartGewichtungen: Readonly<Record<Leistungsart, number>>;
 };
 
 /** Amtliche Umrechnungskonstanten: Punkte = 17 − 3 × Note. */
-const umrechnungsBasis = 17;
-const punkteProNotenstufe = 3;
-const prozentBasis = 100;
-const punkteMin = 0;
-const punkteMax = 15;
+const conversionBase = 17;
+const notenpunktePerNotenstufe = 3;
+const percentBase = 100;
+const minNotenpunkte = 0;
+const maxNotenpunkte = 15;
 
 /** Normalisiert einen nativen Wert auf die Punkteskala (0–15, dezimal). */
-export const zuPunkten = (value: number, system: Notensystem): number => {
-  const punkte =
-    system === 'punkte'
+export const toNotenpunkte = (
+  value: number,
+  notensystem: Notensystem,
+): number => {
+  const notenpunkte =
+    notensystem === 'punkte'
       ? value
-      : umrechnungsBasis - punkteProNotenstufe * value;
-  return Math.min(punkteMax, Math.max(punkteMin, punkte));
+      : conversionBase - notenpunktePerNotenstufe * value;
+  return Math.min(maxNotenpunkte, Math.max(minNotenpunkte, notenpunkte));
 };
 
 /** Rechnet einen Punktewert (dezimal) in die Sechserskala um. */
-export const zuSechser = (punkte: number): number =>
-  (umrechnungsBasis - punkte) / punkteProNotenstufe;
+export const toSechser = (notenpunkte: number): number =>
+  (conversionBase - notenpunkte) / notenpunktePerNotenstufe;
 
-const gewichtetesMittel = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
+const weightedAverage = (
+  assessments: ReadonlyArray<Assessment>,
+  fachGewichtung: Fachgewichtung,
 ): number | null => {
-  let summe = 0;
-  let gewichte = 0;
-  for (const l of leistungen) {
-    const gewicht = l.weight * gewichtung.kindWeights[l.kind];
-    summe += l.value * gewicht;
-    gewichte += gewicht;
+  let total = 0;
+  let totalGewichtung = 0;
+  for (const assessment of assessments) {
+    const combinedGewichtung =
+      assessment.individualGewichtung *
+      fachGewichtung.leistungsartGewichtungen[assessment.leistungsart];
+    total += assessment.notenwert * combinedGewichtung;
+    totalGewichtung += combinedGewichtung;
   }
-  return gewichte === 0 ? null : summe / gewichte;
+  return totalGewichtung === 0 ? null : total / totalGewichtung;
 };
 
 /**
@@ -67,27 +72,31 @@ const gewichtetesMittel = (
  * oder bereichsweise (schriftlich/mündlich) nach verkündetem Anteil. Fehlt
  * ein Bereich vollständig, zählt der vorhandene allein.
  */
-export const fachschnitt = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
+export const fachAverage = (
+  assessments: ReadonlyArray<Assessment>,
+  fachGewichtung: Fachgewichtung,
 ): number | null => {
-  if (gewichtung.writtenShare === null) {
-    return gewichtetesMittel(leistungen, gewichtung);
+  if (fachGewichtung.schriftlichShare === null) {
+    return weightedAverage(assessments, fachGewichtung);
   }
-  const schriftlich = gewichtetesMittel(
-    leistungen.filter((l) => l.area === 'schriftlich'),
-    gewichtung,
+  const schriftlichAverage = weightedAverage(
+    assessments.filter(
+      (assessment) => assessment.wertungsbereich === 'schriftlich',
+    ),
+    fachGewichtung,
   );
-  const muendlich = gewichtetesMittel(
-    leistungen.filter((l) => l.area === 'muendlich'),
-    gewichtung,
+  const muendlichAverage = weightedAverage(
+    assessments.filter(
+      (assessment) => assessment.wertungsbereich === 'muendlich',
+    ),
+    fachGewichtung,
   );
-  if (schriftlich === null) {
-    return muendlich;
+  if (schriftlichAverage === null) {
+    return muendlichAverage;
   }
-  if (muendlich === null) {
-    return schriftlich;
+  if (muendlichAverage === null) {
+    return schriftlichAverage;
   }
-  const anteil = gewichtung.writtenShare / prozentBasis;
-  return schriftlich * anteil + muendlich * (1 - anteil);
+  const share = fachGewichtung.schriftlichShare / percentBase;
+  return schriftlichAverage * share + muendlichAverage * (1 - share);
 };

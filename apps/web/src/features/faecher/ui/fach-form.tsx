@@ -5,74 +5,74 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
-import type { FachFelder } from '../schemas/fach-schema.ts';
-import { fachGrenzen } from '../schemas/fach-schema.ts';
+import type { FachFields } from '../schemas/fach-schema.ts';
+import { fachLimits } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
-import { fachFormWerte } from './fach-form-modell.ts';
+import { fachFormValues } from './fach-form-model.ts';
 
-const gewichtsFelder = [
-  { name: 'klausurWeight', label: 'Klausur' },
-  { name: 'testWeight', label: 'Test' },
-  { name: 'muendlichWeight', label: 'Mündlich' },
-  { name: 'gfsWeight', label: 'GFS' },
-  { name: 'sonstigeWeight', label: 'Sonstige' },
+const gewichtungFields = [
+  { name: 'klausurGewichtung', label: 'Klausur' },
+  { name: 'testGewichtung', label: 'Test' },
+  { name: 'muendlichGewichtung', label: 'Mündlich' },
+  { name: 'gfsGewichtung', label: 'GFS' },
+  { name: 'sonstigeGewichtung', label: 'Sonstige' },
 ] as const;
 
-const liesWerte = (form: HTMLFormElement): FachFelder => {
-  const daten = new FormData(form);
-  const text = (name: string) => `${daten.get(name) ?? ''}`.trim();
-  const gewicht = (name: string) => {
-    const roh = text(name).replace(',', '.');
-    return roh === '' ? 1 : Number(roh);
+const readValues = (form: HTMLFormElement): FachFields => {
+  const data = new FormData(form);
+  const text = (name: string) => `${data.get(name) ?? ''}`.trim();
+  const parseGewichtung = (name: string) => {
+    const raw = text(name).replace(',', '.');
+    return raw === '' ? 1 : Number(raw);
   };
-  const anteil = text('writtenShare');
+  const share = text('schriftlichShare');
   return {
     name: text('name'),
     shortName: text('shortName'),
-    writtenShare: anteil === '' ? null : Number(anteil),
-    klausurWeight: gewicht('klausurWeight'),
-    testWeight: gewicht('testWeight'),
-    muendlichWeight: gewicht('muendlichWeight'),
-    gfsWeight: gewicht('gfsWeight'),
-    sonstigeWeight: gewicht('sonstigeWeight'),
+    schriftlichShare: share === '' ? null : Number(share),
+    klausurGewichtung: parseGewichtung('klausurGewichtung'),
+    testGewichtung: parseGewichtung('testGewichtung'),
+    muendlichGewichtung: parseGewichtung('muendlichGewichtung'),
+    gfsGewichtung: parseGewichtung('gfsGewichtung'),
+    sonstigeGewichtung: parseGewichtung('sonstigeGewichtung'),
   };
 };
 
 export const FachForm = ({
-  titel,
+  title,
   fach,
-  beschaeftigt,
-  fehler,
+  pending,
+  error,
   formRef,
-  onSpeichern,
-  onAbbrechen,
+  onSave,
+  onCancel,
 }: {
-  readonly titel: string;
+  readonly title: string;
   readonly fach: Fach | null;
-  readonly beschaeftigt: boolean;
-  readonly fehler: string | null;
+  readonly pending: boolean;
+  readonly error: string | null;
   readonly formRef: RefObject<HTMLFormElement | null>;
-  readonly onSpeichern: (werte: FachFelder) => void;
-  readonly onAbbrechen: () => void;
+  readonly onSave: (values: FachFields) => void;
+  readonly onCancel: () => void;
 }) => {
-  const werte = fachFormWerte(fach);
+  const values = fachFormValues(fach);
   return (
     <form
       className="border border-border bg-surface p-5 shadow-card"
-      onSubmit={(ereignis) => {
-        ereignis.preventDefault();
-        onSpeichern(liesWerte(ereignis.currentTarget));
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(readValues(event.currentTarget));
       }}
       ref={formRef}
     >
-      <h3 className="font-display text-ink text-xl tracking-tight">{titel}</h3>
+      <h3 className="font-display text-ink text-xl tracking-tight">{title}</h3>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
         <label className={labelClass}>
           Name
           <input
             className={inputClass}
-            defaultValue={werte.name}
-            maxLength={fachGrenzen.nameMax}
+            defaultValue={values.name}
+            maxLength={fachLimits.nameMax}
             name="name"
             required={true}
           />
@@ -81,8 +81,8 @@ export const FachForm = ({
           Kürzel
           <input
             className={inputClass}
-            defaultValue={werte.shortName}
-            maxLength={fachGrenzen.kuerzelMax}
+            defaultValue={values.shortName}
+            maxLength={fachLimits.maxShortName}
             name="shortName"
             required={true}
           />
@@ -97,17 +97,17 @@ export const FachForm = ({
           Klausur 2, alles andere 1.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {gewichtsFelder.map((feld) => (
-            <label className={labelClass} key={feld.name}>
-              {feld.label}
+          {gewichtungFields.map((field) => (
+            <label className={labelClass} key={field.name}>
+              {field.label}
               <input
                 className={inputClass}
-                defaultValue={werte[feld.name]}
+                defaultValue={values[field.name]}
                 inputMode="decimal"
-                max={fachGrenzen.gewichtMax}
-                min={fachGrenzen.gewichtSchritt}
-                name={feld.name}
-                step={fachGrenzen.gewichtSchritt}
+                max={fachLimits.maxGewichtung}
+                min={fachLimits.gewichtungStep}
+                name={field.name}
+                step={fachLimits.gewichtungStep}
                 type="number"
               />
             </label>
@@ -117,11 +117,11 @@ export const FachForm = ({
           Schriftlicher Anteil in Prozent (optional)
           <input
             className={inputClass}
-            defaultValue={werte.writtenShare}
+            defaultValue={values.schriftlichShare}
             inputMode="numeric"
-            max={fachGrenzen.anteilMax}
+            max={fachLimits.maxShare}
             min={0}
-            name="writtenShare"
+            name="schriftlichShare"
             step={1}
             type="number"
           />
@@ -131,25 +131,21 @@ export const FachForm = ({
           verkündet hat — dann zählt eine gemeinsame gewichtete Liste.
         </p>
       </fieldset>
-      {fehler === null ? null : (
+      {error === null ? null : (
         <p
           className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          {fehler}
+          {error}
         </p>
       )}
       <div className="mt-5 flex gap-3">
-        <button
-          className={primaryButtonClass}
-          disabled={beschaeftigt}
-          type="submit"
-        >
-          {beschaeftigt ? 'Fach wird gespeichert …' : 'Fach speichern'}
+        <button className={primaryButtonClass} disabled={pending} type="submit">
+          {pending ? 'Fach wird gespeichert …' : 'Fach speichern'}
         </button>
         <button
           className={secondaryButtonClass}
-          onClick={onAbbrechen}
+          onClick={onCancel}
           type="button"
         >
           Abbrechen

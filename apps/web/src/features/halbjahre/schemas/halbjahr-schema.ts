@@ -1,17 +1,17 @@
 import { Schema } from 'effect';
 
-import { klassenstufen } from '#/shared/schule/klassenstufe.ts';
-import { schuljahrMuster } from '#/shared/schule/schuljahr.ts';
+import { klassenstufen } from '#/shared/school/klassenstufe.ts';
+import { schoolYearPattern } from '#/shared/school/school-year.ts';
 
-const isoDatumMuster = /^\d{4}-\d{2}-\d{2}$/u;
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
-const IsoDatum = Schema.String.pipe(Schema.pattern(isoDatumMuster));
+const IsoDate = Schema.String.pipe(Schema.pattern(isoDatePattern));
 
-const zeitraumGueltig = (zeitraum: {
+const dateRangeValid = (dateRange: {
   readonly startsOn: string;
   readonly endsOn: string;
 }) =>
-  zeitraum.startsOn < zeitraum.endsOn
+  dateRange.startsOn < dateRange.endsOn
     ? undefined
     : 'Das Enddatum muss nach dem Beginn liegen.';
 
@@ -19,25 +19,23 @@ const zeitraumGueltig = (zeitraum: {
  * Das Notensystem gehört bewusst nicht dazu: es folgt der Klassenstufe und
  * wird serverseitig abgeleitet, damit kein Aufrufer die beiden entkoppeln kann.
  */
-const HalbjahrFelder = Schema.Struct({
+const HalbjahrFields = Schema.Struct({
   /** Klassenstufe, z. B. "10" oder "J1". */
   klassenstufe: Schema.Literal(...klassenstufen),
   /** Schuljahr, z. B. "2026/27". */
-  schoolYear: Schema.String.pipe(Schema.pattern(schuljahrMuster)),
-  half: Schema.Literal(1, 2),
-  startsOn: IsoDatum,
-  endsOn: IsoDatum,
+  schoolYear: Schema.String.pipe(Schema.pattern(schoolYearPattern)),
+  number: Schema.Literal(1, 2),
+  startsOn: IsoDate,
+  endsOn: IsoDate,
 });
 
-export const HalbjahrEingabe = HalbjahrFelder.pipe(
-  Schema.filter(zeitraumGueltig),
-);
+export const HalbjahrInput = HalbjahrFields.pipe(Schema.filter(dateRangeValid));
 
-export type HalbjahrEingabe = typeof HalbjahrEingabe.Type;
+export type HalbjahrInput = typeof HalbjahrInput.Type;
 
-export const HalbjahrAktualisierung = Schema.Struct({
+export const HalbjahrUpdate = Schema.Struct({
   id: Schema.String,
-  ...HalbjahrFelder.fields,
-}).pipe(Schema.filter(zeitraumGueltig));
+  ...HalbjahrFields.fields,
+}).pipe(Schema.filter(dateRangeValid));
 
-export type HalbjahrAktualisierung = typeof HalbjahrAktualisierung.Type;
+export type HalbjahrUpdate = typeof HalbjahrUpdate.Type;

@@ -2,12 +2,12 @@ import { Data, Effect } from 'effect';
 import type { Pool, PoolClient, QueryResultRow } from 'pg';
 import { LegacyReconciliationDatabaseError } from './legacy-reconciliation-database-error.ts';
 
-type TermRow = QueryResultRow & {
+type HalbjahrRow = QueryResultRow & {
   readonly id: string;
-  readonly bezeichnung: string | null;
+  readonly label: string | null;
   readonly schoolYear: string;
-  readonly half: number;
-  readonly system: string;
+  readonly number: number;
+  readonly notensystem: string;
   readonly startsOn: string;
   readonly endsOn: string;
 };
@@ -15,9 +15,9 @@ type TermRow = QueryResultRow & {
 type StudyDayRow = QueryResultRow & {
   readonly id: string;
   readonly day: string;
-  readonly subjectId: string | null;
+  readonly fachId: string | null;
   readonly minutes: number | null;
-  readonly note: string | null;
+  readonly comment: string | null;
 };
 
 export class LegacyDataConflict extends Data.TaggedError('LegacyDataConflict')<{
@@ -39,7 +39,7 @@ const query = <Row extends QueryResultRow>(
       }),
   });
 
-const gruppiere = <Row>(
+const groupItems = <Row>(
   rows: ReadonlyArray<Row>,
   key: (row: Row) => string,
 ): ReadonlyArray<ReadonlyArray<Row>> => {
@@ -57,35 +57,35 @@ const gruppiere = <Row>(
  * ableitet und ein automatisches Zusammenführen sie sonst stillschweigend
  * verwerfen würde.
  */
-const termMetadata = (row: TermRow): string =>
-  [row.bezeichnung, row.system, row.startsOn, row.endsOn].join('\u0000');
+const halbjahrMetadata = (row: HalbjahrRow): string =>
+  [row.label, row.notensystem, row.startsOn, row.endsOn].join('\u0000');
 
 const studyDayData = (row: StudyDayRow): string =>
-  JSON.stringify([row.minutes, row.note]);
+  JSON.stringify([row.minutes, row.comment]);
 
 const conflictMessage = (
-  termConflicts: ReadonlyArray<ReadonlyArray<TermRow>>,
+  halbjahrConflicts: ReadonlyArray<ReadonlyArray<HalbjahrRow>>,
   studyDayConflicts: ReadonlyArray<ReadonlyArray<StudyDayRow>>,
 ): string => {
-  const termLines = termConflicts.map((group) => {
+  const halbjahrRows = halbjahrConflicts.map((group) => {
     const [first] = group;
-    return `Halbjahr ${first?.schoolYear}/${first?.half}: Zeilen ${group.map(({ id }) => id).join(', ')} unterscheiden sich in Bezeichnung, Notensystem oder Zeitraum. Gleichen Sie die Metadaten an oder führen Sie die Zeilen samt Noten manuell zusammen.`;
+    return `Halbjahr ${first?.schoolYear}/${first?.number}: Zeilen ${group.map(({ id }) => id).join(', ')} unterscheiden sich in Bezeichnung, Notensystem oder Zeitraum. Gleichen Sie die Metadaten an oder führen Sie die Zeilen samt Noten manuell zusammen.`;
   });
   const studyDayLines = studyDayConflicts.map((group) => {
     const [first] = group;
-    const subject = first?.subjectId ?? 'ohne Fach';
-    return `Lerntag ${first?.day}/${subject}: Zeilen ${group.map(({ id }) => id).join(', ')} haben unterschiedliche Minuten oder Notizen. Führen Sie diese Zeilen manuell zusammen.`;
+    const fach = first?.fachId ?? 'ohne Fach';
+    return `Lerntag ${first?.day}/${fach}: Zeilen ${group.map(({ id }) => id).join(', ')} haben unterschiedliche Minuten oder Notizen. Führen Sie diese Zeilen manuell zusammen.`;
   });
   return [
     'Die Migration wurde vor Schemaänderungen abgebrochen, weil doppelte Bestandsdaten nicht verlustfrei automatisch zusammengeführt werden können:',
-    ...termLines,
+    ...halbjahrRows,
     ...studyDayLines,
   ].join('\n');
 };
 
-const mergeTerms = (
+const mergeHalbjahre = (
   client: PoolClient,
-  groups: ReadonlyArray<ReadonlyArray<TermRow>>,
+  groups: ReadonlyArray<ReadonlyArray<HalbjahrRow>>,
 ) =>
   Effect.gen(function* () {
     for (const group of groups) {
@@ -137,44 +137,45 @@ const reconcileInTransaction = (client: PoolClient) =>
       client,
       'LOCK TABLE term, grade, study_day IN SHARE ROW EXCLUSIVE MODE',
     );
-    const terms = yield* query<TermRow>(
+    const halbjahre = yield* query<HalbjahrRow>(
       client,
-      `SELECT id, school_year AS "schoolYear", half, system,
+      `SELECT id, school_year AS "schoolYear", half AS "number",
+              system AS "notensystem",
               starts_on AS "startsOn", ends_on AS "endsOn",
               COALESCE(to_jsonb(term) ->> 'label',
-                       to_jsonb(term) ->> 'klassenstufe') AS "bezeichnung"
+                       to_jsonb(term) ->> 'klassenstufe') AS "label"
          FROM term
         ORDER BY school_year, half, id`,
     );
     const studyDays = yield* query<StudyDayRow>(
       client,
-      `SELECT id, day, subject_id AS "subjectId", minutes, note
+      `SELECT id, day, subject_id AS "fachId", minutes, note AS "comment"
          FROM study_day
         ORDER BY day, subject_id NULLS FIRST, id`,
     );
-    const termGroups = gruppiere(
-      terms.rows,
-      (row) => `${row.schoolYear}\u0000${row.half}`,
+    const halbjahrGroups = groupItems(
+      halbjahre.rows,
+      (row) => `${row.schoolYear}\u0000${row.number}`,
     );
-    const studyDayGroups = gruppiere(
+    const studyDayGroups = groupItems(
       studyDays.rows,
-      (row) => `${row.day}\u0000${row.subjectId ?? ''}`,
+      (row) => `${row.day}\u0000${row.fachId ?? ''}`,
     );
-    const termConflicts = termGroups.filter(
-      (group) => new Set(group.map(termMetadata)).size > 1,
+    const halbjahrConflicts = halbjahrGroups.filter(
+      (group) => new Set(group.map(halbjahrMetadata)).size > 1,
     );
     const studyDayConflicts = studyDayGroups.filter(
       (group) => new Set(group.map(studyDayData)).size > 1,
     );
-    if (termConflicts.length > 0 || studyDayConflicts.length > 0) {
+    if (halbjahrConflicts.length > 0 || studyDayConflicts.length > 0) {
       return yield* Effect.fail(
         new LegacyDataConflict({
-          message: conflictMessage(termConflicts, studyDayConflicts),
+          message: conflictMessage(halbjahrConflicts, studyDayConflicts),
         }),
       );
     }
 
-    yield* mergeTerms(client, termGroups);
+    yield* mergeHalbjahre(client, halbjahrGroups);
     yield* mergeStudyDays(client, studyDayGroups);
   });
 

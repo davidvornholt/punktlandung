@@ -1,11 +1,11 @@
 import { Data } from 'effect';
 
-export class ZeugnisHalbjahrNichtGefunden extends Data.TaggedError(
-  'ZeugnisHalbjahrNichtGefunden',
+export class ZeugnisHalbjahrNotFound extends Data.TaggedError(
+  'ZeugnisHalbjahrNotFound',
 )<{
-  readonly termId: string;
+  readonly halbjahrId: string;
 }> {
   override get message(): string {
-    return `Für das Halbjahr ${this.termId} gibt es kein Zeugnis, weil es nicht existiert. Wähle ein vorhandenes Halbjahr.`;
+    return `Für das Halbjahr ${this.halbjahrId} gibt es kein Zeugnis, weil es nicht existiert. Wähle ein vorhandenes Halbjahr.`;
   }
 }

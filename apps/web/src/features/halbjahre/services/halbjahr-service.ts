@@ -4,142 +4,151 @@ import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import { grade, term } from '#/shared/db/schema.ts';
-import { materialisiereNeuesSchuljahr } from '#/shared/noten/schuljahr-fachstand.ts';
-import type { Klassenstufe } from '#/shared/schule/klassenstufe.ts';
-import { notensystemFuerKlassenstufe } from '#/shared/schule/klassenstufe.ts';
+import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
+import { materializeNewSchoolYear } from '#/shared/noten/school-year-fach-snapshot.ts';
+import type { Klassenstufe } from '#/shared/school/klassenstufe.ts';
+import { notensystemForKlassenstufe } from '#/shared/school/klassenstufe.ts';
 import {
-  HalbjahrBelegungDoppelt,
-  HalbjahrNichtGefunden,
-  HalbjahrSchliesstNotenAus,
-  NotensystemMitNotenUnveraenderlich,
-  SchuljahrMitNotenUnveraenderlich,
+  HalbjahrAlreadyExists,
+  HalbjahrExcludesNoten,
+  HalbjahrNotFound,
+  NotensystemImmutableWithNoten,
+  SchoolYearImmutableWithNoten,
 } from '../errors/halbjahr-errors.ts';
 import type {
-  HalbjahrAktualisierung,
-  HalbjahrEingabe,
+  HalbjahrInput,
+  HalbjahrUpdate,
 } from '../schemas/halbjahr-schema.ts';
-import { halbjahrVerstoss } from './halbjahr-invarianten.ts';
+import { findHalbjahrViolation } from './halbjahr-invariants.ts';
 
-export type Halbjahr = typeof term.$inferSelect;
+export type Halbjahr = typeof halbjahrTable.$inferSelect;
 
-const termBelegungConstraint = 'term_school_year_half_unique';
+const halbjahrOccupancyConstraint = 'term_school_year_half_unique';
 
-const hatConstraint = (wert: unknown, constraint: string): boolean => {
-  if (typeof wert !== 'object' || wert === null) {
+const hasConstraint = (value: unknown, constraint: string): boolean => {
+  if (typeof value !== 'object' || value === null) {
     return false;
   }
-  const objekt = wert as {
+  const object = value as {
     readonly constraint?: unknown;
     readonly cause?: unknown;
   };
   return (
-    objekt.constraint === constraint || hatConstraint(objekt.cause, constraint)
+    object.constraint === constraint || hasConstraint(object.cause, constraint)
   );
 };
 
-const mappeBelegung = (
-  fehler: SqlError,
-  eingabe: Pick<HalbjahrEingabe, 'schoolYear' | 'half'>,
-): Effect.Effect<never, HalbjahrBelegungDoppelt | SqlError> =>
-  hatConstraint(fehler, termBelegungConstraint)
-    ? Effect.fail(new HalbjahrBelegungDoppelt(eingabe))
-    : Effect.fail(fehler);
+const mapOccupancy = (
+  error: SqlError,
+  input: Pick<HalbjahrInput, 'schoolYear' | 'number'>,
+): Effect.Effect<never, HalbjahrAlreadyExists | SqlError> =>
+  hasConstraint(error, halbjahrOccupancyConstraint)
+    ? Effect.fail(new HalbjahrAlreadyExists(input))
+    : Effect.fail(error);
 
 /** Das Notensystem folgt der Klassenstufe und wird nie vom Aufrufer übernommen. */
-const mitNotensystem = <Felder extends { readonly klassenstufe: Klassenstufe }>(
-  felder: Felder,
-) => ({ ...felder, system: notensystemFuerKlassenstufe(felder.klassenstufe) });
+const withNotensystem = <
+  Fields extends { readonly klassenstufe: Klassenstufe },
+>(
+  fields: Fields,
+) => ({
+  ...fields,
+  notensystem: notensystemForKlassenstufe(fields.klassenstufe),
+});
 
 /** Halbjahre, neuestes zuerst (nach Beginn sortiert). */
 export const listHalbjahre = Effect.gen(function* () {
   const db = yield* PgDrizzle;
-  return yield* db.select().from(term).orderBy(desc(term.startsOn));
+  return yield* db
+    .select()
+    .from(halbjahrTable)
+    .orderBy(desc(halbjahrTable.startsOn));
 });
 
-export const createHalbjahr = (eingabe: HalbjahrEingabe) =>
+export const createHalbjahr = (input: HalbjahrInput) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     yield* sql
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
-          const eingefuegt = yield* db
-            .insert(term)
-            .values({ id: crypto.randomUUID(), ...mitNotensystem(eingabe) })
-            .onConflictDoNothing({ target: [term.schoolYear, term.half] })
-            .returning({ id: term.id });
-          if (eingefuegt.length === 0) {
-            return yield* Effect.fail(new HalbjahrBelegungDoppelt(eingabe));
+          const inserted = yield* db
+            .insert(halbjahrTable)
+            .values({ id: crypto.randomUUID(), ...withNotensystem(input) })
+            .onConflictDoNothing({
+              target: [halbjahrTable.schoolYear, halbjahrTable.number],
+            })
+            .returning({ id: halbjahrTable.id });
+          if (inserted.length === 0) {
+            return yield* Effect.fail(new HalbjahrAlreadyExists(input));
           }
-          yield* materialisiereNeuesSchuljahr(eingabe.schoolYear);
+          yield* materializeNewSchoolYear(input.schoolYear);
         }),
       )
-      .pipe(
-        Effect.catchTag('SqlError', (fehler) => mappeBelegung(fehler, eingabe)),
-      );
+      .pipe(Effect.catchTag('SqlError', (error) => mapOccupancy(error, input)));
   });
 
-export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
+export const updateHalbjahr = (input: HalbjahrUpdate) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     yield* sql
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
-          const vorhanden = yield* db
+          const existing = yield* db
             .select()
-            .from(term)
-            .where(eq(term.id, eingabe.id))
+            .from(halbjahrTable)
+            .where(eq(halbjahrTable.id, input.id))
             .for('update');
-          const [halbjahr] = vorhanden;
+          const [halbjahr] = existing;
           if (halbjahr === undefined) {
             return yield* Effect.fail(
-              new HalbjahrNichtGefunden({ halbjahrId: eingabe.id }),
+              new HalbjahrNotFound({ halbjahrId: input.id }),
             );
           }
-          const vorhandeneNoten = yield* db
-            .select({ takenOn: grade.takenOn })
-            .from(grade)
-            .where(eq(grade.termId, eingabe.id));
-          const { id, ...neu } = mitNotensystem(eingabe);
-          const verstoss = halbjahrVerstoss(
+          const existingNoten = yield* db
+            .select({ takenOn: noteTable.takenOn })
+            .from(noteTable)
+            .where(eq(noteTable.halbjahrId, input.id));
+          const { id, ...next } = withNotensystem(input);
+          const violation = findHalbjahrViolation(
             halbjahr,
-            neu,
-            vorhandeneNoten.map((note) => note.takenOn),
+            next,
+            existingNoten.map((note) => note.takenOn),
           );
-          if (verstoss === 'notensystem') {
+          if (violation === 'notensystem') {
             return yield* Effect.fail(
-              new NotensystemMitNotenUnveraenderlich({
-                halbjahrId: eingabe.id,
-                bisher: halbjahr.system,
-                neu: neu.system,
+              new NotensystemImmutableWithNoten({
+                halbjahrId: input.id,
+                previous: halbjahr.notensystem,
+                next: next.notensystem,
               }),
             );
           }
-          if (verstoss === 'schoolYear') {
+          if (violation === 'schoolYear') {
             return yield* Effect.fail(
-              new SchuljahrMitNotenUnveraenderlich({
-                halbjahrId: eingabe.id,
-                bisher: halbjahr.schoolYear,
-                neu: eingabe.schoolYear,
+              new SchoolYearImmutableWithNoten({
+                halbjahrId: input.id,
+                previous: halbjahr.schoolYear,
+                next: input.schoolYear,
               }),
             );
           }
-          if (verstoss === 'zeitraum') {
+          if (violation === 'dateRange') {
             return yield* Effect.fail(
-              new HalbjahrSchliesstNotenAus({
-                halbjahrId: eingabe.id,
-                startsOn: eingabe.startsOn,
-                endsOn: eingabe.endsOn,
+              new HalbjahrExcludesNoten({
+                halbjahrId: input.id,
+                startsOn: input.startsOn,
+                endsOn: input.endsOn,
               }),
             );
           }
-          yield* db.update(term).set(neu).where(eq(term.id, id));
-          yield* materialisiereNeuesSchuljahr(eingabe.schoolYear);
+          yield* db
+            .update(halbjahrTable)
+            .set(next)
+            .where(eq(halbjahrTable.id, id));
+          yield* materializeNewSchoolYear(input.schoolYear);
         }),
       )
-      .pipe(
-        Effect.catchTag('SqlError', (fehler) => mappeBelegung(fehler, eingabe)),
-      );
+      .pipe(Effect.catchTag('SqlError', (error) => mapOccupancy(error, input)));
   });

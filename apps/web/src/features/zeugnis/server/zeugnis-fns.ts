@@ -2,21 +2,21 @@ import { queryOptions } from '@tanstack/react-query';
 import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
-import { sitzungErforderlich } from '#/shared/auth/auth-middleware.ts';
+import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
 import { runtime } from '#/shared/runtime.ts';
-import { ladeZeugnis } from '../services/zeugnis-service.ts';
+import { loadZeugnis } from '../services/zeugnis-service.ts';
 
-const ZeugnisAbfrage = Schema.Struct({
-  termId: Schema.String,
+const ZeugnisQuery = Schema.Struct({
+  halbjahrId: Schema.String,
 });
 
 export const zeugnisFn = createServerFn({ method: 'GET' })
-  .middleware([sitzungErforderlich])
-  .inputValidator(Schema.standardSchemaV1(ZeugnisAbfrage))
-  .handler(({ data }) => runtime.runPromise(ladeZeugnis(data.termId)));
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(ZeugnisQuery))
+  .handler(({ data }) => runtime.runPromise(loadZeugnis(data.halbjahrId)));
 
-export const zeugnisQueryOptions = (termId: string) =>
+export const zeugnisQueryOptions = (halbjahrId: string) =>
   queryOptions({
-    queryKey: ['zeugnis', termId],
-    queryFn: () => zeugnisFn({ data: { termId } }),
+    queryKey: ['zeugnis', halbjahrId],
+    queryFn: () => zeugnisFn({ data: { halbjahrId } }),
   });
