@@ -1,3 +1,5 @@
+LOCK TABLE "school_year_subject" IN ACCESS EXCLUSIVE MODE;--> statement-breakpoint
+LOCK TABLE "subject" IN ACCESS EXCLUSIVE MODE;--> statement-breakpoint
 LOCK TABLE "grade" IN SHARE MODE;--> statement-breakpoint
 DO $$
 DECLARE inkompatible_noten text;

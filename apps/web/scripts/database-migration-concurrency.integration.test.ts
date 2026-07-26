@@ -206,7 +206,10 @@ describe('Datenbankmigrationen unter konkurrierenden Schreibzugriffen', () => {
             migrationLock,
             result: result._tag,
           }).toEqual({
-            migrationLock: { relation: 'grade', mode: 'ShareLock' },
+            migrationLock: {
+              relation: 'subject',
+              mode: 'AccessExclusiveLock',
+            },
             result: 'Left',
           });
           if (result._tag === 'Right') {
