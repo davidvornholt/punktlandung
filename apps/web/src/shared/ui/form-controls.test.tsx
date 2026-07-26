@@ -33,6 +33,22 @@ describe('Auswahlfelder', () => {
     expect(markup).toInclude('Jeder Test zählt einzeln');
   });
 
+  it('zeichnet Radios eckig und im Kontrastmodus nativ', () => {
+    const markup = renderToStaticMarkup(
+      <Radio checked={true} name="aufteilung" onSelect={() => undefined}>
+        Schriftlich : mündlich
+      </Radio>,
+    );
+
+    expect(markup).toInclude('appearance-none');
+    expect(markup).toInclude('border-border-strong');
+    expect(markup).toInclude('checked:bg-primary');
+    expect(markup).toInclude('bg-clip-content p-1');
+    expect(markup).toInclude('forced-colors:appearance-auto');
+    expect(markup).not.toInclude('rounded-');
+    expect(markup).not.toInclude('<svg');
+  });
+
   it('gibt den Auswahlzustand an das native Feld weiter', () => {
     const abgewaehlt = renderToStaticMarkup(
       <Checkbox checked={false} onChange={() => undefined}>

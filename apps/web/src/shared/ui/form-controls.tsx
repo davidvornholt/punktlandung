@@ -13,7 +13,7 @@ const wahlKlasse = 'flex items-center gap-2 text-ink text-sm';
 const controlClass =
   'size-4 shrink-0 appearance-none border border-border-strong transition-colors duration-150 ease-standard checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary forced-colors:appearance-auto';
 
-/** Eckig und mit Haken — sichtbar verschieden vom runden Radiofeld. */
+/** Eckig und mit Haken — sichtbar verschieden vom gefüllten Radiofeld. */
 export const Checkbox = ({
   checked,
   children,
@@ -46,11 +46,7 @@ export const Checkbox = ({
   </label>
 );
 
-/**
- * Rund, weil die Rundung die Bedeutung trägt: eine Wahl aus mehreren. Der
- * Punkt entsteht aus dem auf die Content-Box beschnittenen Hintergrund, der
- * Ring aus Rahmen und Innenabstand.
- */
+/** Eckiger Rahmen mit kleiner Füllung für die exklusive Auswahl. */
 export const Radio = ({
   checked,
   children,
@@ -65,7 +61,7 @@ export const Radio = ({
   <label className={wahlKlasse}>
     <input
       checked={checked}
-      className={`${controlClass} rounded-full bg-clip-content p-1`}
+      className={`${controlClass} bg-clip-content p-1`}
       name={name}
       onChange={onSelect}
       type="radio"

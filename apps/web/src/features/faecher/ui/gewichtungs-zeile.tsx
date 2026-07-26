@@ -35,13 +35,15 @@ const GewichtEingabe = ({
   readonly onAktion: (aktion: GewichtungAction) => void;
 }) => (
   <label className={`${wahlKlasse} text-ink-muted`}>
-    Gewicht ×
+    <span aria-hidden={true}>Gewicht ×</span>
     <span className="block w-20">
       <input
+        aria-label={`Gewicht für ${leistungsartLabel[kind]}`}
         className={inputClass}
         inputMode="decimal"
         max={gewichtungsGrenzen.gewichtMax}
         min={gewichtungsGrenzen.gewichtSchritt}
+        name={`gewicht-${kind}`}
         onChange={(ereignis) =>
           onAktion({
             typ: 'gewicht',
@@ -67,7 +69,8 @@ const Sammelwahl = ({
   readonly gekoppelt: boolean;
   readonly onAktion: (aktion: GewichtungAction) => void;
 }) => (
-  <>
+  <fieldset className="space-y-2">
+    <legend className="sr-only">Sammlung für Test</legend>
     <Radio
       checked={gekoppelt}
       name="sammlung-test"
@@ -91,7 +94,7 @@ const Sammelwahl = ({
         <GewichtEingabe art={art} kind="test" onAktion={onAktion} />
       )}
     </div>
-  </>
+  </fieldset>
 );
 
 const Steuerung = ({
@@ -148,15 +151,20 @@ export const GewichtungsZeile = ({
   readonly steuerung: Zeilensteuerung;
   readonly onAktion: (aktion: GewichtungAction) => void;
 }) => (
-  <div className="border-border border-t py-3 first:border-t-0 sm:grid sm:grid-cols-[7rem_1fr] sm:gap-4">
-    <p className="font-semibold text-ink text-sm">{leistungsartLabel[kind]}</p>
-    <div className="mt-2 space-y-2 sm:mt-0">
-      <Steuerung
-        art={art}
-        kind={kind}
-        onAktion={onAktion}
-        steuerung={steuerung}
-      />
+  <fieldset className="border-border border-t py-3 first:border-t-0">
+    <legend className="sr-only">{leistungsartLabel[kind]}</legend>
+    <div className="sm:grid sm:grid-cols-[7rem_1fr] sm:gap-4">
+      <p aria-hidden={true} className="font-semibold text-ink text-sm">
+        {leistungsartLabel[kind]}
+      </p>
+      <div className="mt-2 space-y-2 sm:mt-0">
+        <Steuerung
+          art={art}
+          kind={kind}
+          onAktion={onAktion}
+          steuerung={steuerung}
+        />
+      </div>
     </div>
-  </div>
+  </fieldset>
 );

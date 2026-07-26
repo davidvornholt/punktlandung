@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 import {
   gewichtungsGrenzen,
   standardverhaeltnis,
@@ -22,10 +24,14 @@ const verhaeltnisText = (verhaeltnis: Bereichsverhaeltnis): string =>
 
 const Anteilsfeld = ({
   bereich,
+  errorId,
+  invalid,
   wert,
   onAktion,
 }: {
   readonly bereich: 'schriftlich' | 'muendlich';
+  readonly errorId: string | undefined;
+  readonly invalid: boolean;
   readonly wert: number;
   readonly onAktion: (aktion: GewichtungAction) => void;
 }) => (
@@ -34,10 +40,13 @@ const Anteilsfeld = ({
       {bereich === 'schriftlich' ? 'Schriftlicher' : 'Mündlicher'} Anteil
     </span>
     <input
+      aria-describedby={errorId}
+      aria-invalid={invalid}
       className={inputClass}
       inputMode="numeric"
       max={gewichtungsGrenzen.anteilMax}
       min={0}
+      name={`anteil-${bereich}`}
       onChange={(ereignis) =>
         onAktion({
           typ: 'anteil',
@@ -63,62 +72,81 @@ export const VerhaeltnisWahl = ({
 }: {
   readonly verhaeltnis: Bereichsverhaeltnis | null;
   readonly onAktion: (aktion: GewichtungAction) => void;
-}) => (
-  <div className="space-y-2">
-    <Radio
-      checked={verhaeltnis === null}
-      name="aufteilung"
-      onSelect={() => onAktion({ typ: 'aufteilung', verhaeltnis: null })}
-    >
-      Eine gemeinsame Liste
-    </Radio>
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+}) => {
+  const errorId = useId();
+  const invalid =
+    verhaeltnis !== null &&
+    verhaeltnis.schriftlich + verhaeltnis.muendlich <= 0;
+  const describedBy = invalid ? errorId : undefined;
+  return (
+    <div className="space-y-2">
       <Radio
-        checked={verhaeltnis !== null}
+        checked={verhaeltnis === null}
         name="aufteilung"
-        onSelect={() =>
-          onAktion({ typ: 'aufteilung', verhaeltnis: standardverhaeltnis })
-        }
+        onSelect={() => onAktion({ typ: 'aufteilung', verhaeltnis: null })}
       >
-        Schriftlich : mündlich
+        Eine gemeinsame Liste
       </Radio>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Radio
+          checked={verhaeltnis !== null}
+          name="aufteilung"
+          onSelect={() =>
+            onAktion({ typ: 'aufteilung', verhaeltnis: standardverhaeltnis })
+          }
+        >
+          Schriftlich : mündlich
+        </Radio>
+        {verhaeltnis === null ? null : (
+          <>
+            <Anteilsfeld
+              bereich="schriftlich"
+              errorId={describedBy}
+              invalid={invalid}
+              onAktion={onAktion}
+              wert={verhaeltnis.schriftlich}
+            />
+            <span aria-hidden={true} className="text-ink-muted">
+              :
+            </span>
+            <Anteilsfeld
+              bereich="muendlich"
+              errorId={describedBy}
+              invalid={invalid}
+              onAktion={onAktion}
+              wert={verhaeltnis.muendlich}
+            />
+            {invalid ? (
+              <span
+                className="text-ink-muted text-sm"
+                id={errorId}
+                role="alert"
+              >
+                Mindestens ein Bereich muss zählen.
+              </span>
+            ) : (
+              <span className="text-ink-muted text-sm">
+                ≙ {verhaeltnisProzentText(verhaeltnis)}
+              </span>
+            )}
+          </>
+        )}
+      </div>
       {verhaeltnis === null ? null : (
-        <>
-          <Anteilsfeld
-            bereich="schriftlich"
-            onAktion={onAktion}
-            wert={verhaeltnis.schriftlich}
-          />
-          <span aria-hidden={true} className="text-ink-muted">
-            :
-          </span>
-          <Anteilsfeld
-            bereich="muendlich"
-            onAktion={onAktion}
-            wert={verhaeltnis.muendlich}
-          />
-          <span className="text-ink-muted text-sm">
-            {verhaeltnis.schriftlich + verhaeltnis.muendlich > 0
-              ? `≙ ${verhaeltnisProzentText(verhaeltnis)}`
-              : 'Mindestens ein Bereich muss zählen.'}
-          </span>
-        </>
+        <div className="flex flex-wrap items-center gap-x-3 text-sm">
+          <span className="text-ink-faint">Häufig:</span>
+          {schnellwahl.map((wahl) => (
+            <button
+              className={quietButtonClass}
+              key={verhaeltnisText(wahl)}
+              onClick={() => onAktion({ typ: 'aufteilung', verhaeltnis: wahl })}
+              type="button"
+            >
+              {verhaeltnisText(wahl)}
+            </button>
+          ))}
+        </div>
       )}
     </div>
-    {verhaeltnis === null ? null : (
-      <div className="flex flex-wrap items-center gap-x-3 text-sm">
-        <span className="text-ink-faint">Häufig:</span>
-        {schnellwahl.map((wahl) => (
-          <button
-            className={quietButtonClass}
-            key={verhaeltnisText(wahl)}
-            onClick={() => onAktion({ typ: 'aufteilung', verhaeltnis: wahl })}
-            type="button"
-          >
-            {verhaeltnisText(wahl)}
-          </button>
-        ))}
-      </div>
-    )}
-  </div>
-);
+  );
+};
