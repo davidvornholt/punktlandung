@@ -1,29 +1,25 @@
-import { afterAll, describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-mock.module('../server/halbjahr-fns.ts', () => ({
-  createHalbjahrFn: mock(() => Promise.resolve()),
-  deleteHalbjahrFn: mock(() => Promise.resolve()),
-  halbjahreQueryOptions: {
-    queryFn: () => new Promise(() => undefined),
-    queryKey: ['halbjahre'],
-  },
-  listHalbjahreFn: mock(() => new Promise(() => undefined)),
-  updateHalbjahrFn: mock(() => Promise.resolve()),
-}));
+import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
+import type { HalbjahrOperations } from './halbjahr-operations.ts';
+import { HalbjahreManagementBoundary } from './halbjahre-management-boundary.tsx';
 
-const { HalbjahreManagement } = await import('./halbjahre-management.tsx');
+const operations: HalbjahrOperations = {
+  create: mock(() => Promise.resolve()),
+  delete: mock(() => Promise.resolve()),
+  list: mock(
+    () => new Promise<ReadonlyArray<HalbjahrWithNotenCount>>(() => undefined),
+  ),
+  update: mock(() => Promise.resolve()),
+};
 
-afterAll(() => {
-  mock.restore();
-});
-
-describe('HalbjahreManagement', () => {
+describe('HalbjahreManagementBoundary', () => {
   it('mounts deletion announcements before a success can update them', () => {
     const markup = renderToStaticMarkup(
       <QueryClientProvider client={new QueryClient()}>
-        <HalbjahreManagement />
+        <HalbjahreManagementBoundary operations={operations} />
       </QueryClientProvider>,
     );
 

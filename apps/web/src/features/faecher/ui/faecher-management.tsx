@@ -21,6 +21,7 @@ import {
 import type { Fach } from '../services/fach-service.ts';
 import { FachForm } from './fach-form.tsx';
 import { FachList } from './fach-list.tsx';
+import { changeSchoolYear } from './school-year-change.ts';
 
 const editKey = (editTarget: Fach | 'create' | null) => {
   if (editTarget === null || editTarget === 'create') {
@@ -134,9 +135,10 @@ export const FaecherManagement = ({
             <select
               className={inputClass}
               onChange={(event) => {
-                focus.rememberTrigger(event.currentTarget);
-                setEditTarget(null);
-                setSchoolYear(event.currentTarget.value);
+                changeSchoolYear(event.currentTarget, focus, {
+                  setEditTarget,
+                  setSchoolYear,
+                });
               }}
               value={schoolYear}
             >
