@@ -1,5 +1,6 @@
 import { Data } from 'effect';
 
+import { notenCountText } from '#/shared/noten/noten-count-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 
 export class HalbjahrAlreadyExists extends Data.TaggedError(
@@ -17,6 +18,28 @@ export class HalbjahrNotFound extends Data.TaggedError(
 }> {
   override get message(): string {
     return `Das Halbjahr ${this.halbjahrId} existiert nicht mehr. Lade die Halbjahre neu.`;
+  }
+}
+
+export class HalbjahrDeletionBlockedByNoten extends Data.TaggedError(
+  'HalbjahrDeletionBlockedByNoten',
+)<{ readonly halbjahrId: string; readonly notenCount: number }> {
+  override get message(): string {
+    return `Das Halbjahr enthält noch ${notenCountText(this.notenCount)} und kann deshalb nicht gelöscht werden. Lösche zuerst die Noten.`;
+  }
+}
+
+export class HalbjahrDeletionConsequenceChanged extends Data.TaggedError(
+  'HalbjahrDeletionConsequenceChanged',
+)<{
+  readonly halbjahrId: string;
+  readonly expectedFinalInSchoolYear: boolean;
+  readonly actualFinalInSchoolYear: boolean;
+}> {
+  override get message(): string {
+    return this.actualFinalInSchoolYear
+      ? 'Das Halbjahr ist inzwischen das letzte Halbjahr dieses Schuljahrs. Beim Löschen würden nun auch die konfigurierten Fächer zurückgesetzt. Prüfe die aktualisierte Warnung und bestätige erneut.'
+      : 'Das Halbjahr ist inzwischen nicht mehr das letzte Halbjahr dieses Schuljahrs. Prüfe die aktualisierte Warnung und bestätige erneut.';
   }
 }
 

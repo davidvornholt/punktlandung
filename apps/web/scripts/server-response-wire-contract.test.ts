@@ -96,6 +96,7 @@ describe('server response wire contract', () => {
         'half',
         'id',
         'klassenstufe',
+        'notenCount',
         'schoolYear',
         'startsOn',
         'system',

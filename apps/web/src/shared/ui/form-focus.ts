@@ -16,6 +16,7 @@ export const useFormFocus = (formKey: string | null) => {
   const formRef = useRef<HTMLFormElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const fallbackTriggerRef = useRef<HTMLButtonElement>(null);
+  const suppressRestoreRef = useRef(false);
   const wasOpenRef = useRef(false);
 
   useEffect(() => {
@@ -23,9 +24,10 @@ export const useFormFocus = (formKey: string | null) => {
       formRef.current
         ?.querySelector<HTMLElement>('input, select, textarea, button')
         ?.focus();
-    } else if (wasOpenRef.current) {
+    } else if (wasOpenRef.current && !suppressRestoreRef.current) {
       restoreFormFocus(triggerRef.current, fallbackTriggerRef.current);
     }
+    suppressRestoreRef.current = false;
     wasOpenRef.current = formKey !== null;
   }, [formKey]);
 
@@ -34,6 +36,9 @@ export const useFormFocus = (formKey: string | null) => {
     fallbackTriggerRef,
     rememberTrigger: (trigger: HTMLElement) => {
       triggerRef.current = trigger;
+    },
+    suppressNextRestore: () => {
+      suppressRestoreRef.current = true;
     },
   };
 };
