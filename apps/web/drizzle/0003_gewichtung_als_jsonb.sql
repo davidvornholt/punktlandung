@@ -1,3 +1,4 @@
+LOCK TABLE "grade" IN SHARE MODE;--> statement-breakpoint
 DO $$
 DECLARE inkompatible_noten text;
 BEGIN
