@@ -39,25 +39,29 @@ describe('createTrendTextModel', () => {
       }),
     ]);
 
-    expect(model.rows).toEqual([
+    expect(
+      model.rows.map(({ id, date, notenpunkte, average }) => ({
+        id,
+        date,
+        notenpunkte,
+        average,
+      })),
+    ).toEqual([
       {
         id: '0-2026-09-14-M',
         date: '14.09.2026',
-        fach: 'M',
         notenpunkte: '7 P.',
         average: '7 P.',
       },
       {
         id: '1-2026-10-02-D',
         date: '02.10.2026',
-        fach: 'D',
         notenpunkte: '13 P.',
         average: '10 P.',
       },
       {
         id: '2-2026-11-20-M',
         date: '20.11.2026',
-        fach: 'M',
         notenpunkte: '11 P.',
         average: '10,33 P.',
       },
@@ -66,12 +70,54 @@ describe('createTrendTextModel', () => {
     expect(model.summary).toContain('Niedrigster Einzelwert: 7 P.');
     expect(model.summary).toContain('höchster Einzelwert: 13 P.');
   });
+
+  it('exposes full point identity and the originally entered grade', () => {
+    const model = createTrendTextModel([
+      entry({ punkte: 11, schnitt: 11, notenwert: 11 }),
+      entry({
+        fachKuerzel: 'D',
+        fachName: 'Deutsch',
+        punkte: 7,
+        schnitt: 9,
+        notenwert: 2.75,
+        notensystem: 'sechser',
+        leistungsart: 'gfs',
+        klassenstufe: '10',
+        half: 2,
+      }),
+    ]);
+
+    expect(model.rows).toEqual([
+      {
+        id: '0-2026-09-14-M',
+        halbjahr: 'J1.1',
+        leistungsart: 'Klausur',
+        date: '14.09.2026',
+        fach: 'Mathematik',
+        note: '11 P.',
+        notenpunkte: '11 P.',
+        average: '11 P.',
+      },
+      {
+        id: '1-2026-09-14-D',
+        halbjahr: '10.2',
+        leistungsart: 'GFS',
+        date: '14.09.2026',
+        fach: 'Deutsch',
+        note: '2,75',
+        notenpunkte: '7 P.',
+        average: '9 P.',
+      },
+    ]);
+  });
 });
 
 describe('createTrendPointText', () => {
   it('zeigt in einem Punkte-Halbjahr nur den Punktwert', () => {
     expect(createTrendPointText(entry({ punkte: 11, notenwert: 11 }))).toEqual({
-      meta: ['J1.1', 'Klausur', '14.09.2026'],
+      halbjahr: 'J1.1',
+      leistungsart: 'Klausur',
+      date: '14.09.2026',
       fach: 'Mathematik',
       note: '11 P.',
       notenpunkte: null,
@@ -93,7 +139,9 @@ describe('createTrendPointText', () => {
         }),
       ),
     ).toEqual({
-      meta: ['10.2', 'GFS', '14.09.2026'],
+      halbjahr: '10.2',
+      leistungsart: 'GFS',
+      date: '14.09.2026',
       fach: 'Deutsch',
       note: '2',
       notenpunkte: '11 P.',

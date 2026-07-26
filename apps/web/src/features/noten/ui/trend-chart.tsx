@@ -42,7 +42,7 @@ const TrendTooltip = ({ active, payload }: TooltipContentProps) => {
   return (
     <div className="border border-border bg-surface px-3 py-2 shadow-card">
       <p className="text-ink-faint text-xs uppercase tracking-widest">
-        {point.meta.join(' · ')}
+        {[point.halbjahr, point.leistungsart, point.date].join(' · ')}
       </p>
       <p className="mt-1 font-display text-ink text-lg tracking-tight">
         {point.fach}
@@ -77,7 +77,11 @@ export const TrendChart = ({
     <figure>
       <div aria-hidden="true">
         <ResponsiveContainer height={chartHeight} width="100%">
-          <LineChart data={[...entries]} margin={chartMargin}>
+          <LineChart
+            accessibilityLayer={false}
+            data={[...entries]}
+            margin={chartMargin}
+          >
             <CartesianGrid stroke="var(--pl-border)" vertical={false} />
             <XAxis
               dataKey="datum"
@@ -96,6 +100,7 @@ export const TrendChart = ({
             <Tooltip
               content={TrendTooltip}
               cursor={{ stroke: 'var(--pl-border-strong)', strokeWidth: 1 }}
+              isAnimationActive={false}
             />
             <Line
               activeDot={{
@@ -133,17 +138,23 @@ export const TrendChart = ({
           <caption>Notenverlauf als Datentabelle</caption>
           <thead>
             <tr>
+              <th scope="col">Halbjahr</th>
+              <th scope="col">Leistungsart</th>
               <th scope="col">Datum</th>
               <th scope="col">Fach</th>
-              <th scope="col">Einzelwert in Notenpunkten</th>
+              <th scope="col">Eingetragene Note</th>
+              <th scope="col">Kurvenwert in Notenpunkten</th>
               <th scope="col">Laufender Schnitt in Notenpunkten</th>
             </tr>
           </thead>
           <tbody>
             {textModel.rows.map((row) => (
               <tr key={row.id}>
+                <td>{row.halbjahr}</td>
+                <td>{row.leistungsart}</td>
                 <td>{row.date}</td>
                 <td>{row.fach}</td>
+                <td>{row.note}</td>
                 <td>{row.notenpunkte}</td>
                 <td>{row.average}</td>
               </tr>

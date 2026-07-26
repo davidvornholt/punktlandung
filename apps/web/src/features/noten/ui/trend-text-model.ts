@@ -5,8 +5,11 @@ import type { TrendEntry } from '../services/trend-calculation.ts';
 
 export type TrendTextRow = {
   readonly id: string;
+  readonly halbjahr: string;
+  readonly leistungsart: string;
   readonly date: string;
   readonly fach: string;
+  readonly note: string;
   readonly notenpunkte: string;
   readonly average: string;
 };
@@ -17,8 +20,9 @@ export type TrendTextModel = {
 };
 
 export type TrendPointText = {
-  /** Halbjahr, Leistungsart und Datum als Metazeile über der Note. */
-  readonly meta: ReadonlyArray<string>;
+  readonly halbjahr: string;
+  readonly leistungsart: string;
+  readonly date: string;
   readonly fach: string;
   /** Die Note, wie sie eingetragen wurde. */
   readonly note: string;
@@ -38,11 +42,9 @@ const longDate = (iso: string): string => {
  * Punktwert daneben, auf dem der Punkt tatsächlich sitzt.
  */
 export const createTrendPointText = (entry: TrendEntry): TrendPointText => ({
-  meta: [
-    formatHalbjahrLabel(entry),
-    leistungsartLabel[entry.leistungsart],
-    longDate(entry.datum),
-  ],
+  halbjahr: formatHalbjahrLabel(entry),
+  leistungsart: leistungsartLabel[entry.leistungsart],
+  date: longDate(entry.datum),
   fach: entry.fachName,
   note: formatNote(entry.notenwert, entry.notensystem),
   notenpunkte:
@@ -68,13 +70,19 @@ export const createTrendTextModel = (
     direction = 'gesunken';
   }
   return {
-    rows: entries.map((entry, index) => ({
-      id: `${index}-${entry.datum}-${entry.fachKuerzel}`,
-      date: longDate(entry.datum),
-      fach: entry.fachKuerzel,
-      notenpunkte: formatNote(entry.punkte, 'punkte'),
-      average: formatNote(entry.schnitt, 'punkte'),
-    })),
+    rows: entries.map((entry, index) => {
+      const point = createTrendPointText(entry);
+      return {
+        id: `${index}-${entry.datum}-${entry.fachKuerzel}`,
+        halbjahr: point.halbjahr,
+        leistungsart: point.leistungsart,
+        date: point.date,
+        fach: point.fach,
+        note: point.note,
+        notenpunkte: formatNote(entry.punkte, 'punkte'),
+        average: formatNote(entry.schnitt, 'punkte'),
+      };
+    }),
     summary: `Der laufende Schnitt ist ${direction}. Niedrigster Einzelwert: ${formatNote(Math.min(...notenpunkte), 'punkte')}; höchster Einzelwert: ${formatNote(Math.max(...notenpunkte), 'punkte')}; aktueller Schnitt: ${formatNote(last.schnitt, 'punkte')}.`,
   };
 };
