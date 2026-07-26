@@ -22,7 +22,6 @@ export type SchoolYearFach = {
 };
 
 type LegacyFach = typeof fachTable.$inferSelect;
-
 /**
  * Einziger Dekodierpunkt der Gewichtung: ab hier ist sie getypt, sodass jede
  * Auswertung stromabwärts total bleibt.

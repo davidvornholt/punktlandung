@@ -4,7 +4,12 @@ import { Schema } from 'effect';
 
 import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
 import { runtime } from '#/shared/runtime.ts';
-import { HalbjahrInput, HalbjahrUpdate } from '../schemas/halbjahr-schema.ts';
+import {
+  HalbjahrDeletionInput,
+  HalbjahrInput,
+  HalbjahrUpdate,
+} from '../schemas/halbjahr-schema.ts';
+import { deleteHalbjahr } from '../services/halbjahr-deletion-service.ts';
 import {
   createHalbjahr,
   listHalbjahre,
@@ -24,6 +29,11 @@ export const updateHalbjahrFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
   .inputValidator(Schema.standardSchemaV1(HalbjahrUpdate))
   .handler(({ data }) => runtime.runPromise(updateHalbjahr(data)));
+
+export const deleteHalbjahrFn = createServerFn({ method: 'POST' })
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(HalbjahrDeletionInput))
+  .handler(({ data }) => runtime.runPromise(deleteHalbjahr(data)));
 
 export const halbjahreQueryOptions = queryOptions({
   queryKey: ['halbjahre'],

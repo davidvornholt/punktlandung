@@ -1,10 +1,14 @@
 import { SqlClient } from '@effect/sql/SqlClient';
 import type { SqlError } from '@effect/sql/SqlError';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
-import { desc, eq } from 'drizzle-orm';
+import { count, desc, eq, getTableColumns } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
+import {
+  deleteOrphanedFachSnapshot,
+  lockSchoolYearLifecycle,
+} from '#/shared/noten/school-year-fach-lifecycle.ts';
 import { materializeNewSchoolYear } from '#/shared/noten/school-year-fach-snapshot.ts';
 import type { Klassenstufe } from '#/shared/school/klassenstufe.ts';
 import { notensystemForKlassenstufe } from '#/shared/school/klassenstufe.ts';
@@ -22,6 +26,14 @@ import type {
 import { findHalbjahrViolation } from './halbjahr-invariants.ts';
 
 export type Halbjahr = typeof halbjahrTable.$inferSelect;
+
+/**
+ * Ein Halbjahr mit der Anzahl seiner Noten: Sie entscheidet, ob es noch
+ * gelöscht werden darf, und gehört deshalb schon in die Liste.
+ */
+export type HalbjahrWithNotenCount = Halbjahr & {
+  readonly notenCount: number;
+};
 
 const halbjahrOccupancyConstraint = 'term_school_year_half_unique';
 
@@ -56,14 +68,32 @@ const withNotensystem = <
   system: notensystemForKlassenstufe(fields.klassenstufe),
 });
 
-/** Halbjahre, neuestes zuerst (nach Beginn sortiert). */
+/** Halbjahre samt Notenanzahl, neuestes zuerst (nach Beginn sortiert). */
 export const listHalbjahre = Effect.gen(function* () {
   const db = yield* PgDrizzle;
   return yield* db
-    .select()
+    .select({
+      ...getTableColumns(halbjahrTable),
+      notenCount: count(noteTable.id),
+    })
     .from(halbjahrTable)
+    .leftJoin(noteTable, eq(noteTable.termId, halbjahrTable.id))
+    .groupBy(halbjahrTable.id)
     .orderBy(desc(halbjahrTable.startsOn));
 });
+
+export const loadLockedHalbjahr = (id: string) =>
+  Effect.gen(function* () {
+    const db = yield* PgDrizzle;
+    const [halbjahr] = yield* db
+      .select()
+      .from(halbjahrTable)
+      .where(eq(halbjahrTable.id, id))
+      .for('update');
+    return (
+      halbjahr ?? (yield* Effect.fail(new HalbjahrNotFound({ halbjahrId: id })))
+    );
+  });
 
 export const createHalbjahr = (input: HalbjahrInput) =>
   Effect.gen(function* () {
@@ -72,6 +102,7 @@ export const createHalbjahr = (input: HalbjahrInput) =>
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
+          yield* lockSchoolYearLifecycle(input.schoolYear);
           const inserted = yield* db
             .insert(halbjahrTable)
             .values({ id: crypto.randomUUID(), ...withNotensystem(input) })
@@ -95,17 +126,8 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
-          const existing = yield* db
-            .select()
-            .from(halbjahrTable)
-            .where(eq(halbjahrTable.id, input.id))
-            .for('update');
-          const [halbjahr] = existing;
-          if (halbjahr === undefined) {
-            return yield* Effect.fail(
-              new HalbjahrNotFound({ halbjahrId: input.id }),
-            );
-          }
+          const halbjahr = yield* loadLockedHalbjahr(input.id);
+          yield* lockSchoolYearLifecycle(halbjahr.schoolYear, input.schoolYear);
           const existingNoten = yield* db
             .select({ takenOn: noteTable.takenOn })
             .from(noteTable)
@@ -148,6 +170,9 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
             .set(next)
             .where(eq(halbjahrTable.id, id));
           yield* materializeNewSchoolYear(input.schoolYear);
+          if (halbjahr.schoolYear !== input.schoolYear) {
+            yield* deleteOrphanedFachSnapshot(halbjahr.schoolYear);
+          }
         }),
       )
       .pipe(Effect.catchTag('SqlError', (error) => mapOccupancy(error, input)));
