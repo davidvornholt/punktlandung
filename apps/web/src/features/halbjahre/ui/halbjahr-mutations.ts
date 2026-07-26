@@ -42,7 +42,6 @@ export const useHalbjahrMutations = ({
     },
     onSuccess: (_result, request: HalbjahrDeletionRequest) => {
       onDeleted(request);
-      // Mit dem letzten Halbjahr eines Schuljahrs entfällt dessen Fachstand.
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: ['halbjahre'] }),
         queryClient.invalidateQueries({ queryKey: ['faecher'] }),

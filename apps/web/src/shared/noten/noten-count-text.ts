@@ -1,3 +1,2 @@
-/** Anzeigetext einer Notenanzahl, im Singular ausgeschrieben. */
-export const notenCountText = (count: number) =>
-  count === 1 ? 'eine Note' : `${String(count)} Noten`;
+export const notenCountText = (count: number): string =>
+  count === 1 ? '1 Note' : `${count} Noten`;

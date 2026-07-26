@@ -4,72 +4,74 @@ import { useState } from 'react';
 import { formatIsoDate } from '#/shared/date/calendar-date.ts';
 import { notensystemText } from '#/shared/noten/notensystem-text.ts';
 import {
-  halbjahrBezeichnung,
-  istKlassenstufe,
+  formatHalbjahrLabel,
+  isKlassenstufe,
   klassenstufen,
   klassenstufeText,
-  notensystemFuerKlassenstufe,
-} from '#/shared/schule/klassenstufe.ts';
-import { schuljahrAuswahl } from '#/shared/schule/schuljahr.ts';
+  notensystemForKlassenstufe,
+} from '#/shared/school/klassenstufe.ts';
+import { schoolYearOptions } from '#/shared/school/school-year.ts';
 import {
   inputClass,
   labelClass,
   primaryButtonClass,
   secondaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
-import type { HalbjahrEingabe } from '../schemas/halbjahr-schema.ts';
+import type { HalbjahrInput } from '../schemas/halbjahr-schema.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
-import type { HalbjahrFormWerte } from './halbjahr-form-modell.ts';
+import { HalbjahrDateRangeField } from './halbjahr-date-range-field.tsx';
+import type { HalbjahrFormValues } from './halbjahr-form-model.ts';
 import {
-  belegteHalbjahre,
-  halbjahrFormWerte,
-  istBelegt,
-  mitAktualisiertemZeitraum,
-  zuHalbjahrEingabe,
-} from './halbjahr-form-modell.ts';
-import { HalbjahrZeitraumFeld } from './halbjahr-zeitraum-feld.tsx';
+  halbjahrFormValues,
+  isOccupied,
+  occupiedHalbjahre,
+  toHalbjahrInput,
+  withUpdatedDateRange,
+} from './halbjahr-form-model.ts';
 
-type Aendern = (teil: Partial<HalbjahrFormWerte>) => void;
+type UpdateFields = (part: Partial<HalbjahrFormValues>) => void;
 
-const halbjahrText = (half: 1 | 2) =>
+const formatHalbjahrNumber = (half: 1 | 2) =>
   half === 1 ? '1. Halbjahr (Aug–Jan)' : '2. Halbjahr (Feb–Jul)';
 
-const Zusammenfassung = ({ werte }: { readonly werte: HalbjahrFormWerte }) => (
+const Summary = ({ values }: { readonly values: HalbjahrFormValues }) => (
   <p className="mt-4 border border-border bg-surface-sunken px-3 py-2 text-ink-muted text-sm">
-    <span className="font-semibold text-ink">{halbjahrBezeichnung(werte)}</span>{' '}
-    · Schuljahr {werte.schoolYear} · {formatIsoDate(werte.startsOn)} bis{' '}
-    {formatIsoDate(werte.endsOn)} ·{' '}
-    {notensystemText(notensystemFuerKlassenstufe(werte.klassenstufe))}
+    <span className="font-semibold text-ink">
+      {formatHalbjahrLabel(values)}
+    </span>{' '}
+    · Schuljahr {values.schoolYear} · {formatIsoDate(values.startsOn)} bis{' '}
+    {formatIsoDate(values.endsOn)} ·{' '}
+    {notensystemText(notensystemForKlassenstufe(values.klassenstufe))}
   </p>
 );
 
-const Kopffelder = ({
-  werte,
-  belegt,
-  schuljahre,
-  onAendern,
+const HeaderFields = ({
+  values,
+  occupied,
+  schoolYears,
+  onUpdate,
 }: {
-  readonly werte: HalbjahrFormWerte;
-  readonly belegt: ReadonlySet<string>;
-  readonly schuljahre: ReadonlyArray<string>;
-  readonly onAendern: Aendern;
+  readonly values: HalbjahrFormValues;
+  readonly occupied: ReadonlySet<string>;
+  readonly schoolYears: ReadonlyArray<string>;
+  readonly onUpdate: UpdateFields;
 }) => (
   <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
     <label className={labelClass}>
       Klassenstufe
       <select
         className={inputClass}
-        onChange={(ereignis) => {
-          const gewaehlt = ereignis.target.value;
-          if (istKlassenstufe(gewaehlt)) {
-            onAendern({ klassenstufe: gewaehlt });
+        onChange={(event) => {
+          const selected = event.target.value;
+          if (isKlassenstufe(selected)) {
+            onUpdate({ klassenstufe: selected });
           }
         }}
-        value={werte.klassenstufe}
+        value={values.klassenstufe}
       >
-        {klassenstufen.map((stufe) => (
-          <option key={stufe} value={stufe}>
-            {klassenstufeText(stufe)}
+        {klassenstufen.map((klassenstufe) => (
+          <option key={klassenstufe} value={klassenstufe}>
+            {klassenstufeText(klassenstufe)}
           </option>
         ))}
       </select>
@@ -78,14 +80,12 @@ const Kopffelder = ({
       Schuljahr
       <select
         className={inputClass}
-        onChange={(ereignis) =>
-          onAendern({ schoolYear: ereignis.target.value })
-        }
-        value={werte.schoolYear}
+        onChange={(event) => onUpdate({ schoolYear: event.target.value })}
+        value={values.schoolYear}
       >
-        {schuljahre.map((schuljahr) => (
-          <option key={schuljahr} value={schuljahr}>
-            {schuljahr}
+        {schoolYears.map((schoolYear) => (
+          <option key={schoolYear} value={schoolYear}>
+            {schoolYear}
           </option>
         ))}
       </select>
@@ -94,15 +94,15 @@ const Kopffelder = ({
       Halbjahr
       <select
         className={inputClass}
-        onChange={(ereignis) =>
-          onAendern({ half: ereignis.target.value === '2' ? 2 : 1 })
+        onChange={(event) =>
+          onUpdate({ half: event.target.value === '2' ? 2 : 1 })
         }
-        value={werte.half}
+        value={values.half}
       >
         {([1, 2] as const).map((half) => (
           <option key={half} value={half}>
-            {halbjahrText(half)}
-            {istBelegt(belegt, werte.schoolYear, half)
+            {formatHalbjahrNumber(half)}
+            {isOccupied(occupied, values.schoolYear, half)
               ? ' — schon angelegt'
               : ''}
           </option>
@@ -113,87 +113,87 @@ const Kopffelder = ({
 );
 
 export const HalbjahrForm = ({
-  titel,
+  title,
   halbjahr,
   halbjahre,
-  heute,
-  beschaeftigt,
-  fehler,
+  today,
+  pending,
+  error,
   formRef,
-  onSpeichern,
-  onAbbrechen,
+  onSave,
+  onCancel,
 }: {
-  readonly titel: string;
+  readonly title: string;
   readonly halbjahr: Halbjahr | null;
   readonly halbjahre: ReadonlyArray<Halbjahr>;
-  readonly heute: string;
-  readonly beschaeftigt: boolean;
-  readonly fehler: string | null;
+  readonly today: string;
+  readonly pending: boolean;
+  readonly error: string | null;
   readonly formRef: RefObject<HTMLFormElement | null>;
-  readonly onSpeichern: (werte: HalbjahrEingabe) => void;
-  readonly onAbbrechen: () => void;
+  readonly onSave: (values: HalbjahrInput) => void;
+  readonly onCancel: () => void;
 }) => {
-  const [werte, setWerte] = useState<HalbjahrFormWerte>(() =>
-    halbjahrFormWerte(halbjahr, halbjahre, heute),
+  const [values, setValues] = useState<HalbjahrFormValues>(() =>
+    halbjahrFormValues(halbjahr, halbjahre, today),
   );
-  const aendere: Aendern = (teil) =>
-    setWerte((bisher) => mitAktualisiertemZeitraum({ ...bisher, ...teil }));
+  const updateValue: UpdateFields = (part) =>
+    setValues((previous) => withUpdatedDateRange({ ...previous, ...part }));
 
-  const belegt = belegteHalbjahre(halbjahre, halbjahr);
-  const schuljahre = schuljahrAuswahl(
-    heute,
-    halbjahre.map((eintrag) => eintrag.schoolYear),
+  const occupied = occupiedHalbjahre(halbjahre, halbjahr);
+  const schoolYears = schoolYearOptions(
+    today,
+    halbjahre.map((entry) => entry.schoolYear),
   );
-  const schonVergeben = istBelegt(belegt, werte.schoolYear, werte.half);
+  const alreadyOccupied = isOccupied(occupied, values.schoolYear, values.half);
 
   return (
     <form
       className="border border-border bg-surface p-5 shadow-card"
-      onSubmit={(ereignis) => {
-        ereignis.preventDefault();
-        onSpeichern(zuHalbjahrEingabe(werte));
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(toHalbjahrInput(values));
       }}
       ref={formRef}
     >
-      <h3 className="font-display text-ink text-xl tracking-tight">{titel}</h3>
-      <Kopffelder
-        belegt={belegt}
-        onAendern={aendere}
-        schuljahre={schuljahre}
-        werte={werte}
+      <h3 className="font-display text-ink text-xl tracking-tight">{title}</h3>
+      <HeaderFields
+        occupied={occupied}
+        onUpdate={updateValue}
+        schoolYears={schoolYears}
+        values={values}
       />
-      <Zusammenfassung werte={werte} />
-      {schonVergeben ? (
+      <Summary values={values} />
+      {alreadyOccupied ? (
         <p
           className="mt-2 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          Für {werte.schoolYear} gibt es das {werte.half}. Halbjahr bereits.
+          Für {values.schoolYear} gibt es das {values.half}. Halbjahr bereits.
           Wähle eine andere Kombination oder bearbeite den vorhandenen Eintrag.
         </p>
       ) : null}
       <div className="mt-4">
-        <HalbjahrZeitraumFeld onAendern={aendere} werte={werte} />
+        <HalbjahrDateRangeField onUpdate={updateValue} values={values} />
       </div>
-      {fehler === null ? null : (
+      {error === null ? null : (
         <p
           className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          {fehler}
+          {error}
         </p>
       )}
       <div className="mt-5 flex gap-3">
         <button
           className={primaryButtonClass}
-          disabled={beschaeftigt || schonVergeben}
+          disabled={pending || alreadyOccupied}
           type="submit"
         >
-          {beschaeftigt ? 'Halbjahr wird gespeichert …' : 'Halbjahr speichern'}
+          {pending ? 'Halbjahr wird gespeichert …' : 'Halbjahr speichern'}
         </button>
         <button
           className={secondaryButtonClass}
-          onClick={onAbbrechen}
+          onClick={onCancel}
           type="button"
         >
           Abbrechen

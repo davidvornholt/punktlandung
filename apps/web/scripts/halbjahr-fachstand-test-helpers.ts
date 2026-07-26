@@ -3,7 +3,7 @@ import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
 import type { Pool } from 'pg';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
-import { lockSchuljahrLifecycle } from '#/shared/noten/schuljahr-fachstand.ts';
+import { lockSchoolYearLifecycle } from '#/shared/noten/school-year-fach-lifecycle.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
   postgresTestLayer,
@@ -132,7 +132,7 @@ export const behindLifecycleBarrier = async (
       const sql = yield* SqlClient;
       yield* sql.withTransaction(
         Effect.gen(function* () {
-          yield* lockSchuljahrLifecycle(schoolYear);
+          yield* lockSchoolYearLifecycle(schoolYear);
           yield* Effect.sync(signalReady);
           yield* Effect.promise(() => released);
         }),

@@ -1,3 +1,26 @@
+LOCK TABLE "school_year_subject" IN ACCESS EXCLUSIVE MODE;--> statement-breakpoint
+LOCK TABLE "subject" IN ACCESS EXCLUSIVE MODE;--> statement-breakpoint
+LOCK TABLE "grade" IN SHARE MODE;--> statement-breakpoint
+DO $$
+DECLARE inkompatible_noten text;
+BEGIN
+	SELECT string_agg(
+		format('id=%L, Leistungsart=%L, Bereich=%L', "id", "kind", "area"),
+		'; ' ORDER BY "id"
+	)
+	INTO inkompatible_noten
+	FROM "grade"
+	WHERE "area" <> (
+		CASE
+			WHEN "kind" IN ('klausur', 'test', 'gfs') THEN 'schriftlich'
+			ELSE 'muendlich'
+		END
+	)::"public"."grade_area";
+
+	IF inkompatible_noten IS NOT NULL THEN
+		RAISE EXCEPTION 'Migration abgebrochen: Diese Noten verwenden einen Bereich, den das neue Modell aus der Leistungsart anders ableitet: %. Setzen Sie Klausur, Test und GFS auf "schriftlich" sowie Mündlich und Sonstige auf "muendlich" und starten Sie die Migration erneut.', inkompatible_noten;
+	END IF;
+END $$;--> statement-breakpoint
 ALTER TABLE "school_year_subject" ADD COLUMN "weighting" jsonb NOT NULL DEFAULT '{"verhaeltnis":null,"arten":{"klausur":{"bereich":"schriftlich","gewicht":1,"sammlung":"einzeln"},"test":{"bereich":"schriftlich","gewicht":1,"sammlung":"gesammelt"},"muendlich":{"bereich":"muendlich","gewicht":1,"sammlung":"einzeln"},"gfs":{"bereich":"schriftlich","gewicht":1,"sammlung":"einzeln"},"sonstige":{"bereich":"muendlich","gewicht":1,"sammlung":"einzeln"}}}'::jsonb;--> statement-breakpoint
 ALTER TABLE "subject" ADD COLUMN "weighting" jsonb NOT NULL DEFAULT '{"verhaeltnis":null,"arten":{"klausur":{"bereich":"schriftlich","gewicht":1,"sammlung":"einzeln"},"test":{"bereich":"schriftlich","gewicht":1,"sammlung":"gesammelt"},"muendlich":{"bereich":"muendlich","gewicht":1,"sammlung":"einzeln"},"gfs":{"bereich":"schriftlich","gewicht":1,"sammlung":"einzeln"},"sonstige":{"bereich":"muendlich","gewicht":1,"sammlung":"einzeln"}}}'::jsonb;--> statement-breakpoint
 -- Bestehende Fächer übernehmen ihre bisherige Gewichtung wortgetreu: jede

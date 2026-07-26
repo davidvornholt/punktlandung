@@ -7,7 +7,7 @@ describe('actionErrorText', () => {
     expect(
       actionErrorText(
         {
-          _tag: 'NoteAusserhalbHalbjahr',
+          _tag: 'NoteOutsideHalbjahr',
           message: 'Das Datum liegt außerhalb des Halbjahrs.',
         },
         'Speichern nicht möglich.',

@@ -3,30 +3,38 @@ import { Data, Effect, Schema } from 'effect';
 import type { Artgewichtung, Fachgewichtung } from './notenwert.ts';
 
 /** Eingabegrenzen — auch die Formulare nutzen sie für ihre Attribute. */
-export const gewichtungsGrenzen = {
-  gewichtMax: 10,
-  gewichtSchritt: 0.25,
-  anteilMax: 100,
+export const gewichtungLimits = {
+  maxGewichtung: 10,
+  gewichtungStep: 0.25,
+  maxShare: 100,
 } as const;
 
-const Gewicht = Schema.Number.pipe(
+const Gewichtung = Schema.Number.pipe(
   Schema.positive(),
-  Schema.lessThanOrEqualTo(gewichtungsGrenzen.gewichtMax),
+  Schema.lessThanOrEqualTo(gewichtungLimits.maxGewichtung),
 );
 
-const Anteil = Schema.Number.pipe(
+const Share = Schema.Number.pipe(
   Schema.greaterThanOrEqualTo(0),
-  Schema.lessThanOrEqualTo(gewichtungsGrenzen.anteilMax),
+  Schema.lessThanOrEqualTo(gewichtungLimits.maxShare),
 );
 
 const ArtgewichtungSchema = Schema.Struct({
-  gewicht: Gewicht,
+  gewicht: Gewichtung,
   sammlung: Schema.Literal('einzeln', 'gesammelt'),
 });
 
+const IndividualArtgewichtungSchema = ArtgewichtungSchema.pipe(
+  Schema.filter(
+    (art) =>
+      art.sammlung === 'einzeln' ||
+      'Nur Tests dürfen als Sammlung gewichtet werden.',
+  ),
+);
+
 const BereichsverhaeltnisSchema = Schema.Struct({
-  schriftlich: Anteil,
-  muendlich: Anteil,
+  schriftlich: Share,
+  muendlich: Share,
 }).pipe(
   Schema.filter(
     (verhaeltnis) =>
@@ -43,17 +51,22 @@ const BereichsverhaeltnisSchema = Schema.Struct({
 export const FachgewichtungSchema = Schema.Struct({
   verhaeltnis: Schema.NullOr(BereichsverhaeltnisSchema),
   arten: Schema.Struct({
-    klausur: ArtgewichtungSchema,
-    gfs: ArtgewichtungSchema,
+    klausur: IndividualArtgewichtungSchema,
+    gfs: IndividualArtgewichtungSchema,
     test: ArtgewichtungSchema,
-    muendlich: ArtgewichtungSchema,
-    sonstige: ArtgewichtungSchema,
+    muendlich: IndividualArtgewichtungSchema,
+    sonstige: IndividualArtgewichtungSchema,
   }),
-});
+}).pipe(
+  Schema.filter(
+    ({ arten }) =>
+      arten.test.sammlung === 'einzeln' ||
+      arten.test.gewicht === arten.klausur.gewicht ||
+      'Gesammelte Tests müssen wie eine Klausur gewichtet werden.',
+  ),
+);
 
-export class GewichtungUngueltig extends Data.TaggedError(
-  'GewichtungUngueltig',
-)<{
+export class GewichtungInvalid extends Data.TaggedError('GewichtungUngueltig')<{
   readonly fachId: string;
 }> {
   override get message(): string {
@@ -65,12 +78,12 @@ export class GewichtungUngueltig extends Data.TaggedError(
  * Dekodiert die jsonb-Spalte. Der Rückgabetyp bindet Schema und
  * Notenmathematik aneinander: driften sie auseinander, bricht der Typcheck.
  */
-export const dekodiereGewichtung = (
-  roh: unknown,
+export const decodeGewichtung = (
+  raw: unknown,
   fachId: string,
-): Effect.Effect<Fachgewichtung, GewichtungUngueltig> =>
-  Schema.decodeUnknown(FachgewichtungSchema)(roh).pipe(
-    Effect.mapError(() => new GewichtungUngueltig({ fachId })),
+): Effect.Effect<Fachgewichtung, GewichtungInvalid> =>
+  Schema.decodeUnknown(FachgewichtungSchema)(raw).pipe(
+    Effect.mapError(() => new GewichtungInvalid({ fachId })),
   );
 
 /**

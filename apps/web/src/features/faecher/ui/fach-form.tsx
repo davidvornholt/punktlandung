@@ -8,23 +8,23 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
-import type { FachFelder } from '../schemas/fach-schema.ts';
-import { fachGrenzen } from '../schemas/fach-schema.ts';
+import type { FachFields } from '../schemas/fach-schema.ts';
+import { fachLimits } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
-import { fachFormWerte } from './fach-form-modell.ts';
-import { GewichtungFeld } from './gewichtung-feld.tsx';
+import { fachFormValues } from './fach-form-model.ts';
+import { GewichtungField } from './gewichtung-field.tsx';
 import {
   gewichtungReducer,
   gewichtungStateFrom,
-  verhaeltnisGueltig,
-} from './gewichtung-modell.ts';
+  isVerhaeltnisValid,
+} from './gewichtung-model.ts';
 
-const liesWerte = (
+const readValues = (
   form: HTMLFormElement,
   gewichtung: Fachgewichtung,
-): FachFelder => {
-  const daten = new FormData(form);
-  const text = (name: string) => `${daten.get(name) ?? ''}`.trim();
+): FachFields => {
+  const data = new FormData(form);
+  const text = (name: string) => `${data.get(name) ?? ''}`.trim();
   return {
     name: text('name'),
     shortName: text('shortName'),
@@ -33,50 +33,50 @@ const liesWerte = (
 };
 
 export const FachForm = ({
-  titel,
+  title,
   fach,
   system,
-  beschaeftigt,
-  fehler,
+  pending,
+  error,
   formRef,
-  onSpeichern,
-  onAbbrechen,
+  onSave,
+  onCancel,
 }: {
-  readonly titel: string;
+  readonly title: string;
   readonly fach: Fach | null;
   readonly system: Notensystem;
-  readonly beschaeftigt: boolean;
-  readonly fehler: string | null;
+  readonly pending: boolean;
+  readonly error: string | null;
   readonly formRef: RefObject<HTMLFormElement | null>;
-  readonly onSpeichern: (werte: FachFelder) => void;
-  readonly onAbbrechen: () => void;
+  readonly onSave: (values: FachFields) => void;
+  readonly onCancel: () => void;
 }) => {
-  const werte = fachFormWerte(fach);
-  const [zustand, aktion] = useReducer(
+  const values = fachFormValues(fach);
+  const [state, dispatch] = useReducer(
     gewichtungReducer,
-    werte.gewichtung,
+    values.gewichtung,
     gewichtungStateFrom,
   );
-  const gueltig = verhaeltnisGueltig(zustand.gewichtung);
+  const valid = isVerhaeltnisValid(state.gewichtung);
   return (
     <form
       className="border border-border bg-surface p-5 shadow-card"
-      onSubmit={(ereignis) => {
-        ereignis.preventDefault();
-        if (gueltig) {
-          onSpeichern(liesWerte(ereignis.currentTarget, zustand.gewichtung));
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (valid) {
+          onSave(readValues(event.currentTarget, state.gewichtung));
         }
       }}
       ref={formRef}
     >
-      <h3 className="font-display text-ink text-xl tracking-tight">{titel}</h3>
+      <h3 className="font-display text-ink text-xl tracking-tight">{title}</h3>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
         <label className={labelClass}>
           Name
           <input
             className={inputClass}
-            defaultValue={werte.name}
-            maxLength={fachGrenzen.nameMax}
+            defaultValue={values.name}
+            maxLength={fachLimits.nameMax}
             name="name"
             required={true}
           />
@@ -85,33 +85,33 @@ export const FachForm = ({
           Kürzel
           <input
             className={inputClass}
-            defaultValue={werte.shortName}
-            maxLength={fachGrenzen.kuerzelMax}
+            defaultValue={values.shortName}
+            maxLength={fachLimits.maxShortName}
             name="shortName"
             required={true}
           />
         </label>
       </div>
-      <GewichtungFeld onAktion={aktion} system={system} zustand={zustand} />
-      {fehler === null ? null : (
+      <GewichtungField onAction={dispatch} state={state} system={system} />
+      {error === null ? null : (
         <p
           className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          {fehler}
+          {error}
         </p>
       )}
       <div className="mt-5 flex gap-3">
         <button
           className={primaryButtonClass}
-          disabled={beschaeftigt || !gueltig}
+          disabled={pending || !valid}
           type="submit"
         >
-          {beschaeftigt ? 'Fach wird gespeichert …' : 'Fach speichern'}
+          {pending ? 'Fach wird gespeichert …' : 'Fach speichern'}
         </button>
         <button
           className={secondaryButtonClass}
-          onClick={onAbbrechen}
+          onClick={onCancel}
           type="button"
         >
           Abbrechen

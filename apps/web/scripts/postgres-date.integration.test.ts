@@ -2,12 +2,12 @@ import { describe, expect, it } from 'bun:test';
 import type { SqlClient } from '@effect/sql/SqlClient';
 import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
-import { aktuellesHalbjahr } from '#/features/halbjahre/services/aktuelles-halbjahr.ts';
+import { currentHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
 import {
   listHalbjahre,
   updateHalbjahr,
 } from '#/features/halbjahre/services/halbjahr-service.ts';
-import { halbjahrFormWerte } from '#/features/halbjahre/ui/halbjahr-form-modell.ts';
+import { halbjahrFormValues } from '#/features/halbjahre/ui/halbjahr-form-model.ts';
 import {
   createNote,
   updateNote,
@@ -44,7 +44,7 @@ describe('PostgreSQL-Kalenderdaten', () => {
       await Effect.runPromise(migrateDatabase(pool));
       await pool.query(
         `INSERT INTO subject (id, name, short_name, weighting)
-         VALUES ('mathe', 'Mathematik', 'M', $1::jsonb);`,
+         VALUES ('mathe', 'Mathematik', 'M', $1::jsonb)`,
         [JSON.stringify(standardgewichtung)],
       );
       await pool.query(`
@@ -66,17 +66,17 @@ describe('PostgreSQL-Kalenderdaten', () => {
         { id: 'term-alt', startsOn: '2026-09-14', endsOn: '2027-01-29' },
       ]);
       expect(
-        halbjahrFormWerte(listed[1] ?? null, listed, '2026-09-14'),
+        halbjahrFormValues(listed[1] ?? null, listed, '2026-09-14'),
       ).toMatchObject({
         startsOn: '2026-09-14',
         endsOn: '2027-01-29',
-        zeitraumAngepasst: true,
+        dateRangeAdjusted: true,
       });
-      expect(aktuellesHalbjahr(listed, '2026-09-13')).toBeNull();
-      expect(aktuellesHalbjahr(listed, '2026-09-14')?.id).toBe('term-alt');
-      expect(aktuellesHalbjahr(listed, '2027-01-30')?.id).toBe('term-alt');
-      expect(aktuellesHalbjahr(listed, '2027-02-01')?.id).toBe('term-neu');
-      expect(aktuellesHalbjahr(listed, '2027-08-01')?.id).toBe('term-neu');
+      expect(currentHalbjahr(listed, '2026-09-13')).toBeNull();
+      expect(currentHalbjahr(listed, '2026-09-14')?.id).toBe('term-alt');
+      expect(currentHalbjahr(listed, '2027-01-30')?.id).toBe('term-alt');
+      expect(currentHalbjahr(listed, '2027-02-01')?.id).toBe('term-neu');
+      expect(currentHalbjahr(listed, '2027-08-01')?.id).toBe('term-neu');
 
       await provided(createNote({ ...note, datum: halbjahr.startsOn }));
       await provided(createNote({ ...note, datum: halbjahr.endsOn }));
@@ -95,24 +95,24 @@ describe('PostgreSQL-Kalenderdaten', () => {
       );
       expect(shrink._tag).toBe('HalbjahrSchliesstNotenAus');
 
-      const grades = await pool.query<{ readonly id: string }>(
+      const noten = await pool.query<{ readonly id: string }>(
         'SELECT id FROM grade ORDER BY taken_on LIMIT 1',
       );
-      const gradeId = grades.rows[0]?.id;
-      expect(gradeId).toBeString();
-      if (gradeId === undefined) {
+      const noteId = noten.rows[0]?.id;
+      expect(noteId).toBeString();
+      if (noteId === undefined) {
         throw new Error('Testnote fehlt.');
       }
       const updateBefore = await provided(
-        Effect.flip(updateNote({ ...note, id: gradeId, datum: '2026-09-13' })),
+        Effect.flip(updateNote({ ...note, id: noteId, datum: '2026-09-13' })),
       );
       const updateAfter = await provided(
-        Effect.flip(updateNote({ ...note, id: gradeId, datum: '2027-01-30' })),
+        Effect.flip(updateNote({ ...note, id: noteId, datum: '2027-01-30' })),
       );
       expect(updateBefore._tag).toBe('NoteAusserhalbHalbjahr');
       expect(updateAfter._tag).toBe('NoteAusserhalbHalbjahr');
       await provided(
-        updateNote({ ...note, id: gradeId, datum: halbjahr.endsOn }),
+        updateNote({ ...note, id: noteId, datum: halbjahr.endsOn }),
       );
     }));
 });

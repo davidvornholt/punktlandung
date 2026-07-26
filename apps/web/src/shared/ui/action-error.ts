@@ -7,11 +7,11 @@ export const actionErrorText = (
   error: unknown,
   infrastructureText: string,
 ): string => {
-  const tag = field(error, '_tag');
+  const errorTag = field(error, '_tag');
   const message = field(error, 'message');
   if (
-    typeof tag === 'string' &&
-    !tag.endsWith('Error') &&
+    typeof errorTag === 'string' &&
+    !errorTag.endsWith('Error') &&
     typeof message === 'string' &&
     message.trim() !== ''
   ) {

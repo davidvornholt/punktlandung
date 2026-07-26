@@ -6,7 +6,7 @@ import {
   withPostgresTestDatabase,
 } from './postgres-test-database.ts';
 
-const insertSubject = (pool: Parameters<typeof applyInitialMigration>[0]) =>
+const insertFach = (pool: Parameters<typeof applyInitialMigration>[0]) =>
   pool.query(
     `INSERT INTO subject (id, name, short_name)
      VALUES ('mathe', 'Mathematik', 'M')`,
@@ -16,7 +16,7 @@ describe('Bestandsdaten vor Migrationen', () => {
   it('führt kompatible Halbjahre und Lerntage vor dem Constraint verlustfrei zusammen', () =>
     withPostgresTestDatabase(async (pool) => {
       await applyInitialMigration(pool);
-      await insertSubject(pool);
+      await insertFach(pool);
       await pool.query(`
         INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
         VALUES
@@ -36,17 +36,17 @@ describe('Bestandsdaten vor Migrationen', () => {
 
       await Effect.runPromise(migrateDatabase(pool));
 
-      const terms = await pool.query('SELECT id FROM term');
-      const grades = await pool.query(
-        'SELECT id, term_id AS "termId" FROM grade ORDER BY id',
+      const halbjahre = await pool.query('SELECT id FROM term');
+      const noten = await pool.query(
+        'SELECT id, term_id AS "halbjahrId" FROM grade ORDER BY id',
       );
       const studyDays = await pool.query(
         'SELECT id FROM study_day ORDER BY id',
       );
-      expect(terms.rows).toEqual([{ id: 'term-a' }]);
-      expect(grades.rows).toEqual([
-        { id: 'grade-a', termId: 'term-a' },
-        { id: 'grade-b', termId: 'term-a' },
+      expect(halbjahre.rows).toEqual([{ id: 'term-a' }]);
+      expect(noten.rows).toEqual([
+        { id: 'grade-a', halbjahrId: 'term-a' },
+        { id: 'grade-b', halbjahrId: 'term-a' },
       ]);
       expect(studyDays.rows).toEqual([{ id: 'study-a' }, { id: 'study-c' }]);
       await expect(
@@ -82,7 +82,7 @@ describe('Bestandsdaten vor Migrationen', () => {
   it('meldet alle nicht verlustfrei auflösbaren Gruppen und lässt sie unverändert', () =>
     withPostgresTestDatabase(async (pool) => {
       await applyInitialMigration(pool);
-      await insertSubject(pool);
+      await insertFach(pool);
       await pool.query(`
         INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
         VALUES
@@ -132,10 +132,10 @@ describe('Klassenstufe aus der Bezeichnung', () => {
 
       await Effect.runPromise(migrateDatabase(pool));
 
-      const terms = await pool.query(
+      const halbjahre = await pool.query(
         'SELECT id, klassenstufe FROM term ORDER BY id',
       );
-      expect(terms.rows).toEqual([
+      expect(halbjahre.rows).toEqual([
         { id: 'term-a', klassenstufe: '9' },
         { id: 'term-b', klassenstufe: '10' },
         { id: 'term-c', klassenstufe: 'J1' },

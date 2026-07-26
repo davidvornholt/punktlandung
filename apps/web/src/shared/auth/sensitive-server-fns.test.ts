@@ -28,7 +28,7 @@ describe('sensitive server-function class', () => {
 
     expect(handlers).toHaveLength(expectedFunctionCount);
     for (const handler of handlers) {
-      expect(handler[0]).toContain('.middleware([sitzungErforderlich])');
+      expect(handler[0]).toContain('.middleware([sessionRequired])');
     }
   });
 });

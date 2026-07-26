@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 
-import type { SchuljahrFach } from '#/shared/noten/schuljahr-fachstand.ts';
+import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
-  berechneJahresvorschau,
-  istVollstaendigesSchuljahr,
+  calculateJahresvorschau,
+  isCompleteSchoolYear,
 } from './zeugnis-service.ts';
 
-const fach: SchuljahrFach = {
+const fach: SchoolYearFach = {
   id: 'mathematik',
   schoolYear: '2026/27',
   name: 'Mathematik',
@@ -41,7 +41,7 @@ describe('Jahresvorschau', () => {
         kind: 'muendlich' as const,
       })),
     ];
-    expect(berechneJahresvorschau(noten, [fach])).toEqual([
+    expect(calculateJahresvorschau(noten, [fach])).toEqual([
       {
         fachId: fach.id,
         fachName: fach.name,
@@ -52,8 +52,8 @@ describe('Jahresvorschau', () => {
   });
 
   it('verlangt ausdrücklich erstes und zweites Halbjahr', () => {
-    expect(istVollstaendigesSchuljahr([{ half: 1 }])).toBe(false);
-    expect(istVollstaendigesSchuljahr([{ half: 1 }, { half: 1 }])).toBe(false);
-    expect(istVollstaendigesSchuljahr([{ half: 2 }, { half: 1 }])).toBe(true);
+    expect(isCompleteSchoolYear([{ half: 1 }])).toBe(false);
+    expect(isCompleteSchoolYear([{ half: 1 }, { half: 1 }])).toBe(false);
+    expect(isCompleteSchoolYear([{ half: 2 }, { half: 1 }])).toBe(true);
   });
 });

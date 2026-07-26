@@ -3,11 +3,11 @@ import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { count, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import { grade, term } from '#/shared/db/schema.ts';
+import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
 import {
-  deleteOrphanedFachstand,
-  lockSchuljahrLifecycle,
-} from '#/shared/noten/schuljahr-fachstand.ts';
+  deleteOrphanedFachSnapshot,
+  lockSchoolYearLifecycle,
+} from '#/shared/noten/school-year-fach-lifecycle.ts';
 import {
   HalbjahrDeletionBlockedByNoten,
   HalbjahrDeletionConsequenceChanged,
@@ -26,11 +26,11 @@ export const deleteHalbjahr = (input: HalbjahrDeletionInput) =>
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
         const halbjahr = yield* loadLockedHalbjahr(input.id);
-        yield* lockSchuljahrLifecycle(halbjahr.schoolYear);
+        yield* lockSchoolYearLifecycle(halbjahr.schoolYear);
         const [halbjahrCountRow] = yield* db
-          .select({ count: count(term.id) })
-          .from(term)
-          .where(eq(term.schoolYear, halbjahr.schoolYear));
+          .select({ count: count(halbjahrTable.id) })
+          .from(halbjahrTable)
+          .where(eq(halbjahrTable.schoolYear, halbjahr.schoolYear));
         const actualFinalInSchoolYear = (halbjahrCountRow?.count ?? 0) === 1;
         if (actualFinalInSchoolYear !== input.expectedFinalInSchoolYear) {
           return yield* Effect.fail(
@@ -42,9 +42,9 @@ export const deleteHalbjahr = (input: HalbjahrDeletionInput) =>
           );
         }
         const [notenCountRow] = yield* db
-          .select({ count: count(grade.id) })
-          .from(grade)
-          .where(eq(grade.termId, input.id));
+          .select({ count: count(noteTable.id) })
+          .from(noteTable)
+          .where(eq(noteTable.termId, input.id));
         const notenCount = notenCountRow?.count ?? 0;
         if (notenCount > 0) {
           return yield* Effect.fail(
@@ -54,8 +54,8 @@ export const deleteHalbjahr = (input: HalbjahrDeletionInput) =>
             }),
           );
         }
-        yield* db.delete(term).where(eq(term.id, input.id));
-        yield* deleteOrphanedFachstand(halbjahr.schoolYear);
+        yield* db.delete(halbjahrTable).where(eq(halbjahrTable.id, input.id));
+        yield* deleteOrphanedFachSnapshot(halbjahr.schoolYear);
       }),
     );
   });

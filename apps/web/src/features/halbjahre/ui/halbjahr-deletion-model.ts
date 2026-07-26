@@ -1,4 +1,4 @@
-import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
+import { formatHalbjahrLabel } from '#/shared/school/klassenstufe.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 
 export type HalbjahrDeletionRequest = {
@@ -68,7 +68,7 @@ export const halbjahrDeletionConfirmationText = (
 export const halbjahrDeletionSuccessMessage = (
   halbjahr: HalbjahrWithNotenCount,
 ): string =>
-  `Halbjahr ${halbjahrBezeichnung(halbjahr)} (${halbjahr.schoolYear}) wurde gelöscht.`;
+  `Halbjahr ${formatHalbjahrLabel(halbjahr)} (${halbjahr.schoolYear}) wurde gelöscht.`;
 
 export const findAdjacentHalbjahrEditTrigger = (
   deletionTrigger: HTMLButtonElement,

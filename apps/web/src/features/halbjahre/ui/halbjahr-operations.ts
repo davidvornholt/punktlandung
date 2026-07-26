@@ -1,6 +1,6 @@
 import type {
   HalbjahrDeletionInput,
-  HalbjahrEingabe,
+  HalbjahrInput,
 } from '../schemas/halbjahr-schema.ts';
 import {
   createHalbjahrFn,
@@ -11,11 +11,11 @@ import {
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 
 export type HalbjahrOperations = {
-  readonly create: (values: HalbjahrEingabe) => Promise<unknown>;
+  readonly create: (values: HalbjahrInput) => Promise<unknown>;
   readonly delete: (values: HalbjahrDeletionInput) => Promise<unknown>;
   readonly list: () => Promise<ReadonlyArray<HalbjahrWithNotenCount>>;
   readonly update: (
-    values: HalbjahrEingabe & { readonly id: string },
+    values: HalbjahrInput & { readonly id: string },
   ) => Promise<unknown>;
 };
 
