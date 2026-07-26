@@ -1,6 +1,9 @@
 import { afterAll, describe, expect, it, mock } from 'bun:test';
 
-import { HalbjahrDeletionBlockedByNoten } from '../errors/halbjahr-errors.ts';
+import {
+  HalbjahrDeletionBlockedByNoten,
+  HalbjahrDeletionConsequenceChanged,
+} from '../errors/halbjahr-errors.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import type { HalbjahrDeletionRequest } from './halbjahr-deletion-model.ts';
 
@@ -47,7 +50,9 @@ const halbjahr: HalbjahrWithNotenCount = {
   system: 'sechser',
 };
 const request: HalbjahrDeletionRequest = {
-  focusTarget: null,
+  adjacentFocusTarget: null,
+  deletionTrigger: {} as HTMLButtonElement,
+  expectedFinalInSchoolYear: true,
   halbjahr,
 };
 
@@ -78,7 +83,7 @@ describe('useHalbjahrMutations deletion', () => {
 
     await deletion.mutationFn(request);
     expect(deleteHalbjahrFn).toHaveBeenCalledWith({
-      data: { id: 'target' },
+      data: { expectedFinalInSchoolYear: true, id: 'target' },
     });
 
     const refresh = deletion.onError(
@@ -91,6 +96,22 @@ describe('useHalbjahrMutations deletion', () => {
       throw new Error('Protected rejection did not request a refresh.');
     }
     await refresh;
+    expect(invalidateQueries).toHaveBeenLastCalledWith({
+      queryKey: ['halbjahre'],
+    });
+
+    invalidateQueries.mockClear();
+    const consequenceRefresh = deletion.onError(
+      new HalbjahrDeletionConsequenceChanged({
+        actualFinalInSchoolYear: true,
+        expectedFinalInSchoolYear: false,
+        halbjahrId: 'target',
+      }),
+    );
+    if (consequenceRefresh === undefined) {
+      throw new Error('Stale consequence rejection did not request a refresh.');
+    }
+    await consequenceRefresh;
     expect(invalidateQueries).toHaveBeenLastCalledWith({
       queryKey: ['halbjahre'],
     });

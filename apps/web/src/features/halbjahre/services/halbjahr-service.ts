@@ -14,7 +14,6 @@ import type { Klassenstufe } from '#/shared/schule/klassenstufe.ts';
 import { notensystemFuerKlassenstufe } from '#/shared/schule/klassenstufe.ts';
 import {
   HalbjahrBelegungDoppelt,
-  HalbjahrDeletionBlockedByNoten,
   HalbjahrNichtGefunden,
   HalbjahrSchliesstNotenAus,
   NotensystemMitNotenUnveraenderlich,
@@ -75,7 +74,7 @@ export const listHalbjahre = Effect.gen(function* () {
     .orderBy(desc(term.startsOn));
 });
 
-const loadLockedHalbjahr = (id: string) =>
+export const loadLockedHalbjahr = (id: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
     const [halbjahr] = yield* db
@@ -96,6 +95,7 @@ export const createHalbjahr = (eingabe: HalbjahrEingabe) =>
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
+          yield* lockSchuljahrLifecycle(eingabe.schoolYear);
           const eingefuegt = yield* db
             .insert(term)
             .values({ id: crypto.randomUUID(), ...mitNotensystem(eingabe) })
@@ -104,7 +104,6 @@ export const createHalbjahr = (eingabe: HalbjahrEingabe) =>
           if (eingefuegt.length === 0) {
             return yield* Effect.fail(new HalbjahrBelegungDoppelt(eingabe));
           }
-          yield* lockSchuljahrLifecycle(eingabe.schoolYear);
           yield* materialisiereNeuesSchuljahr(eingabe.schoolYear);
         }),
       )
@@ -172,36 +171,4 @@ export const updateHalbjahr = (eingabe: HalbjahrAktualisierung) =>
       .pipe(
         Effect.catchTag('SqlError', (fehler) => mappeBelegung(fehler, eingabe)),
       );
-  });
-
-/**
- * Löscht ein Halbjahr, solange es leer ist. Noten hängen per Fremdschlüssel
- * kaskadierend daran; die Prüfung hier ist der einzige Löschweg, damit die
- * Kaskade nie über Noten entscheidet.
- */
-export const deleteHalbjahr = (id: string) =>
-  Effect.gen(function* () {
-    const sql = yield* SqlClient;
-    yield* sql.withTransaction(
-      Effect.gen(function* () {
-        const db = yield* PgDrizzle;
-        const halbjahr = yield* loadLockedHalbjahr(id);
-        yield* lockSchuljahrLifecycle(halbjahr.schoolYear);
-        const [notenCountRow] = yield* db
-          .select({ count: count(grade.id) })
-          .from(grade)
-          .where(eq(grade.termId, id));
-        const notenCount = notenCountRow?.count ?? 0;
-        if (notenCount > 0) {
-          return yield* Effect.fail(
-            new HalbjahrDeletionBlockedByNoten({
-              halbjahrId: id,
-              notenCount,
-            }),
-          );
-        }
-        yield* db.delete(term).where(eq(term.id, id));
-        yield* deleteOrphanedFachstand(halbjahr.schoolYear);
-      }),
-    );
   });

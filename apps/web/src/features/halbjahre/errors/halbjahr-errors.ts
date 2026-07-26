@@ -27,6 +27,20 @@ export class HalbjahrDeletionBlockedByNoten extends Data.TaggedError(
   }
 }
 
+export class HalbjahrDeletionConsequenceChanged extends Data.TaggedError(
+  'HalbjahrDeletionConsequenceChanged',
+)<{
+  readonly halbjahrId: string;
+  readonly expectedFinalInSchoolYear: boolean;
+  readonly actualFinalInSchoolYear: boolean;
+}> {
+  override get message(): string {
+    return this.actualFinalInSchoolYear
+      ? 'Das Halbjahr ist inzwischen das letzte Halbjahr dieses Schuljahrs. Beim Löschen würden nun auch die konfigurierten Fächer zurückgesetzt. Prüfe die aktualisierte Warnung und bestätige erneut.'
+      : 'Das Halbjahr ist inzwischen nicht mehr das letzte Halbjahr dieses Schuljahrs. Prüfe die aktualisierte Warnung und bestätige erneut.';
+  }
+}
+
 export class NotensystemMitNotenUnveraenderlich extends Data.TaggedError(
   'NotensystemMitNotenUnveraenderlich',
 )<{

@@ -3,6 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { HalbjahrDeletionBlockedByNoten } from '../errors/halbjahr-errors.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
+import type { HalbjahrDeletionDecision } from './halbjahr-deletion-model.ts';
+import {
+  advanceHalbjahrDeletion,
+  initialHalbjahrDeletionDecision,
+} from './halbjahr-deletion-model.ts';
 import { HalbjahrListe, HalbjahrRow } from './halbjahr-liste.tsx';
 import {
   collectElements,
@@ -12,37 +17,50 @@ import {
 
 const rowProps = (
   halbjahr: HalbjahrWithNotenCount,
-  confirmed: boolean,
-  onDelete = mock(() => undefined),
-  onConfirmedChange = mock(() => undefined),
+  decision: HalbjahrDeletionDecision,
+  onDelete: Parameters<typeof HalbjahrRow>[0]['onDelete'] = mock(
+    () => undefined,
+  ),
+  onDecisionChange: Parameters<
+    typeof HalbjahrRow
+  >[0]['onDecisionChange'] = mock(() => undefined),
 ): Parameters<typeof HalbjahrRow>[0] => ({
-  confirmed,
+  decision,
   halbjahr,
   isFinalInSchoolYear: true,
   deletionError: null,
   isDeleting: false,
   isDeletionInProgress: false,
   onBearbeiten: () => undefined,
-  onConfirmedChange,
+  onDecisionChange,
   onDelete,
 });
 
 const renderRow = (
   halbjahr: HalbjahrWithNotenCount,
-  confirmed: boolean,
-  onDelete = mock(() => undefined),
-  onConfirmedChange = mock(() => undefined),
-) => HalbjahrRow(rowProps(halbjahr, confirmed, onDelete, onConfirmedChange));
+  decision: HalbjahrDeletionDecision,
+  onDelete: Parameters<typeof HalbjahrRow>[0]['onDelete'] = mock(
+    () => undefined,
+  ),
+  onDecisionChange: Parameters<
+    typeof HalbjahrRow
+  >[0]['onDecisionChange'] = mock(() => undefined),
+) => HalbjahrRow(rowProps(halbjahr, decision, onDelete, onDecisionChange));
 
 describe('HalbjahrListe deletion interaction', () => {
   it('requires confirmation, supports cancel, and dispatches the second click', () => {
     const target = createHalbjahr('target', 1);
-    const initialConfirmedChange = mock(() => undefined);
+    let decision = initialHalbjahrDeletionDecision;
+    const initialDecisionChange = mock(
+      (nextDecision: HalbjahrDeletionDecision) => {
+        decision = nextDecision;
+      },
+    );
     const initialRow = renderRow(
       target,
-      false,
+      decision,
       mock(() => undefined),
-      initialConfirmedChange,
+      initialDecisionChange,
     );
     const [, initialDelete] = collectElements(initialRow, 'button');
     const initialChange = (
@@ -53,11 +71,20 @@ describe('HalbjahrListe deletion interaction', () => {
       }
     ).onClick;
     initialChange({ currentTarget: {} as HTMLButtonElement });
-    expect(initialConfirmedChange).toHaveBeenCalledWith(true);
+    expect(decision).toEqual({
+      _tag: 'confirmation',
+      expectedFinalInSchoolYear: true,
+    });
 
-    const confirmedChange = mock(() => undefined);
+    const confirmedDecision = decision;
+    const decisionChange = mock(() => undefined);
     const onDelete = mock(() => undefined);
-    const confirmedRow = renderRow(target, true, onDelete, confirmedChange);
+    const confirmedRow = renderRow(
+      target,
+      confirmedDecision,
+      onDelete,
+      decisionChange,
+    );
     const buttons = collectElements(confirmedRow, 'button');
     const cancel = buttons.find((button) => textOf(button) === 'Abbrechen');
     (
@@ -65,7 +92,9 @@ describe('HalbjahrListe deletion interaction', () => {
         readonly onClick: () => void;
       }
     ).onClick();
-    expect(confirmedChange).toHaveBeenCalledWith(false);
+    expect(decisionChange).toHaveBeenCalledWith(
+      initialHalbjahrDeletionDecision,
+    );
 
     const adjacentTrigger = {};
     const deletionTrigger = {
@@ -86,14 +115,26 @@ describe('HalbjahrListe deletion interaction', () => {
         }) => void;
       }
     ).onClick({ currentTarget: deletionTrigger });
-    expect(onDelete).toHaveBeenCalledWith(adjacentTrigger);
+    expect(onDelete).toHaveBeenCalledWith({
+      adjacentFocusTarget: adjacentTrigger,
+      deletionTrigger,
+      expectedFinalInSchoolYear: true,
+    });
   });
 
   it('renders the Fach reset warning only for the final Halbjahr', () => {
     const target = createHalbjahr('target', 1);
-    const finalRow = renderRow(target, true);
+    const finalDecision = advanceHalbjahrDeletion(
+      initialHalbjahrDeletionDecision,
+      true,
+    ).decision;
+    const nonFinalDecision = advanceHalbjahrDeletion(
+      initialHalbjahrDeletionDecision,
+      false,
+    ).decision;
+    const finalRow = renderRow(target, finalDecision);
     const otherHalfRow = HalbjahrRow({
-      ...rowProps(target, true),
+      ...rowProps(target, nonFinalDecision),
       isFinalInSchoolYear: false,
     });
 

@@ -42,6 +42,9 @@ export const HalbjahrAktualisierung = Schema.Struct({
 
 export type HalbjahrAktualisierung = typeof HalbjahrAktualisierung.Type;
 
-export const HalbjahrId = Schema.Struct({
+export const HalbjahrDeletionInput = Schema.Struct({
+  expectedFinalInSchoolYear: Schema.Boolean,
   id: Schema.String,
 });
+
+export type HalbjahrDeletionInput = typeof HalbjahrDeletionInput.Type;

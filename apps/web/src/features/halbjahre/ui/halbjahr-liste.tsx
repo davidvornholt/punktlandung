@@ -9,40 +9,50 @@ import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
-import type { HalbjahrDeletionRequest } from './halbjahr-deletion-model.ts';
+import type {
+  HalbjahrDeletionDecision,
+  HalbjahrDeletionRequest,
+} from './halbjahr-deletion-model.ts';
 import {
+  advanceHalbjahrDeletion,
   findAdjacentHalbjahrEditTrigger,
   halbjahrDeletionConfirmationText,
+  initialHalbjahrDeletionDecision,
   isFinalHalbjahrInSchoolYear,
 } from './halbjahr-deletion-model.ts';
 
-const deletionLabel = (isDeleting: boolean, confirmed: boolean) => {
+const deletionLabel = (
+  isDeleting: boolean,
+  decision: HalbjahrDeletionDecision,
+) => {
   if (isDeleting) {
     return 'Wird gelöscht …';
   }
-  return confirmed ? 'Wirklich löschen' : 'Löschen';
+  return decision._tag === 'confirmation' ? 'Wirklich löschen' : 'Löschen';
 };
 
 export const HalbjahrRow = ({
-  confirmed,
+  decision,
   halbjahr,
   isFinalInSchoolYear,
   deletionError,
   isDeleting,
   isDeletionInProgress,
   onBearbeiten,
-  onConfirmedChange,
+  onDecisionChange,
   onDelete,
 }: {
-  readonly confirmed: boolean;
+  readonly decision: HalbjahrDeletionDecision;
   readonly halbjahr: HalbjahrWithNotenCount;
   readonly isFinalInSchoolYear: boolean;
   readonly deletionError: unknown | null;
   readonly isDeleting: boolean;
   readonly isDeletionInProgress: boolean;
   readonly onBearbeiten: (trigger: HTMLButtonElement) => void;
-  readonly onConfirmedChange: (confirmed: boolean) => void;
-  readonly onDelete: (focusTarget: HTMLButtonElement | null) => void;
+  readonly onDecisionChange: (decision: HalbjahrDeletionDecision) => void;
+  readonly onDelete: (
+    request: Omit<HalbjahrDeletionRequest, 'halbjahr'>,
+  ) => void;
 }) => (
   <li
     className="border border-border bg-surface p-4 shadow-card"
@@ -75,21 +85,29 @@ export const HalbjahrRow = ({
             className={quietButtonClass}
             disabled={isDeletionInProgress}
             onClick={(event) => {
-              if (confirmed) {
-                onConfirmedChange(false);
-                onDelete(findAdjacentHalbjahrEditTrigger(event.currentTarget));
-              } else {
-                onConfirmedChange(true);
+              const result = advanceHalbjahrDeletion(
+                decision,
+                isFinalInSchoolYear,
+              );
+              onDecisionChange(result.decision);
+              if (result.expectedFinalInSchoolYear !== null) {
+                onDelete({
+                  adjacentFocusTarget: findAdjacentHalbjahrEditTrigger(
+                    event.currentTarget,
+                  ),
+                  deletionTrigger: event.currentTarget,
+                  expectedFinalInSchoolYear: result.expectedFinalInSchoolYear,
+                });
               }
             }}
             type="button"
           >
-            {deletionLabel(isDeleting, confirmed)}
+            {deletionLabel(isDeleting, decision)}
           </button>
-          {confirmed ? (
+          {decision._tag === 'confirmation' ? (
             <button
               className={quietButtonClass}
-              onClick={() => onConfirmedChange(false)}
+              onClick={() => onDecisionChange(initialHalbjahrDeletionDecision)}
               type="button"
             >
               Abbrechen
@@ -103,9 +121,12 @@ export const HalbjahrRow = ({
         </p>
       )}
     </div>
-    {confirmed ? (
+    {decision._tag === 'confirmation' ? (
       <p className="mt-2 text-ink-muted text-sm">
-        {halbjahrDeletionConfirmationText(halbjahr, isFinalInSchoolYear)}
+        {halbjahrDeletionConfirmationText(
+          halbjahr,
+          decision.expectedFinalInSchoolYear,
+        )}
       </p>
     ) : null}
     {deletionError === null ? null : (
@@ -125,15 +146,17 @@ export const HalbjahrRow = ({
 const HalbjahrRowWithConfirmation = (
   props: Omit<
     Parameters<typeof HalbjahrRow>[0],
-    'confirmed' | 'onConfirmedChange'
+    'decision' | 'onDecisionChange'
   >,
 ) => {
-  const [confirmed, setConfirmed] = useState(false);
+  const [decision, setDecision] = useState<HalbjahrDeletionDecision>(
+    initialHalbjahrDeletionDecision,
+  );
   return (
     <HalbjahrRow
       {...props}
-      confirmed={confirmed}
-      onConfirmedChange={setConfirmed}
+      decision={decision}
+      onDecisionChange={setDecision}
     />
   );
 };
@@ -164,7 +187,7 @@ export const HalbjahrListe = ({
           isDeleting={rowState.pending}
           isDeletionInProgress={rowState.disabled}
           onBearbeiten={(trigger) => onBearbeiten(halbjahr, trigger)}
-          onDelete={(focusTarget) => onDelete({ focusTarget, halbjahr })}
+          onDelete={(request) => onDelete({ ...request, halbjahr })}
         />
       );
     })}

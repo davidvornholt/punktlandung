@@ -33,8 +33,13 @@ export const useHalbjahrMutations = ({
     onSuccess: closeAfterSuccess,
   });
   const deleteMutation = useMutation({
-    mutationFn: ({ halbjahr }: HalbjahrDeletionRequest) =>
-      deleteHalbjahrFn({ data: { id: halbjahr.id } }),
+    mutationFn: ({
+      expectedFinalInSchoolYear,
+      halbjahr,
+    }: HalbjahrDeletionRequest) =>
+      deleteHalbjahrFn({
+        data: { expectedFinalInSchoolYear, id: halbjahr.id },
+      }),
     onError: (error) =>
       isProtectedHalbjahrDeletionError(error)
         ? queryClient.invalidateQueries({ queryKey: ['halbjahre'] })

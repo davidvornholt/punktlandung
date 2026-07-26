@@ -99,6 +99,20 @@ const waitForLifecycleLocks = async (
   await waitForLifecycleLocks(pool, expected, remainingAttempts - 1);
 };
 
+const queueLifecycleOperations = async (
+  pool: Pool,
+  operations: ReadonlyArray<() => Promise<void>>,
+  running: ReadonlyArray<Promise<void>> = [],
+): Promise<ReadonlyArray<Promise<void>>> => {
+  const operation = operations[running.length];
+  if (operation === undefined) {
+    return running;
+  }
+  const queued = [...running, operation()];
+  await waitForLifecycleLocks(pool, queued.length, maxLockAttempts);
+  return queueLifecycleOperations(pool, operations, queued);
+};
+
 export const behindLifecycleBarrier = async (
   pool: Pool,
   provided: EffectRunner,
@@ -126,10 +140,10 @@ export const behindLifecycleBarrier = async (
     }),
   );
   await ready;
-  const running = operations.map((operation) => operation());
+  let running: ReadonlyArray<Promise<void>> = [];
   let barrierError: unknown;
   try {
-    await waitForLifecycleLocks(pool, operations.length, maxLockAttempts);
+    running = await queueLifecycleOperations(pool, operations);
   } catch (error) {
     barrierError = error;
   } finally {

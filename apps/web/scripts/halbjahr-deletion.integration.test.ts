@@ -1,60 +1,20 @@
 import { describe, expect, it } from 'bun:test';
-import type { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
 import type { Pool } from 'pg';
+import { deleteHalbjahr } from '#/features/halbjahre/services/halbjahr-deletion-service.ts';
 import {
   createHalbjahr,
-  deleteHalbjahr,
   listHalbjahre,
 } from '#/features/halbjahre/services/halbjahr-service.ts';
 import {
   createNote,
   deleteNote,
 } from '#/features/noten/services/noten-service.ts';
-import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
-import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
-  postgresTestLayer,
-  withPostgresTestDatabase,
-} from './postgres-test-database.ts';
-
-const firstHalbjahr = {
-  klassenstufe: '10' as const,
-  schoolYear: '2026/27',
-  half: 1 as const,
-  startsOn: '2026-09-14',
-  endsOn: '2027-01-29',
-};
-
-const secondHalbjahr = {
-  ...firstHalbjahr,
-  half: 2 as const,
-  startsOn: '2027-02-01',
-  endsOn: '2027-07-28',
-};
-
-type EffectRunner = <Value, Error>(
-  effect: Effect.Effect<Value, Error, SqlClient | PgDrizzle>,
-) => Promise<Value>;
-
-/** Migrierte Testdatenbank mit einem Fach, aus dem der Fachstand entsteht. */
-const withFach = (
-  runTest: (provided: EffectRunner, pool: Pool) => Promise<void>,
-): Promise<void> =>
-  withPostgresTestDatabase(async (pool) => {
-    await Effect.runPromise(migrateDatabase(pool));
-    await pool.query(
-      `INSERT INTO subject (id, name, short_name, weighting)
-       VALUES ('mathe', 'Mathematik', 'M', $1::jsonb);`,
-      [JSON.stringify(standardgewichtung)],
-    );
-    const layer = postgresTestLayer(pool);
-    await runTest(
-      (effect) => Effect.runPromise(effect.pipe(Effect.provide(layer))),
-      pool,
-    );
-  });
+  firstHalbjahr,
+  secondHalbjahr,
+  withFach,
+} from './halbjahr-fachstand-test-helpers.ts';
 
 const countRows = async (pool: Pool, query: string): Promise<number> => {
   const result = await pool.query<{ readonly count: string }>(query);
@@ -101,7 +61,12 @@ describe('Halbjahr löschen', () => {
       expect((await provided(listHalbjahre))[0]?.notenCount).toBe(1);
 
       const rejection = await provided(
-        Effect.flip(deleteHalbjahr(halbjahr.id)),
+        Effect.flip(
+          deleteHalbjahr({
+            expectedFinalInSchoolYear: true,
+            id: halbjahr.id,
+          }),
+        ),
       );
 
       expect(rejection._tag).toBe('HalbjahrDeletionBlockedByNoten');
@@ -117,7 +82,12 @@ describe('Halbjahr löschen', () => {
         throw new Error('Testnote fehlt.');
       }
       await provided(deleteNote(noteId));
-      await provided(deleteHalbjahr(halbjahr.id));
+      await provided(
+        deleteHalbjahr({
+          expectedFinalInSchoolYear: true,
+          id: halbjahr.id,
+        }),
+      );
 
       expect(await provided(listHalbjahre)).toHaveLength(0);
     }));
@@ -125,7 +95,12 @@ describe('Halbjahr löschen', () => {
   it('meldet ein bereits gelöschtes Halbjahr als nicht gefunden', () =>
     withFach(async (provided) => {
       const missingError = await provided(
-        Effect.flip(deleteHalbjahr('term-weg')),
+        Effect.flip(
+          deleteHalbjahr({
+            expectedFinalInSchoolYear: true,
+            id: 'term-weg',
+          }),
+        ),
       );
 
       expect(missingError._tag).toBe('HalbjahrNichtGefunden');
@@ -143,14 +118,56 @@ describe('Halbjahr löschen', () => {
       expect(halbjahre.map((entry) => entry.notenCount)).toEqual([0, 0]);
       expect(await fachstandRows(pool)).toBe(1);
 
-      await provided(deleteHalbjahr(second.id));
+      await provided(
+        deleteHalbjahr({
+          expectedFinalInSchoolYear: false,
+          id: second.id,
+        }),
+      );
 
       expect(await fachstandRows(pool)).toBe(1);
       expect(await fachstandMarker(pool)).toBe(1);
 
-      await provided(deleteHalbjahr(first.id));
+      await provided(
+        deleteHalbjahr({
+          expectedFinalInSchoolYear: true,
+          id: first.id,
+        }),
+      );
 
       expect(await fachstandRows(pool)).toBe(0);
       expect(await fachstandMarker(pool)).toBe(0);
+    }));
+});
+
+describe('Halbjahr-Löschfolge bestätigen', () => {
+  it('verweigert eine stale Bestätigung, deren Löschfolge sich geändert hat', () =>
+    withFach(async (provided, pool) => {
+      await provided(createHalbjahr(firstHalbjahr));
+      await provided(createHalbjahr(secondHalbjahr));
+      const [second, first] = await provided(listHalbjahre);
+      if (second === undefined || first === undefined) {
+        throw new Error('Angelegte Halbjahre fehlen.');
+      }
+
+      await provided(
+        deleteHalbjahr({
+          expectedFinalInSchoolYear: false,
+          id: second.id,
+        }),
+      );
+      const rejection = await provided(
+        Effect.flip(
+          deleteHalbjahr({
+            expectedFinalInSchoolYear: false,
+            id: first.id,
+          }),
+        ),
+      );
+
+      expect(rejection._tag).toBe('HalbjahrDeletionConsequenceChanged');
+      expect(await provided(listHalbjahre)).toHaveLength(1);
+      expect(await fachstandRows(pool)).toBe(1);
+      expect(await fachstandMarker(pool)).toBe(1);
     }));
 });

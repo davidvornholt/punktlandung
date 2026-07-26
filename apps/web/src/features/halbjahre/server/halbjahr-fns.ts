@@ -6,12 +6,12 @@ import { sitzungErforderlich } from '#/shared/auth/auth-middleware.ts';
 import { runtime } from '#/shared/runtime.ts';
 import {
   HalbjahrAktualisierung,
+  HalbjahrDeletionInput,
   HalbjahrEingabe,
-  HalbjahrId,
 } from '../schemas/halbjahr-schema.ts';
+import { deleteHalbjahr } from '../services/halbjahr-deletion-service.ts';
 import {
   createHalbjahr,
-  deleteHalbjahr,
   listHalbjahre,
   updateHalbjahr,
 } from '../services/halbjahr-service.ts';
@@ -32,8 +32,8 @@ export const updateHalbjahrFn = createServerFn({ method: 'POST' })
 
 export const deleteHalbjahrFn = createServerFn({ method: 'POST' })
   .middleware([sitzungErforderlich])
-  .inputValidator(Schema.standardSchemaV1(HalbjahrId))
-  .handler(({ data }) => runtime.runPromise(deleteHalbjahr(data.id)));
+  .inputValidator(Schema.standardSchemaV1(HalbjahrDeletionInput))
+  .handler(({ data }) => runtime.runPromise(deleteHalbjahr(data)));
 
 export const halbjahreQueryOptions = queryOptions({
   queryKey: ['halbjahre'],

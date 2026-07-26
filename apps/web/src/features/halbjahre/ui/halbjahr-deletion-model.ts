@@ -1,11 +1,50 @@
 import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
-import { restoreFormFocus } from '#/shared/ui/form-focus.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 
 export type HalbjahrDeletionRequest = {
-  readonly focusTarget: HTMLButtonElement | null;
+  readonly adjacentFocusTarget: HTMLButtonElement | null;
+  readonly deletionTrigger: HTMLButtonElement;
+  readonly expectedFinalInSchoolYear: boolean;
   readonly halbjahr: HalbjahrWithNotenCount;
 };
+
+export type HalbjahrDeletionDecision =
+  | { readonly _tag: 'idle' }
+  | {
+      readonly _tag: 'confirmation';
+      readonly expectedFinalInSchoolYear: boolean;
+    };
+
+export const initialHalbjahrDeletionDecision: HalbjahrDeletionDecision = {
+  _tag: 'idle',
+};
+
+export type HalbjahrDeletionAdvance =
+  | {
+      readonly decision: HalbjahrDeletionDecision;
+      readonly expectedFinalInSchoolYear: null;
+    }
+  | {
+      readonly decision: HalbjahrDeletionDecision;
+      readonly expectedFinalInSchoolYear: boolean;
+    };
+
+export const advanceHalbjahrDeletion = (
+  decision: HalbjahrDeletionDecision,
+  currentFinalInSchoolYear: boolean,
+): HalbjahrDeletionAdvance =>
+  decision._tag === 'idle'
+    ? {
+        decision: {
+          _tag: 'confirmation',
+          expectedFinalInSchoolYear: currentFinalInSchoolYear,
+        },
+        expectedFinalInSchoolYear: null,
+      }
+    : {
+        decision: initialHalbjahrDeletionDecision,
+        expectedFinalInSchoolYear: decision.expectedFinalInSchoolYear,
+      };
 
 export const isFinalHalbjahrInSchoolYear = (
   halbjahre: ReadonlyArray<HalbjahrWithNotenCount>,
@@ -42,11 +81,32 @@ export const findAdjacentHalbjahrEditTrigger = (
   );
 };
 
-export const restoreHalbjahrDeletionFocus = (
-  focusTarget: HTMLButtonElement | null,
-  fallbackTrigger: HTMLButtonElement | null,
-) => {
-  restoreFormFocus(focusTarget, fallbackTrigger);
+type FocusTarget = {
+  readonly focus: () => void;
+  readonly isConnected: boolean;
+};
+
+export const restoreHalbjahrDeletionFocus = ({
+  activeElement,
+  adjacentTarget,
+  createTrigger,
+  deletionTrigger,
+  formControl,
+}: {
+  readonly activeElement: Element | null;
+  readonly adjacentTarget: FocusTarget | null;
+  readonly createTrigger: FocusTarget | null;
+  readonly deletionTrigger: HTMLButtonElement;
+  readonly formControl: FocusTarget | null;
+}): boolean => {
+  if (activeElement !== deletionTrigger) {
+    return false;
+  }
+  const target = [adjacentTarget, formControl, createTrigger].find(
+    (candidate) => candidate?.isConnected,
+  );
+  target?.focus();
+  return target !== undefined;
 };
 
 export const isProtectedHalbjahrDeletionError = (error: unknown): boolean =>
@@ -54,4 +114,6 @@ export const isProtectedHalbjahrDeletionError = (error: unknown): boolean =>
   error !== null &&
   '_tag' in error &&
   // biome-ignore lint/security/noSecrets: This is a stable Effect error tag, not a credential.
-  error._tag === 'HalbjahrDeletionBlockedByNoten';
+  (error._tag === 'HalbjahrDeletionBlockedByNoten' ||
+    // biome-ignore lint/security/noSecrets: This is a stable Effect error tag, not a credential.
+    error._tag === 'HalbjahrDeletionConsequenceChanged');

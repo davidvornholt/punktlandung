@@ -1,14 +1,17 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
-import { HalbjahrDeletionBlockedByNoten } from '../errors/halbjahr-errors.ts';
+import {
+  HalbjahrDeletionBlockedByNoten,
+  HalbjahrDeletionConsequenceChanged,
+} from '../errors/halbjahr-errors.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import {
-  findAdjacentHalbjahrEditTrigger,
+  advanceHalbjahrDeletion,
   halbjahrDeletionConfirmationText,
   halbjahrDeletionSuccessMessage,
+  initialHalbjahrDeletionDecision,
   isFinalHalbjahrInSchoolYear,
   isProtectedHalbjahrDeletionError,
-  restoreHalbjahrDeletionFocus,
 } from './halbjahr-deletion-model.ts';
 
 const halbjahr = (
@@ -50,55 +53,43 @@ describe('Halbjahr deletion model', () => {
       'Halbjahr 10.1 (2026/27) wurde gelöscht.',
     );
   });
+});
 
-  it('chooses the next row, then the previous row, for focus restoration', () => {
-    const nextEditTrigger = {} as HTMLButtonElement;
-    const previousEditTrigger = {} as HTMLButtonElement;
-    const row = {
-      nextElementSibling: {
-        querySelector: mock(() => nextEditTrigger),
-      },
-      previousElementSibling: {
-        querySelector: mock(() => previousEditTrigger),
-      },
-    };
-    const deletionTrigger = {
-      closest: mock(() => row),
-    } as unknown as HTMLButtonElement;
-
-    expect(findAdjacentHalbjahrEditTrigger(deletionTrigger)).toBe(
-      nextEditTrigger,
+describe('Halbjahr deletion decision', () => {
+  it('carries the consequence from confirmation into the delete decision', () => {
+    const confirmation = advanceHalbjahrDeletion(
+      initialHalbjahrDeletionDecision,
+      false,
     );
-    row.nextElementSibling = null as never;
-    expect(findAdjacentHalbjahrEditTrigger(deletionTrigger)).toBe(
-      previousEditTrigger,
-    );
+    expect(confirmation.expectedFinalInSchoolYear).toBeNull();
+    expect(confirmation.decision).toEqual({
+      _tag: 'confirmation',
+      expectedFinalInSchoolYear: false,
+    });
+
+    expect(advanceHalbjahrDeletion(confirmation.decision, true)).toEqual({
+      decision: initialHalbjahrDeletionDecision,
+      expectedFinalInSchoolYear: false,
+    });
   });
+});
 
-  it('focuses a surviving row or the create fallback after success', () => {
-    const adjacent = {
-      focus: mock(() => undefined),
-      isConnected: true,
-    } as unknown as HTMLButtonElement;
-    const fallback = {
-      focus: mock(() => undefined),
-      isConnected: true,
-    } as unknown as HTMLButtonElement;
-
-    restoreHalbjahrDeletionFocus(adjacent, fallback);
-    expect(adjacent.focus).toHaveBeenCalledTimes(1);
-    expect(fallback.focus).not.toHaveBeenCalled();
-
-    restoreHalbjahrDeletionFocus(null, fallback);
-    expect(fallback.focus).toHaveBeenCalledTimes(1);
-  });
-
-  it('recognizes only the typed protected deletion rejection', () => {
+describe('Halbjahr deletion refresh', () => {
+  it('recognizes typed rejections that require a list refresh', () => {
     expect(
       isProtectedHalbjahrDeletionError(
         new HalbjahrDeletionBlockedByNoten({
           halbjahrId: 'target',
           notenCount: 1,
+        }),
+      ),
+    ).toBeTrue();
+    expect(
+      isProtectedHalbjahrDeletionError(
+        new HalbjahrDeletionConsequenceChanged({
+          actualFinalInSchoolYear: true,
+          expectedFinalInSchoolYear: false,
+          halbjahrId: 'target',
         }),
       ),
     ).toBeTrue();

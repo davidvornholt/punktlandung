@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'bun:test';
+import { Effect } from 'effect';
+import { deleteHalbjahr } from '#/features/halbjahre/services/halbjahr-deletion-service.ts';
 import {
   createHalbjahr,
-  deleteHalbjahr,
   listHalbjahre,
 } from '#/features/halbjahre/services/halbjahr-service.ts';
 import {
@@ -26,7 +27,12 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
         halbjahre.map(
           ({ id }) =>
             () =>
-              provided(deleteHalbjahr(id)),
+              provided(
+                deleteHalbjahr({
+                  expectedFinalInSchoolYear: false,
+                  id,
+                }).pipe(Effect.either),
+              ).then(() => undefined),
         ),
       );
 
@@ -36,8 +42,8 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
         'school_year_subject_set',
         firstHalbjahr.schoolYear,
       );
-      expect(terms).toBe(0);
-      expect(marker).toBe(0);
+      expect(terms).toBe(1);
+      expect(marker).toBe(1);
       expect(terms > 0).toBe(marker > 0);
     }));
 
@@ -50,7 +56,13 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
       }
 
       await behindLifecycleBarrier(pool, provided, firstHalbjahr.schoolYear, [
-        () => provided(deleteHalbjahr(existing.id)),
+        () =>
+          provided(
+            deleteHalbjahr({
+              expectedFinalInSchoolYear: true,
+              id: existing.id,
+            }).pipe(Effect.either),
+          ).then(() => undefined),
         () => provided(createHalbjahr(secondHalbjahr)),
       ]);
 
@@ -60,7 +72,7 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
         'school_year_subject_set',
         firstHalbjahr.schoolYear,
       );
-      expect(terms).toBe(1);
+      expect([1, 2]).toContain(terms);
       expect(marker).toBe(1);
       expect(terms > 0).toBe(marker > 0);
     }));

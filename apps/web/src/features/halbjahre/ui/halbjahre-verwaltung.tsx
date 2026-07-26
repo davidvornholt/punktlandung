@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
@@ -9,6 +10,7 @@ import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { determineQueryState } from '#/shared/ui/query-state-model.ts';
 import { halbjahreQueryOptions } from '../server/halbjahr-fns.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
+import type { HalbjahrDeletionRequest } from './halbjahr-deletion-model.ts';
 import {
   halbjahrDeletionSuccessMessage,
   restoreHalbjahrDeletionFocus,
@@ -45,30 +47,62 @@ const halbjahrFormularFehler = (
   return null;
 };
 
+const useHalbjahrDeletionCompletion = (
+  formRef: RefObject<HTMLFormElement | null>,
+  createTriggerRef: RefObject<HTMLButtonElement | null>,
+) => {
+  const [status, setStatus] = useState<{
+    readonly message: string;
+    readonly sequence: number;
+  } | null>(null);
+  const completedRequestRef = useRef<HalbjahrDeletionRequest | null>(null);
+  useEffect(() => {
+    if (status === null) {
+      return;
+    }
+    const request = completedRequestRef.current;
+    if (request !== null) {
+      restoreHalbjahrDeletionFocus({
+        activeElement: document.activeElement,
+        adjacentTarget: request.adjacentFocusTarget,
+        createTrigger: createTriggerRef.current,
+        deletionTrigger: request.deletionTrigger,
+        formControl:
+          formRef.current?.querySelector<HTMLElement>(
+            'input, select, textarea, button',
+          ) ?? null,
+      });
+      completedRequestRef.current = null;
+    }
+  }, [createTriggerRef, formRef, status]);
+  return {
+    complete: (request: HalbjahrDeletionRequest) => {
+      completedRequestRef.current = request;
+      setStatus((current) => ({
+        message: halbjahrDeletionSuccessMessage(request.halbjahr),
+        sequence: (current?.sequence ?? 0) + 1,
+      }));
+    },
+    message: status?.message ?? '',
+  };
+};
+
 export const HalbjahreVerwaltung = () => {
   const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
   const [bearbeitung, setBearbeitung] = useState<
     HalbjahrWithNotenCount | 'neu' | null
   >(null);
-  const [deletionStatus, setDeletionStatus] = useState('');
-  const deletionFocusTargetRef = useRef<HTMLButtonElement | null>(null);
   const formularKennung = bearbeitungskennung(bearbeitung);
   const fokus = useFormFocus(formularKennung);
-
-  useEffect(() => {
-    if (deletionStatus !== '') {
-      restoreHalbjahrDeletionFocus(
-        deletionFocusTargetRef.current,
-        fokus.fallbackTriggerRef.current,
-      );
-    }
-  }, [deletionStatus, fokus.fallbackTriggerRef]);
+  const deletionCompletion = useHalbjahrDeletionCompletion(
+    fokus.formRef,
+    fokus.fallbackTriggerRef,
+  );
 
   const { createMutation, deleteMutation, updateMutation } =
     useHalbjahrMutations({
       onDeleted: (request) => {
         const { halbjahr } = request;
-        deletionFocusTargetRef.current = request.focusTarget;
         setBearbeitung((currentEditor) =>
           currentEditor !== null &&
           currentEditor !== 'neu' &&
@@ -76,7 +110,7 @@ export const HalbjahreVerwaltung = () => {
             ? null
             : currentEditor,
         );
-        setDeletionStatus(halbjahrDeletionSuccessMessage(halbjahr));
+        deletionCompletion.complete(request);
       },
       onEditorClose: () => setBearbeitung(null),
     });
@@ -92,7 +126,7 @@ export const HalbjahreVerwaltung = () => {
   return (
     <section>
       <p className="sr-only" role="status">
-        {deletionStatus}
+        {deletionCompletion.message}
       </p>
       <div className="flex items-end justify-between gap-4">
         <h2 className="font-display text-2xl text-ink tracking-tight">
