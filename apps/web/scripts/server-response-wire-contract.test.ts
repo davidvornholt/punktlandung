@@ -34,10 +34,15 @@ describe('server response wire contract', () => {
       await Effect.runPromise(migrateDatabase(pool));
       await pool.query(`
         INSERT INTO subject (
-          id, name, short_name, written_share, klausur_weight, test_weight,
-          muendlich_weight, gfs_weight, sonstige_weight, sort_order
+          id, name, short_name, weighting, sort_order
         )
-        VALUES ('mathematik', 'Mathematik', 'M', 50, 2, 1, 1, 1, 1, 0);
+        VALUES (
+          'mathematik',
+          'Mathematik',
+          'M',
+          '{"verhaeltnis":{"schriftlich":50,"muendlich":50},"arten":{"klausur":{"gewicht":2,"sammlung":"einzeln"},"gfs":{"gewicht":1,"sammlung":"einzeln"},"test":{"gewicht":1,"sammlung":"einzeln"},"muendlich":{"gewicht":1,"sammlung":"einzeln"},"sonstige":{"gewicht":1,"sammlung":"einzeln"}}}'::jsonb,
+          0
+        );
 
         INSERT INTO term (
           id, klassenstufe, school_year, half, system, starts_on, ends_on
@@ -47,11 +52,11 @@ describe('server response wire contract', () => {
           ('halbjahr-2', '10', '2026/27', 2, 'sechser', '2027-02-01', '2027-07-31');
 
         INSERT INTO grade (
-          id, subject_id, term_id, kind, area, value, weight, taken_on, note
+          id, subject_id, term_id, kind, value, weight, taken_on, note
         )
         VALUES
-          ('note-1', 'mathematik', 'halbjahr-1', 'klausur', 'schriftlich', 2, 1, '2026-10-01', NULL),
-          ('note-2', 'mathematik', 'halbjahr-2', 'muendlich', 'muendlich', 3, 1, '2027-03-01', 'Mitarbeit');
+          ('note-1', 'mathematik', 'halbjahr-1', 'klausur', 2, 1, '2026-10-01', NULL),
+          ('note-2', 'mathematik', 'halbjahr-2', 'muendlich', 3, 1, '2027-03-01', 'Mitarbeit');
 
         INSERT INTO study_day (id, day, subject_id, minutes, note)
         VALUES ('lerntag-1', '2026-10-01', 'mathematik', 30, NULL);
@@ -80,16 +85,11 @@ describe('server response wire contract', () => {
       const zeugnis = await provided(loadZeugnis('halbjahr-1'));
 
       expect(keys(fach)).toEqual([
-        'gfsWeight',
+        'gewichtung',
         'id',
-        'klausurWeight',
-        'muendlichWeight',
         'name',
         'shortName',
-        'sonstigeWeight',
         'sortOrder',
-        'testWeight',
-        'writtenShare',
       ]);
       expect(keys(halbjahr)).toEqual([
         'endsOn',
@@ -110,7 +110,6 @@ describe('server response wire contract', () => {
       ]);
       expect(keys(statistics)).toEqual(['serie', 'tageDiesenMonat']);
       expect(keys(note)).toEqual([
-        'area',
         'datum',
         'fachId',
         'fachKuerzel',
@@ -122,7 +121,7 @@ describe('server response wire contract', () => {
         'notiz',
         'wert',
       ]);
-      expect(keys(note.gewichtung)).toEqual(['kindWeights', 'writtenShare']);
+      expect(keys(note.gewichtung)).toEqual(['arten', 'verhaeltnis']);
       expect(keys(trend)).toEqual([
         'datum',
         'fachKuerzel',

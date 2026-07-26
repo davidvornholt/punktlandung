@@ -1,11 +1,9 @@
+import { gewichtungsZeile } from '#/shared/noten/gewichtung-text.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { Fach } from '../services/fach-service.ts';
-
-const gewichtungRow = (fach: Fach): string =>
-  `Klausur ${fach.klausurWeight} · Test ${fach.testWeight} · Mündlich ${fach.muendlichWeight} · GFS ${fach.gfsWeight} · Sonstige ${fach.sonstigeWeight}`;
 
 const FachRow = ({
   fach,
@@ -32,10 +30,7 @@ const FachRow = ({
       </span>
     </div>
     <p className="mt-1 text-ink-muted text-sm">
-      {gewichtungRow(fach)}
-      {fach.writtenShare === null
-        ? ' · gemeinsame Liste'
-        : ` · schriftlich ${fach.writtenShare} %`}
+      {gewichtungsZeile(fach.gewichtung)}
     </p>
     <div className="mt-2 flex gap-3">
       <button
@@ -81,16 +76,16 @@ export const FachList = ({
 }) => (
   <ul className="mt-4 space-y-3">
     {faecher.map((fach) => {
-      const display = listMutationState(archiveMutation, fach.id);
+      const rowState = listMutationState(archiveMutation, fach.id);
       return (
         <FachRow
-          archiveError={display.error}
+          archiveError={rowState.error}
           fach={fach}
           key={fach.id}
           onArchive={() => onArchive(fach.id)}
           onEdit={(trigger) => onEdit(fach, trigger)}
-          isArchiving={display.pending}
-          isArchiveRunning={display.disabled}
+          isArchiving={rowState.pending}
+          isArchiveRunning={rowState.disabled}
         />
       );
     })}

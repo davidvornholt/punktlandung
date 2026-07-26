@@ -3,9 +3,8 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
-import { toFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
+import { fachAverage } from '#/shared/noten/fach-aggregation.ts';
 import type { Assessment, Notensystem } from '#/shared/noten/notenwert.ts';
-import { fachAverage } from '#/shared/noten/notenwert.ts';
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
@@ -43,14 +42,13 @@ export type Zeugnis = {
 
 type NoteRow = Pick<
   typeof noteTable.$inferSelect,
-  'subjectId' | 'value' | 'weight' | 'kind' | 'area'
+  'subjectId' | 'value' | 'weight' | 'kind'
 >;
 
 const toAssessment = (note: NoteRow): Assessment => ({
   notenwert: Number(note.value),
   individualGewichtung: Number(note.weight),
   leistungsart: note.kind,
-  wertungsbereich: note.area,
 });
 
 const groupNotenByFach = (noten: ReadonlyArray<NoteRow>) => {
@@ -78,7 +76,7 @@ export const calculateJahresvorschau = (
   return faecher.flatMap((fach): ReadonlyArray<JahresvorschauRow> => {
     const average = fachAverage(
       (groups.get(fach.id) ?? []).map(toAssessment),
-      toFachgewichtung(fach),
+      fach.gewichtung,
     );
     if (average === null) {
       return [];
@@ -124,10 +122,7 @@ export const loadZeugnis = (termId: string) =>
     const halbnoten: Array<number> = [];
     const zeilen = faecher.map((fach): ZeugnisRow => {
       const fachNoten = groups.get(fach.id) ?? [];
-      const average = fachAverage(
-        fachNoten.map(toAssessment),
-        toFachgewichtung(fach),
-      );
+      const average = fachAverage(fachNoten.map(toAssessment), fach.gewichtung);
       const halbnote =
         average === null ? null : halbjahresnote(average, halbjahr.system);
       if (halbnote !== null) {

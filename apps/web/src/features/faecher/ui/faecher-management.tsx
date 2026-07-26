@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+
+import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
   inputClass,
@@ -46,13 +48,38 @@ const fachFormError = (
   return null;
 };
 
+/** Ein Schuljahr mit dem Notensystem, in dem seine Halbjahre gewertet werden. */
+export type SchoolYearOption = {
+  readonly schoolYear: string;
+  readonly system: Notensystem;
+};
+
+const systemFor = (
+  schoolYears: ReadonlyArray<SchoolYearOption>,
+  schoolYear: string,
+): Notensystem =>
+  schoolYears.find((year) => year.schoolYear === schoolYear)?.system ??
+  'sechser';
+
+const NoHalbjahr = () => (
+  <section className="border border-border bg-surface-sunken p-6">
+    <h2 className="font-display text-2xl text-ink tracking-tight">Fächer</h2>
+    <p className="mt-2 text-ink-muted">
+      Lege zuerst ein Halbjahr an. Danach verwaltest du die Fächer für das
+      zugehörige Schuljahr.
+    </p>
+  </section>
+);
+
 export const FaecherManagement = ({
   schoolYears,
 }: {
-  readonly schoolYears: ReadonlyArray<string>;
+  readonly schoolYears: ReadonlyArray<SchoolYearOption>;
 }) => {
   const queryClient = useQueryClient();
-  const [schoolYear, setSchoolYear] = useState(schoolYears[0] ?? '');
+  const [schoolYear, setSchoolYear] = useState(
+    schoolYears[0]?.schoolYear ?? '',
+  );
   const faecherQuery = useQuery({
     ...faecherQueryOptions(schoolYear),
     enabled: schoolYear !== '',
@@ -92,17 +119,7 @@ export const FaecherManagement = ({
   const formError = fachFormError(createMutation, updateMutation);
 
   if (schoolYear === '') {
-    return (
-      <section className="border border-border bg-surface-sunken p-6">
-        <h2 className="font-display text-2xl text-ink tracking-tight">
-          Fächer
-        </h2>
-        <p className="mt-2 text-ink-muted">
-          Lege zuerst ein Halbjahr an. Danach verwaltest du die Fächer für das
-          zugehörige Schuljahr.
-        </p>
-      </section>
-    );
+    return <NoHalbjahr />;
   }
 
   return (
@@ -124,8 +141,8 @@ export const FaecherManagement = ({
               value={schoolYear}
             >
               {schoolYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
+                <option key={year.schoolYear} value={year.schoolYear}>
+                  {year.schoolYear}
                 </option>
               ))}
             </select>
@@ -165,6 +182,7 @@ export const FaecherManagement = ({
                 updateMutation.mutate({ ...values, id: editTarget.id });
               }
             }}
+            system={systemFor(schoolYears, schoolYear)}
             title={editTarget === 'create' ? 'Neues Fach' : 'Fach bearbeiten'}
           />
         </div>

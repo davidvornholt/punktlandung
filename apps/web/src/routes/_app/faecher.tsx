@@ -35,8 +35,15 @@ const FaecherPage = () => {
       </>
     );
   }
+  // Ein Schuljahr ist eine Klassenstufe: seine Halbjahre teilen das
+  // Notensystem, deshalb genügt eines davon für die Vorschau im Formular.
   const schoolYears = [
-    ...new Set(halbjahre.map((halbjahr) => halbjahr.schoolYear)),
+    ...new Map(
+      halbjahre.map((halbjahr) => [
+        halbjahr.schoolYear,
+        { schoolYear: halbjahr.schoolYear, system: halbjahr.system },
+      ]),
+    ).values(),
   ];
   return (
     <>

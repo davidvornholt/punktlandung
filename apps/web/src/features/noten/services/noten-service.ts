@@ -4,12 +4,10 @@ import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { isIsoDateInRange } from '#/shared/date/date-range.ts';
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
-import { toFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type {
   Fachgewichtung,
   Leistungsart,
   Notensystem,
-  Wertungsbereich,
 } from '#/shared/noten/notenwert.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
@@ -20,12 +18,11 @@ import {
   NoteOutsideHalbjahr,
 } from '../errors/noten-errors.ts';
 import type { NoteInput, NoteUpdate } from '../schemas/note-schema.ts';
-import { defaultWertungsbereich, isValueValid } from './noten-validation.ts';
+import { isValueValid } from './noten-validation.ts';
 
 export type NoteWithFach = {
   readonly id: string;
   readonly kind: Leistungsart;
-  readonly area: Wertungsbereich;
   readonly wert: number;
   readonly gewicht: number;
   readonly datum: string;
@@ -105,7 +102,6 @@ export const listNoten = (termId: string) =>
         {
           id: note.id,
           kind: note.kind,
-          area: note.area,
           wert: Number(note.value),
           gewicht: Number(note.weight),
           datum: note.takenOn,
@@ -113,7 +109,7 @@ export const listNoten = (termId: string) =>
           fachId: fach.id,
           fachName: fach.name,
           fachKuerzel: fach.shortName,
-          gewichtung: toFachgewichtung(fach),
+          gewichtung: fach.gewichtung,
         },
       ];
     });
@@ -134,7 +130,6 @@ export const createNote = (input: NoteInput) =>
           subjectId: input.subjectId,
           termId: input.termId,
           kind: input.kind,
-          area: input.area ?? defaultWertungsbereich(input.kind),
           value: `${input.wert}`,
           weight: `${input.gewicht}`,
           takenOn: input.datum,
@@ -168,7 +163,6 @@ export const updateNote = (input: NoteUpdate) =>
           .set({
             subjectId: input.subjectId,
             kind: input.kind,
-            area: input.area ?? defaultWertungsbereich(input.kind),
             value: `${input.wert}`,
             weight: `${input.gewicht}`,
             takenOn: input.datum,

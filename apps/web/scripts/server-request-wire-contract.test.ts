@@ -24,12 +24,16 @@ const fachInput = {
   schoolYear: '2026/27',
   name: 'Mathematik',
   shortName: 'M',
-  writtenShare: 50,
-  klausurWeight: 2,
-  testWeight: 1,
-  muendlichWeight: 1,
-  gfsWeight: 1,
-  sonstigeWeight: 1,
+  gewichtung: {
+    verhaeltnis: { schriftlich: 50, muendlich: 50 },
+    arten: {
+      klausur: { gewicht: 2, sammlung: 'einzeln' },
+      gfs: { gewicht: 1, sammlung: 'einzeln' },
+      test: { gewicht: 1, sammlung: 'einzeln' },
+      muendlich: { gewicht: 1, sammlung: 'einzeln' },
+      sonstige: { gewicht: 1, sammlung: 'einzeln' },
+    },
+  },
 };
 
 const halbjahrInput = {
@@ -43,7 +47,6 @@ const halbjahrInput = {
 const noteFields = {
   subjectId: 'mathematik',
   kind: 'klausur' as const,
-  area: 'schriftlich' as const,
   wert: 2,
   gewicht: 1,
   datum: '2026-10-01',

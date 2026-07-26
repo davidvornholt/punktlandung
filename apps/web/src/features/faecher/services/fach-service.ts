@@ -8,6 +8,7 @@ import {
   halbjahrTable,
   schoolYearFachTable,
 } from '#/shared/db/schema.ts';
+import type { Fachgewichtung } from '#/shared/noten/notenwert.ts';
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
   loadSchoolYearFachSnapshot,
@@ -20,12 +21,7 @@ export type Fach = {
   readonly id: string;
   readonly name: string;
   readonly shortName: string;
-  readonly writtenShare: number | null;
-  readonly klausurWeight: number;
-  readonly testWeight: number;
-  readonly muendlichWeight: number;
-  readonly gfsWeight: number;
-  readonly sonstigeWeight: number;
+  readonly gewichtung: Fachgewichtung;
   readonly sortOrder: number;
 };
 
@@ -33,24 +29,14 @@ const toFach = (row: SchoolYearFach): Fach => ({
   id: row.id,
   name: row.name,
   shortName: row.shortName,
-  writtenShare: row.writtenShare,
-  klausurWeight: Number(row.klausurWeight),
-  testWeight: Number(row.testWeight),
-  muendlichWeight: Number(row.muendlichWeight),
-  gfsWeight: Number(row.gfsWeight),
-  sonstigeWeight: Number(row.sonstigeWeight),
+  gewichtung: row.gewichtung,
   sortOrder: row.sortOrder,
 });
 
 const toColumns = (input: FachInput | FachUpdate) => ({
   name: input.name,
   shortName: input.shortName,
-  writtenShare: input.writtenShare,
-  klausurWeight: `${input.klausurWeight}`,
-  testWeight: `${input.testWeight}`,
-  muendlichWeight: `${input.muendlichWeight}`,
-  gfsWeight: `${input.gfsWeight}`,
-  sonstigeWeight: `${input.sonstigeWeight}`,
+  weighting: input.gewichtung,
 });
 
 const prepareMutation = (schoolYear: string) =>

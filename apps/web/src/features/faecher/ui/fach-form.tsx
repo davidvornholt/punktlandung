@@ -1,4 +1,7 @@
 import type { RefObject } from 'react';
+import { useReducer } from 'react';
+
+import type { Fachgewichtung, Notensystem } from '#/shared/noten/notenwert.ts';
 import {
   inputClass,
   labelClass,
@@ -9,38 +12,30 @@ import type { FachFields } from '../schemas/fach-schema.ts';
 import { fachLimits } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
 import { fachFormValues } from './fach-form-model.ts';
+import { GewichtungField } from './gewichtung-field.tsx';
+import {
+  gewichtungReducer,
+  gewichtungStateFrom,
+  isVerhaeltnisValid,
+} from './gewichtung-model.ts';
 
-const gewichtungFields = [
-  { name: 'klausurWeight', label: 'Klausur' },
-  { name: 'testWeight', label: 'Test' },
-  { name: 'muendlichWeight', label: 'Mündlich' },
-  { name: 'gfsWeight', label: 'GFS' },
-  { name: 'sonstigeWeight', label: 'Sonstige' },
-] as const;
-
-const readValues = (form: HTMLFormElement): FachFields => {
+const readValues = (
+  form: HTMLFormElement,
+  gewichtung: Fachgewichtung,
+): FachFields => {
   const data = new FormData(form);
   const text = (name: string) => `${data.get(name) ?? ''}`.trim();
-  const parseGewichtung = (name: string) => {
-    const raw = text(name).replace(',', '.');
-    return raw === '' ? 1 : Number(raw);
-  };
-  const share = text('writtenShare');
   return {
     name: text('name'),
     shortName: text('shortName'),
-    writtenShare: share === '' ? null : Number(share),
-    klausurWeight: parseGewichtung('klausurWeight'),
-    testWeight: parseGewichtung('testWeight'),
-    muendlichWeight: parseGewichtung('muendlichWeight'),
-    gfsWeight: parseGewichtung('gfsWeight'),
-    sonstigeWeight: parseGewichtung('sonstigeWeight'),
+    gewichtung,
   };
 };
 
 export const FachForm = ({
   title,
   fach,
+  system,
   pending,
   error,
   formRef,
@@ -49,6 +44,7 @@ export const FachForm = ({
 }: {
   readonly title: string;
   readonly fach: Fach | null;
+  readonly system: Notensystem;
   readonly pending: boolean;
   readonly error: string | null;
   readonly formRef: RefObject<HTMLFormElement | null>;
@@ -56,12 +52,20 @@ export const FachForm = ({
   readonly onCancel: () => void;
 }) => {
   const values = fachFormValues(fach);
+  const [state, dispatch] = useReducer(
+    gewichtungReducer,
+    values.gewichtung,
+    gewichtungStateFrom,
+  );
+  const valid = isVerhaeltnisValid(state.gewichtung);
   return (
     <form
       className="border border-border bg-surface p-5 shadow-card"
       onSubmit={(event) => {
         event.preventDefault();
-        onSave(readValues(event.currentTarget));
+        if (valid) {
+          onSave(readValues(event.currentTarget, state.gewichtung));
+        }
       }}
       ref={formRef}
     >
@@ -88,49 +92,7 @@ export const FachForm = ({
           />
         </label>
       </div>
-      <fieldset className="mt-5 border border-border p-4">
-        <legend className={`${labelClass} px-1`}>
-          Gewichtung je Leistungsart
-        </legend>
-        <p className="text-ink-muted text-sm">
-          Gewichtung wie von der Lehrkraft verkündet, z. B. Klausuren doppelt:
-          Klausur 2, alles andere 1.
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {gewichtungFields.map((field) => (
-            <label className={labelClass} key={field.name}>
-              {field.label}
-              <input
-                className={inputClass}
-                defaultValue={values[field.name]}
-                inputMode="decimal"
-                max={fachLimits.maxGewichtung}
-                min={fachLimits.gewichtungStep}
-                name={field.name}
-                step={fachLimits.gewichtungStep}
-                type="number"
-              />
-            </label>
-          ))}
-        </div>
-        <label className={`${labelClass} mt-4`}>
-          Schriftlicher Anteil in Prozent (optional)
-          <input
-            className={inputClass}
-            defaultValue={values.writtenShare}
-            inputMode="numeric"
-            max={fachLimits.maxShare}
-            min={0}
-            name="writtenShare"
-            step={1}
-            type="number"
-          />
-        </label>
-        <p className="mt-2 text-ink-faint text-sm">
-          Leer lassen, wenn die Lehrkraft keine schriftlich/mündlich-Aufteilung
-          verkündet hat — dann zählt eine gemeinsame gewichtete Liste.
-        </p>
-      </fieldset>
+      <GewichtungField onAction={dispatch} state={state} system={system} />
       {error === null ? null : (
         <p
           className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink"
@@ -140,7 +102,11 @@ export const FachForm = ({
         </p>
       )}
       <div className="mt-5 flex gap-3">
-        <button className={primaryButtonClass} disabled={pending} type="submit">
+        <button
+          className={primaryButtonClass}
+          disabled={pending || !valid}
+          type="submit"
+        >
           {pending ? 'Fach wird gespeichert …' : 'Fach speichern'}
         </button>
         <button

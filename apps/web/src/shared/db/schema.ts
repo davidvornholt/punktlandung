@@ -4,6 +4,7 @@ import {
   check,
   date,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -12,6 +13,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 
+import { leistungsarten } from '#/shared/noten/notenwert.ts';
 import { klassenstufen } from '#/shared/school/klassenstufe.ts';
 
 /** Notensystem eines Halbjahrs: Unterstufe 1–6, Kursstufe 0–15 Punkte. */
@@ -21,45 +23,19 @@ export const notensystemEnum = pgEnum('grade_system', ['sechser', 'punkte']);
 export const klassenstufeEnum = pgEnum('klassenstufe', klassenstufen);
 
 /** Leistungsart; Gewichte dafür verkündet die Lehrkraft je Fach vorab. */
-export const leistungsartEnum = pgEnum('grade_kind', [
-  'klausur',
-  'test',
-  'muendlich',
-  'gfs',
-  'sonstige',
-]);
-
-/** Wertungsbereich für die schriftlich/mündlich-Aufteilung eines Fachs. */
-export const wertungsbereichEnum = pgEnum('grade_area', [
-  'schriftlich',
-  'muendlich',
-]);
+export const leistungsartEnum = pgEnum('grade_kind', leistungsarten);
 
 export const fachTable = pgTable('subject', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   shortName: text('short_name').notNull(),
   /**
-   * Anteil der schriftlichen Noten in Prozent (0–100), falls die Lehrkraft
-   * bereichsweise gewichtet; null = eine gemeinsame gewichtete Liste.
+   * Die verkündete Gewichtung als Ganzes: optionales Bereichsverhältnis sowie
+   * Gewicht und Sammlung je Leistungsart. Eine Spalte statt einer je Art: nur
+   * so kopieren Fachstand-Historisierung und Formular genau eine Form. Gelesen
+   * wird sie über `decodeGewichtung`.
    */
-  writtenShare: integer('written_share'),
-  /** Vorab verkündete Gewichte je Leistungsart, z. B. Klausur doppelt. */
-  klausurWeight: numeric('klausur_weight', { precision: 4, scale: 2 })
-    .notNull()
-    .default('1'),
-  testWeight: numeric('test_weight', { precision: 4, scale: 2 })
-    .notNull()
-    .default('1'),
-  muendlichWeight: numeric('muendlich_weight', { precision: 4, scale: 2 })
-    .notNull()
-    .default('1'),
-  gfsWeight: numeric('gfs_weight', { precision: 4, scale: 2 })
-    .notNull()
-    .default('1'),
-  sonstigeWeight: numeric('sonstige_weight', { precision: 4, scale: 2 })
-    .notNull()
-    .default('1'),
+  weighting: jsonb('weighting').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   archived: boolean('archived').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -79,22 +55,7 @@ export const schoolYearFachTable = pgTable(
       .references(() => fachTable.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     shortName: text('short_name').notNull(),
-    writtenShare: integer('written_share'),
-    klausurWeight: numeric('klausur_weight', { precision: 4, scale: 2 })
-      .notNull()
-      .default('1'),
-    testWeight: numeric('test_weight', { precision: 4, scale: 2 })
-      .notNull()
-      .default('1'),
-    muendlichWeight: numeric('muendlich_weight', { precision: 4, scale: 2 })
-      .notNull()
-      .default('1'),
-    gfsWeight: numeric('gfs_weight', { precision: 4, scale: 2 })
-      .notNull()
-      .default('1'),
-    sonstigeWeight: numeric('sonstige_weight', { precision: 4, scale: 2 })
-      .notNull()
-      .default('1'),
+    weighting: jsonb('weighting').notNull(),
     sortOrder: integer('sort_order').notNull().default(0),
     archived: boolean('archived').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -142,7 +103,6 @@ export const noteTable = pgTable('grade', {
     .notNull()
     .references(() => halbjahrTable.id, { onDelete: 'cascade' }),
   kind: leistungsartEnum('kind').notNull(),
-  area: wertungsbereichEnum('area').notNull(),
   /** Nativer Wert im System des Halbjahrs (1,00–6,00 bzw. 0–15). */
   value: numeric('value', { precision: 4, scale: 2 }).notNull(),
   /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */

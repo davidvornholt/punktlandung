@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { clampIsoDate } from '#/shared/date/date-range.ts';
+import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
@@ -12,19 +13,16 @@ import {
 import type { NoteInput } from '../schemas/note-schema.ts';
 import { notenLimits } from '../schemas/note-schema.ts';
 import { createNoteFn } from '../server/noten-fns.ts';
-import { leistungsartLabel } from './leistungsart-label.ts';
 
 const readValues = (form: HTMLFormElement, termId: string): NoteInput => {
   const data = new FormData(form);
   const text = (name: string) => `${data.get(name) ?? ''}`.trim();
-  const area = text('area');
   const notiz = text('notiz');
   const gewicht = text('gewicht').replace(',', '.');
   return {
     termId,
     subjectId: text('subjectId'),
     kind: text('kind') as NoteInput['kind'],
-    ...(area === 'schriftlich' || area === 'muendlich' ? { area } : {}),
     wert: Number(text('wert').replace(',', '.')),
     gewicht: gewicht === '' ? 1 : Number(gewicht),
     datum: text('datum'),
@@ -139,9 +137,9 @@ export const NoteEntryBar = ({
       </div>
       <details className="mt-3">
         <summary className="cursor-pointer text-ink-muted text-sm">
-          Gewicht, Bereich und Notiz
+          Gewicht und Notiz
         </summary>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-2 gap-3">
           <label className={labelClass}>
             Gewicht
             <input
@@ -156,14 +154,6 @@ export const NoteEntryBar = ({
             />
           </label>
           <label className={labelClass}>
-            Bereich
-            <select className={inputClass} name="area">
-              <option value="">Automatisch nach Art</option>
-              <option value="schriftlich">Schriftlich</option>
-              <option value="muendlich">Mündlich</option>
-            </select>
-          </label>
-          <label className={`${labelClass} col-span-2 sm:col-span-1`}>
             Notiz
             <input className={inputClass} name="notiz" />
           </label>

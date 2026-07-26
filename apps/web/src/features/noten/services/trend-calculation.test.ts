@@ -3,13 +3,13 @@ import { describe, expect, it } from 'bun:test';
 import { calculateTrend } from './trend-calculation.ts';
 
 const equallyWeighted = {
-  writtenShare: null,
-  kindWeights: {
-    klausur: 1,
-    test: 1,
-    muendlich: 1,
-    gfs: 1,
-    sonstige: 1,
+  verhaeltnis: null,
+  arten: {
+    klausur: { gewicht: 1, sammlung: 'einzeln' },
+    test: { gewicht: 1, sammlung: 'einzeln' },
+    muendlich: { gewicht: 1, sammlung: 'einzeln' },
+    gfs: { gewicht: 1, sammlung: 'einzeln' },
+    sonstige: { gewicht: 1, sammlung: 'einzeln' },
   },
 } as const;
 
@@ -25,7 +25,6 @@ const note = (
   fachSnapshotId,
   fachShortName: fachSnapshotId,
   leistungsart: 'klausur' as const,
-  wertungsbereich: 'schriftlich' as const,
   fachGewichtung: equallyWeighted,
   ...overrides,
 });
@@ -47,12 +46,14 @@ describe('calculateTrend', () => {
   });
 
   it('wendet den schriftlich/mündlich-Anteil trotz ungleicher Anzahl an', () => {
-    const fachGewichtung = { ...equallyWeighted, writtenShare: 50 };
+    const fachGewichtung = {
+      ...equallyWeighted,
+      verhaeltnis: { schriftlich: 50, muendlich: 50 },
+    };
     const trend = calculateTrend([
       note('M', '2026-09-01', 11, { fachGewichtung }),
       ...[2, 3, 4, 5].map((day) =>
         note('M', `2026-09-0${day}`, 5, {
-          wertungsbereich: 'muendlich',
           leistungsart: 'muendlich',
           fachGewichtung,
         }),

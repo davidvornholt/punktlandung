@@ -3,7 +3,6 @@ import { asc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
-import { toFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { toNotenpunkte } from '#/shared/noten/notenwert.ts';
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
@@ -44,8 +43,7 @@ export const loadTrend = Effect.gen(function* () {
               fachSnapshotId: `${halbjahr.schoolYear}:${fach.id}`,
               fachShortName: fach.shortName,
               leistungsart: note.kind,
-              wertungsbereich: note.area,
-              fachGewichtung: toFachgewichtung(fach),
+              fachGewichtung: fach.gewichtung,
             },
           ];
     }),

@@ -5,29 +5,73 @@
 
 export type Notensystem = 'sechser' | 'punkte';
 
-export type Leistungsart =
-  | 'klausur'
-  | 'test'
-  | 'muendlich'
-  | 'gfs'
-  | 'sonstige';
+/** Leistungsarten eines Fachs; die Reihenfolge ist die des grade_kind-Enums. */
+export const leistungsarten = [
+  'klausur',
+  'test',
+  'muendlich',
+  'gfs',
+  'sonstige',
+] as const;
 
-export type Wertungsbereich = 'schriftlich' | 'muendlich';
+export type Leistungsart = (typeof leistungsarten)[number];
+
+export const wertungsbereiche = ['schriftlich', 'muendlich'] as const;
+
+export type Wertungsbereich = (typeof wertungsbereiche)[number];
+
+/**
+ * In welchen Bereich eine Leistungsart fällt. Das ist eine Eigenschaft der Art
+ * selbst, keine Verkündung: eine Klausur, eine GFS und ein Test sind
+ * schriftliche Arbeiten, mündliche und sonstige Noten der zweite Bereich. Die
+ * Lehrkraft verkündet das Verhältnis der Bereiche, nicht ihre Besetzung.
+ */
+export const bereichDerLeistungsart: Readonly<
+  Record<Leistungsart, Wertungsbereich>
+> = {
+  klausur: 'schriftlich',
+  gfs: 'schriftlich',
+  test: 'schriftlich',
+  muendlich: 'muendlich',
+  sonstige: 'muendlich',
+};
+
+/**
+ * Wie die Noten einer Leistungsart in den Schnitt eingehen: einzeln zählt
+ * jede für sich, gesammelt mitteln alle zu einer einzigen Note — so wird aus
+ * "alle Tests zusammen zählen wie eine Klausur" echte Notenmathematik.
+ */
+export type Sammlung = 'einzeln' | 'gesammelt';
 
 export type Assessment = {
   readonly notenwert: number;
+  /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */
   readonly individualGewichtung: number;
   readonly leistungsart: Leistungsart;
-  readonly wertungsbereich: Wertungsbereich;
+};
+
+/** Gewichtung einer Leistungsart, wie von der Lehrkraft verkündet. */
+export type Artgewichtung = {
+  readonly gewicht: number;
+  readonly sammlung: Sammlung;
+};
+
+/**
+ * Verhältnis der Bereiche, wie die Lehrkraft es nennt: "60:40" und "3:1"
+ * bleiben so erhalten, wie sie verkündet wurden, und werden erst beim
+ * Rechnen normalisiert.
+ */
+export type Bereichsverhaeltnis = {
+  readonly schriftlich: number;
+  readonly muendlich: number;
 };
 
 export type Fachgewichtung = {
-  /** Anteil schriftlicher Leistungen in Prozent; null = eine Gesamtliste. */
-  readonly writtenShare: number | null;
-  readonly kindWeights: Readonly<Record<Leistungsart, number>>;
+  /** null = eine gemeinsame gewichtete Liste über alle Leistungsarten. */
+  readonly verhaeltnis: Bereichsverhaeltnis | null;
+  readonly arten: Readonly<Record<Leistungsart, Artgewichtung>>;
 };
 
-const percentBase = 100;
 const minNotenpunkte = 0;
 const maxNotenpunkte = 15;
 
@@ -101,53 +145,3 @@ export const toNotenpunkte = (value: number, system: Notensystem): number =>
 /** Rechnet einen Punktewert (dezimal) in die Sechserskala um. */
 export const toSechser = (notenpunkte: number): number =>
   interpolate(notenpunkte, notenpunkteToSechserAnchors);
-
-const weightedAverage = (
-  assessments: ReadonlyArray<Assessment>,
-  fachGewichtung: Fachgewichtung,
-): number | null => {
-  let total = 0;
-  let totalGewichtung = 0;
-  for (const assessment of assessments) {
-    const combinedGewichtung =
-      assessment.individualGewichtung *
-      fachGewichtung.kindWeights[assessment.leistungsart];
-    total += assessment.notenwert * combinedGewichtung;
-    totalGewichtung += combinedGewichtung;
-  }
-  return totalGewichtung === 0 ? null : total / totalGewichtung;
-};
-
-/**
- * Fachschnitt im nativen System: entweder eine gemeinsame gewichtete Liste
- * oder bereichsweise (schriftlich/mündlich) nach verkündetem Anteil. Fehlt
- * ein Bereich vollständig, zählt der vorhandene allein.
- */
-export const fachAverage = (
-  assessments: ReadonlyArray<Assessment>,
-  fachGewichtung: Fachgewichtung,
-): number | null => {
-  if (fachGewichtung.writtenShare === null) {
-    return weightedAverage(assessments, fachGewichtung);
-  }
-  const schriftlichAverage = weightedAverage(
-    assessments.filter(
-      (assessment) => assessment.wertungsbereich === 'schriftlich',
-    ),
-    fachGewichtung,
-  );
-  const muendlichAverage = weightedAverage(
-    assessments.filter(
-      (assessment) => assessment.wertungsbereich === 'muendlich',
-    ),
-    fachGewichtung,
-  );
-  if (schriftlichAverage === null) {
-    return muendlichAverage;
-  }
-  if (muendlichAverage === null) {
-    return schriftlichAverage;
-  }
-  const share = fachGewichtung.writtenShare / percentBase;
-  return schriftlichAverage * share + muendlichAverage * (1 - share);
-};

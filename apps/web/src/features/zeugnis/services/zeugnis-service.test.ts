@@ -11,12 +11,16 @@ const fach: SchoolYearFach = {
   schoolYear: '2026/27',
   name: 'Mathematik',
   shortName: 'M',
-  writtenShare: 50,
-  klausurWeight: '1',
-  testWeight: '1',
-  muendlichWeight: '1',
-  gfsWeight: '1',
-  sonstigeWeight: '1',
+  gewichtung: {
+    verhaeltnis: { schriftlich: 50, muendlich: 50 },
+    arten: {
+      klausur: { gewicht: 1, sammlung: 'einzeln' },
+      test: { gewicht: 1, sammlung: 'einzeln' },
+      muendlich: { gewicht: 1, sammlung: 'einzeln' },
+      gfs: { gewicht: 1, sammlung: 'einzeln' },
+      sonstige: { gewicht: 1, sammlung: 'einzeln' },
+    },
+  },
   sortOrder: 0,
   archived: false,
 };
@@ -29,14 +33,12 @@ describe('Jahresvorschau', () => {
         value: '2',
         weight: '1',
         kind: 'klausur' as const,
-        area: 'schriftlich' as const,
       },
       ...Array.from({ length: 4 }, () => ({
         subjectId: fach.id,
         value: '4',
         weight: '1',
         kind: 'muendlich' as const,
-        area: 'muendlich' as const,
       })),
     ];
     expect(calculateJahresvorschau(noten, [fach])).toEqual([

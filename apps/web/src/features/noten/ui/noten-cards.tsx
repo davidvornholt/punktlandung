@@ -1,15 +1,16 @@
+import { fachAverage } from '#/shared/noten/fach-aggregation.ts';
+import {
+  bereichLabel,
+  leistungsartLabel,
+} from '#/shared/noten/leistungsart-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { fachAverage } from '#/shared/noten/notenwert.ts';
+import { bereichDerLeistungsart } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { NoteWithFach } from '../services/noten-service.ts';
-import {
-  leistungsartLabel,
-  wertungsbereichLabel,
-} from './leistungsart-label.ts';
 
 type FachGroup = {
   readonly fachId: string;
@@ -42,7 +43,6 @@ const groupByFach = (
         notenwert: note.wert,
         individualGewichtung: note.gewicht,
         leistungsart: note.kind,
-        wertungsbereich: note.area,
       })),
       first.gewichtung,
     ),
@@ -96,8 +96,10 @@ export const NotenCards = ({
                   {formatNote(note.wert, system)}
                 </span>
                 <span className="text-ink-muted text-sm">
-                  {leistungsartLabel[note.kind]} ·{' '}
-                  {wertungsbereichLabel[note.area]}
+                  {leistungsartLabel[note.kind]}
+                  {note.gewichtung.verhaeltnis === null
+                    ? ''
+                    : ` · ${bereichLabel[bereichDerLeistungsart[note.kind]]}`}
                   {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
                 </span>
                 <span className="text-ink-faint text-sm">

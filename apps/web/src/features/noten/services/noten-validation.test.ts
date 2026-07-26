@@ -1,19 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { defaultWertungsbereich, isValueValid } from './noten-validation.ts';
-
-describe('defaultWertungsbereich', () => {
-  it('ordnet Klausur, Test und GFS dem schriftlichen Bereich zu', () => {
-    expect(defaultWertungsbereich('klausur')).toBe('schriftlich');
-    expect(defaultWertungsbereich('test')).toBe('schriftlich');
-    expect(defaultWertungsbereich('gfs')).toBe('schriftlich');
-  });
-
-  it('ordnet Mündlich und Sonstige dem mündlichen Bereich zu', () => {
-    expect(defaultWertungsbereich('muendlich')).toBe('muendlich');
-    expect(defaultWertungsbereich('sonstige')).toBe('muendlich');
-  });
-});
+import { isValueValid } from './noten-validation.ts';
 
 describe('isValueValid', () => {
   it('sechser: erlaubt 1,00 bis 6,00 einschließlich Zwischenwerten', () => {

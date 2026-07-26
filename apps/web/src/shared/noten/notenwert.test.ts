@@ -1,26 +1,22 @@
 import { describe, expect, it } from 'bun:test';
 
-import type { Assessment, Fachgewichtung } from './notenwert.ts';
-import { fachAverage, toNotenpunkte, toSechser } from './notenwert.ts';
+import {
+  bereichDerLeistungsart,
+  toNotenpunkte,
+  toSechser,
+} from './notenwert.ts';
 
-const equallyWeighted: Fachgewichtung = {
-  writtenShare: null,
-  kindWeights: {
-    klausur: 1,
-    test: 1,
-    muendlich: 1,
-    gfs: 1,
-    sonstige: 1,
-  },
-};
+describe('bereichDerLeistungsart', () => {
+  it('ordnet Klausur, Test und GFS dem schriftlichen Bereich zu', () => {
+    expect(bereichDerLeistungsart.klausur).toBe('schriftlich');
+    expect(bereichDerLeistungsart.test).toBe('schriftlich');
+    expect(bereichDerLeistungsart.gfs).toBe('schriftlich');
+  });
 
-const assessment = (
-  partial: Partial<Assessment> & { notenwert: number },
-): Assessment => ({
-  individualGewichtung: 1,
-  leistungsart: 'klausur',
-  wertungsbereich: 'schriftlich',
-  ...partial,
+  it('ordnet Mündlich und Sonstige dem mündlichen Bereich zu', () => {
+    expect(bereichDerLeistungsart.muendlich).toBe('muendlich');
+    expect(bereichDerLeistungsart.sonstige).toBe('muendlich');
+  });
 });
 
 describe('toNotenpunkte / toSechser', () => {
@@ -79,62 +75,5 @@ describe('toNotenpunkte / toSechser', () => {
     for (const note of [0.75, 1, 1.5, 2.25, 3, 4.75, 5.5, 6]) {
       expect(toSechser(toNotenpunkte(note, 'sechser'))).toBeCloseTo(note);
     }
-  });
-});
-
-describe('fachAverage', () => {
-  it('leere Liste ergibt null', () => {
-    expect(fachAverage([], equallyWeighted)).toBeNull();
-  });
-
-  it('gemeinsame Liste: gewichtetes Mittel über Art und Einzelgewicht', () => {
-    const gewichtung: Fachgewichtung = {
-      writtenShare: null,
-      kindWeights: {
-        ...equallyWeighted.kindWeights,
-        klausur: 2,
-      },
-    };
-    const average = fachAverage(
-      [
-        assessment({ notenwert: 2, leistungsart: 'klausur' }),
-        assessment({
-          notenwert: 4,
-          leistungsart: 'muendlich',
-          wertungsbereich: 'muendlich',
-        }),
-      ],
-      gewichtung,
-    );
-    expect(average).toBeCloseTo((2 * 2 + 4) / 3);
-  });
-
-  it('bereichsweise: verkündeter schriftlich-Anteil gilt', () => {
-    const gewichtung: Fachgewichtung = {
-      ...equallyWeighted,
-      writtenShare: 60,
-    };
-    const average = fachAverage(
-      [
-        assessment({ notenwert: 2 }),
-        assessment({
-          notenwert: 3,
-          leistungsart: 'muendlich',
-          wertungsbereich: 'muendlich',
-        }),
-      ],
-      gewichtung,
-    );
-    expect(average).toBeCloseTo(2 * 0.6 + 3 * 0.4);
-  });
-
-  it('fehlt ein Bereich, zählt der vorhandene allein', () => {
-    const gewichtung: Fachgewichtung = {
-      ...equallyWeighted,
-      writtenShare: 60,
-    };
-    expect(
-      fachAverage([assessment({ notenwert: 2.5 })], gewichtung),
-    ).toBeCloseTo(2.5);
   });
 });

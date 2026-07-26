@@ -1,10 +1,9 @@
+import { fachAverage } from '#/shared/noten/fach-aggregation.ts';
 import type {
   Assessment,
   Fachgewichtung,
   Leistungsart,
-  Wertungsbereich,
 } from '#/shared/noten/notenwert.ts';
-import { fachAverage } from '#/shared/noten/notenwert.ts';
 
 export type TrendNote = {
   readonly date: string;
@@ -14,7 +13,6 @@ export type TrendNote = {
   readonly fachSnapshotId: string;
   readonly fachShortName: string;
   readonly leistungsart: Leistungsart;
-  readonly wertungsbereich: Wertungsbereich;
   readonly fachGewichtung: Fachgewichtung;
 };
 
@@ -54,7 +52,6 @@ export const calculateTrend = (
       notenwert: note.notenpunkte,
       individualGewichtung: note.individualGewichtung,
       leistungsart: note.leistungsart,
-      wertungsbereich: note.wertungsbereich,
     });
     byFach.set(note.fachSnapshotId, fach);
     const fachAverages = [...byFach.values()].flatMap(

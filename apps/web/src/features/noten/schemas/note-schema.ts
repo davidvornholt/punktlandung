@@ -1,5 +1,7 @@
 import { Schema } from 'effect';
 
+import { leistungsarten } from '#/shared/noten/notenwert.ts';
+
 export const notenLimits = {
   maxGewichtung: 10,
   gewichtungStep: 0.25,
@@ -10,21 +12,11 @@ export const notenLimits = {
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
-const Leistungsart = Schema.Literal(
-  'klausur',
-  'test',
-  'muendlich',
-  'gfs',
-  'sonstige',
-);
-
-const Wertungsbereich = Schema.Literal('schriftlich', 'muendlich');
+const Leistungsart = Schema.Literal(...leistungsarten);
 
 const NotenFields = Schema.Struct({
   subjectId: Schema.String,
   kind: Leistungsart,
-  /** Ohne Angabe leitet der Service den Bereich aus der Leistungsart ab. */
-  area: Schema.optional(Wertungsbereich),
   /** Nativer Wert; die Systemprüfung übernimmt der Service anhand des Halbjahrs. */
   wert: Schema.Number,
   gewicht: Schema.Number.pipe(
