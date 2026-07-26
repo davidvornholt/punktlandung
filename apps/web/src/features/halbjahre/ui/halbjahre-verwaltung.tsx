@@ -1,22 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
-import { useFormFocus } from '#/shared/ui/form-focus.ts';
+import { restoreFormFocus, useFormFocus } from '#/shared/ui/form-focus.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { determineQueryState } from '#/shared/ui/query-state-model.ts';
-import type { HalbjahrEingabe } from '../schemas/halbjahr-schema.ts';
-import {
-  createHalbjahrFn,
-  deleteHalbjahrFn,
-  halbjahreQueryOptions,
-  updateHalbjahrFn,
-} from '../server/halbjahr-fns.ts';
+import { halbjahreQueryOptions } from '../server/halbjahr-fns.ts';
 import type { HalbjahrMitNotenAnzahl } from '../services/halbjahr-service.ts';
+import { halbjahrDeletionSuccessMessage } from './halbjahr-deletion-model.ts';
 import { HalbjahrForm } from './halbjahr-form.tsx';
 import { HalbjahrListe } from './halbjahr-liste.tsx';
+import { useHalbjahrMutations } from './halbjahr-mutations.ts';
 
 const bearbeitungskennung = (
   bearbeitung: HalbjahrMitNotenAnzahl | 'neu' | null,
@@ -47,39 +43,36 @@ const halbjahrFormularFehler = (
 };
 
 export const HalbjahreVerwaltung = () => {
-  const queryClient = useQueryClient();
   const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
   const [bearbeitung, setBearbeitung] = useState<
     HalbjahrMitNotenAnzahl | 'neu' | null
   >(null);
+  const [deletionStatus, setDeletionStatus] = useState('');
+  const deletionFocusTargetRef = useRef<HTMLButtonElement | null>(null);
   const formularKennung = bearbeitungskennung(bearbeitung);
   const fokus = useFormFocus(formularKennung);
 
-  const schliesseNachErfolg = () => {
-    setBearbeitung(null);
-    return queryClient.invalidateQueries({ queryKey: ['halbjahre'] });
-  };
-  const anlegen = useMutation({
-    mutationFn: (werte: HalbjahrEingabe) => createHalbjahrFn({ data: werte }),
-    onSuccess: schliesseNachErfolg,
-  });
-  const aendern = useMutation({
-    mutationFn: (werte: HalbjahrEingabe & { readonly id: string }) =>
-      updateHalbjahrFn({ data: werte }),
-    onSuccess: schliesseNachErfolg,
-  });
-  const loeschen = useMutation({
-    mutationFn: (id: string) => deleteHalbjahrFn({ data: { id } }),
-    onSuccess: (_ergebnis, id) => {
-      setBearbeitung((offen) =>
-        offen !== null && offen !== 'neu' && offen.id === id ? null : offen,
+  useEffect(() => {
+    if (deletionStatus !== '') {
+      restoreFormFocus(
+        deletionFocusTargetRef.current,
+        fokus.fallbackTriggerRef.current,
       );
-      // Mit dem letzten Halbjahr eines Schuljahrs entfällt dessen Fachstand.
-      return Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['halbjahre'] }),
-        queryClient.invalidateQueries({ queryKey: ['faecher'] }),
-      ]);
+    }
+  }, [deletionStatus, fokus.fallbackTriggerRef]);
+
+  const { aendern, anlegen, loeschen } = useHalbjahrMutations({
+    onDeleted: (request) => {
+      const { halbjahr } = request;
+      deletionFocusTargetRef.current = request.focusTarget;
+      setBearbeitung((offen) =>
+        offen !== null && offen !== 'neu' && offen.id === halbjahr.id
+          ? null
+          : offen,
+      );
+      setDeletionStatus(halbjahrDeletionSuccessMessage(halbjahr));
     },
+    onEditorClose: () => setBearbeitung(null),
   });
   const halbjahre = halbjahreAbfrage.data;
   const queryState = determineQueryState({
@@ -92,6 +85,9 @@ export const HalbjahreVerwaltung = () => {
 
   return (
     <section>
+      <p className="sr-only" role="status">
+        {deletionStatus}
+      </p>
       <div className="flex items-end justify-between gap-4">
         <h2 className="font-display text-2xl text-ink tracking-tight">
           Halbjahre
@@ -154,16 +150,21 @@ export const HalbjahreVerwaltung = () => {
       {queryState === 'success' && halbjahre !== undefined ? (
         <HalbjahrListe
           halbjahre={halbjahre}
-          loeschung={loeschen}
+          loeschung={{
+            error: loeschen.error,
+            isError: loeschen.isError,
+            isPending: loeschen.isPending,
+            variables: loeschen.variables?.halbjahr.id,
+          }}
           onBearbeiten={(halbjahr, ausloeser) => {
             fokus.rememberTrigger(ausloeser);
             anlegen.reset();
             aendern.reset();
             setBearbeitung(halbjahr);
           }}
-          onLoeschen={(id) => {
+          onLoeschen={(request) => {
             loeschen.reset();
-            loeschen.mutate(id);
+            loeschen.mutate(request);
           }}
         />
       ) : null}
