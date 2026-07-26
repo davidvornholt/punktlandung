@@ -6,10 +6,14 @@ import {
 } from '../errors/halbjahr-errors.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import type { HalbjahrDeletionRequest } from './halbjahr-deletion-model.ts';
+import type { HalbjahrOperations } from './halbjahr-operations.ts';
 
 type DeletionOptions = {
   readonly mutationFn: (request: HalbjahrDeletionRequest) => Promise<unknown>;
-  readonly onError: (error: unknown) => Promise<unknown> | undefined;
+  readonly onError: (
+    error: unknown,
+    request: HalbjahrDeletionRequest,
+  ) => Promise<unknown> | undefined;
   readonly onSuccess: (
     result: unknown,
     request: HalbjahrDeletionRequest,
@@ -19,7 +23,13 @@ type DeletionOptions = {
 let mutationCall = 0;
 let deletionOptions: DeletionOptions | null = null;
 const invalidateQueries = mock((_options: unknown) => Promise.resolve());
-const deleteHalbjahrFn = mock(() => Promise.resolve());
+const deleteHalbjahr = mock(() => Promise.resolve());
+const operations: HalbjahrOperations = {
+  create: mock(() => Promise.resolve()),
+  delete: deleteHalbjahr,
+  list: mock(() => Promise.resolve([])),
+  update: mock(() => Promise.resolve()),
+};
 
 mock.module('@tanstack/react-query', () => ({
   useMutation: (options: unknown) => {
@@ -30,11 +40,6 @@ mock.module('@tanstack/react-query', () => ({
     return {};
   },
   useQueryClient: () => ({ invalidateQueries }),
-}));
-mock.module('../server/halbjahr-fns.ts', () => ({
-  createHalbjahrFn: mock(() => Promise.resolve()),
-  deleteHalbjahrFn,
-  updateHalbjahrFn: mock(() => Promise.resolve()),
 }));
 
 const { useHalbjahrMutations } = await import('./halbjahr-mutations.ts');
@@ -53,6 +58,10 @@ const request: HalbjahrDeletionRequest = {
   adjacentFocusTarget: null,
   deletionTrigger: {} as HTMLButtonElement,
   expectedFinalInSchoolYear: true,
+  focusOwnership: {
+    isOwned: mock(() => true),
+    release: mock(() => undefined),
+  },
   halbjahr,
 };
 
@@ -64,6 +73,7 @@ const registerDeletion = (
   useHalbjahrMutations({
     onDeleted,
     onEditorClose: () => undefined,
+    operations,
   });
   if (deletionOptions === null) {
     throw new Error('Deletion mutation was not registered.');
@@ -82,8 +92,9 @@ describe('useHalbjahrMutations deletion', () => {
     const deletion = registerDeletion(onDeleted);
 
     await deletion.mutationFn(request);
-    expect(deleteHalbjahrFn).toHaveBeenCalledWith({
-      data: { expectedFinalInSchoolYear: true, id: 'target' },
+    expect(deleteHalbjahr).toHaveBeenCalledWith({
+      expectedFinalInSchoolYear: true,
+      id: 'target',
     });
 
     const refresh = deletion.onError(
@@ -91,6 +102,7 @@ describe('useHalbjahrMutations deletion', () => {
         halbjahrId: 'target',
         notenCount: 2,
       }),
+      request,
     );
     if (refresh === undefined) {
       throw new Error('Protected rejection did not request a refresh.');
@@ -107,6 +119,7 @@ describe('useHalbjahrMutations deletion', () => {
         expectedFinalInSchoolYear: false,
         halbjahrId: 'target',
       }),
+      request,
     );
     if (consequenceRefresh === undefined) {
       throw new Error('Stale consequence rejection did not request a refresh.');
@@ -117,7 +130,7 @@ describe('useHalbjahrMutations deletion', () => {
     });
 
     invalidateQueries.mockClear();
-    expect(deletion.onError(new Error('offline'))).toBeUndefined();
+    expect(deletion.onError(new Error('offline'), request)).toBeUndefined();
     expect(invalidateQueries).not.toHaveBeenCalled();
   });
 

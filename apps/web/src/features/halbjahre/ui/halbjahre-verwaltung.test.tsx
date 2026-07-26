@@ -9,6 +9,7 @@ mock.module('../server/halbjahr-fns.ts', () => ({
     queryFn: () => new Promise(() => undefined),
     queryKey: ['halbjahre'],
   },
+  listHalbjahreFn: mock(() => new Promise(() => undefined)),
   updateHalbjahrFn: mock(() => Promise.resolve()),
 }));
 

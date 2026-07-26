@@ -1,22 +1,19 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { HalbjahrEingabe } from '../schemas/halbjahr-schema.ts';
-import {
-  createHalbjahrFn,
-  deleteHalbjahrFn,
-  updateHalbjahrFn,
-} from '../server/halbjahr-fns.ts';
 import {
   type HalbjahrDeletionRequest,
   isProtectedHalbjahrDeletionError,
 } from './halbjahr-deletion-model.ts';
+import type { HalbjahrOperations } from './halbjahr-operations.ts';
 
 export const useHalbjahrMutations = ({
   onDeleted,
   onEditorClose,
+  operations,
 }: {
   readonly onDeleted: (request: HalbjahrDeletionRequest) => void;
   readonly onEditorClose: () => void;
+  readonly operations: HalbjahrOperations;
 }) => {
   const queryClient = useQueryClient();
   const closeAfterSuccess = () => {
@@ -24,12 +21,11 @@ export const useHalbjahrMutations = ({
     return queryClient.invalidateQueries({ queryKey: ['halbjahre'] });
   };
   const createMutation = useMutation({
-    mutationFn: (values: HalbjahrEingabe) => createHalbjahrFn({ data: values }),
+    mutationFn: operations.create,
     onSuccess: closeAfterSuccess,
   });
   const updateMutation = useMutation({
-    mutationFn: (values: HalbjahrEingabe & { readonly id: string }) =>
-      updateHalbjahrFn({ data: values }),
+    mutationFn: operations.update,
     onSuccess: closeAfterSuccess,
   });
   const deleteMutation = useMutation({
@@ -37,13 +33,13 @@ export const useHalbjahrMutations = ({
       expectedFinalInSchoolYear,
       halbjahr,
     }: HalbjahrDeletionRequest) =>
-      deleteHalbjahrFn({
-        data: { expectedFinalInSchoolYear, id: halbjahr.id },
-      }),
-    onError: (error) =>
-      isProtectedHalbjahrDeletionError(error)
+      operations.delete({ expectedFinalInSchoolYear, id: halbjahr.id }),
+    onError: (error, request) => {
+      request.focusOwnership.release();
+      return isProtectedHalbjahrDeletionError(error)
         ? queryClient.invalidateQueries({ queryKey: ['halbjahre'] })
-        : undefined,
+        : undefined;
+    },
     onSuccess: (_result, request: HalbjahrDeletionRequest) => {
       onDeleted(request);
       // Mit dem letzten Halbjahr eines Schuljahrs entfällt dessen Fachstand.

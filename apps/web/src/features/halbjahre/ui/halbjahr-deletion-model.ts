@@ -5,6 +5,7 @@ export type HalbjahrDeletionRequest = {
   readonly adjacentFocusTarget: HTMLButtonElement | null;
   readonly deletionTrigger: HTMLButtonElement;
   readonly expectedFinalInSchoolYear: boolean;
+  readonly focusOwnership: HalbjahrDeletionFocusOwnership;
   readonly halbjahr: HalbjahrWithNotenCount;
 };
 
@@ -86,26 +87,63 @@ type FocusTarget = {
   readonly isConnected: boolean;
 };
 
+export type HalbjahrDeletionFocusOwnership = {
+  readonly isOwned: () => boolean;
+  readonly release: () => void;
+};
+
+export const captureHalbjahrDeletionFocus = (
+  deletionTrigger: HTMLButtonElement,
+): HalbjahrDeletionFocusOwnership => {
+  let isOwned = document.activeElement === deletionTrigger;
+  let isReleased = false;
+  const relinquishForConnectedDestination = (event: FocusEvent) => {
+    const { target } = event;
+    if (
+      target instanceof Element &&
+      target !== deletionTrigger &&
+      target.isConnected
+    ) {
+      isOwned = false;
+    }
+  };
+  document.addEventListener('focusin', relinquishForConnectedDestination);
+
+  return {
+    isOwned: () => isOwned,
+    release: () => {
+      if (isReleased) {
+        return;
+      }
+      isReleased = true;
+      document.removeEventListener(
+        'focusin',
+        relinquishForConnectedDestination,
+      );
+    },
+  };
+};
+
 export const restoreHalbjahrDeletionFocus = ({
-  activeElement,
   adjacentTarget,
   createTrigger,
-  deletionTrigger,
+  focusOwnership,
   formControl,
 }: {
-  readonly activeElement: Element | null;
   readonly adjacentTarget: FocusTarget | null;
   readonly createTrigger: FocusTarget | null;
-  readonly deletionTrigger: HTMLButtonElement;
+  readonly focusOwnership: HalbjahrDeletionFocusOwnership;
   readonly formControl: FocusTarget | null;
 }): boolean => {
-  if (activeElement !== deletionTrigger) {
+  if (!focusOwnership.isOwned()) {
+    focusOwnership.release();
     return false;
   }
   const target = [adjacentTarget, formControl, createTrigger].find(
     (candidate) => candidate?.isConnected,
   );
   target?.focus();
+  focusOwnership.release();
   return target !== undefined;
 };
 

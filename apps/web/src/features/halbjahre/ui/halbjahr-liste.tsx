@@ -51,7 +51,7 @@ export const HalbjahrRow = ({
   readonly onBearbeiten: (trigger: HTMLButtonElement) => void;
   readonly onDecisionChange: (decision: HalbjahrDeletionDecision) => void;
   readonly onDelete: (
-    request: Omit<HalbjahrDeletionRequest, 'halbjahr'>,
+    request: Omit<HalbjahrDeletionRequest, 'focusOwnership' | 'halbjahr'>,
   ) => void;
 }) => (
   <li
@@ -173,7 +173,9 @@ export const HalbjahrListe = ({
     halbjahr: HalbjahrWithNotenCount,
     trigger: HTMLButtonElement,
   ) => void;
-  readonly onDelete: (request: HalbjahrDeletionRequest) => void;
+  readonly onDelete: (
+    request: Omit<HalbjahrDeletionRequest, 'focusOwnership'>,
+  ) => void;
 }) => (
   <ul className="mt-4 space-y-3">
     {halbjahre.map((halbjahr) => {
