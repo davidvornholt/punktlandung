@@ -3,46 +3,46 @@ import { Schema } from 'effect';
 import { FachgewichtungSchema } from '#/shared/noten/fach-gewichtung.ts';
 
 /** Eingabegrenzen — auch die Formulare nutzen sie für ihre Attribute. */
-export const fachGrenzen = {
+export const fachLimits = {
   nameMax: 100,
-  kuerzelMax: 10,
+  maxShortName: 10,
 } as const;
 
-export const FachFelder = Schema.Struct({
+export const FachFields = Schema.Struct({
   name: Schema.String.pipe(
     Schema.minLength(1),
-    Schema.maxLength(fachGrenzen.nameMax),
+    Schema.maxLength(fachLimits.nameMax),
   ),
   shortName: Schema.String.pipe(
     Schema.minLength(1),
-    Schema.maxLength(fachGrenzen.kuerzelMax),
+    Schema.maxLength(fachLimits.maxShortName),
   ),
   gewichtung: FachgewichtungSchema,
 });
 
-export type FachFelder = typeof FachFelder.Type;
+export type FachFields = typeof FachFields.Type;
 
-export const FachEingabe = Schema.Struct({
+export const FachInput = Schema.Struct({
   schoolYear: Schema.String,
-  ...FachFelder.fields,
+  ...FachFields.fields,
 });
 
-export type FachEingabe = typeof FachEingabe.Type;
+export type FachInput = typeof FachInput.Type;
 
-export const FachAktualisierung = Schema.Struct({
+export const FachUpdate = Schema.Struct({
   id: Schema.String,
-  ...FachEingabe.fields,
+  ...FachInput.fields,
 });
 
-export type FachAktualisierung = typeof FachAktualisierung.Type;
+export type FachUpdate = typeof FachUpdate.Type;
 
-export const FachKennung = Schema.Struct({
+export const FachId = Schema.Struct({
   id: Schema.String,
   schoolYear: Schema.String,
 });
 
-export type FachKennung = typeof FachKennung.Type;
+export type FachId = typeof FachId.Type;
 
-export const FaecherAbfrage = Schema.Struct({
+export const FaecherQuery = Schema.Struct({
   schoolYear: Schema.String,
 });

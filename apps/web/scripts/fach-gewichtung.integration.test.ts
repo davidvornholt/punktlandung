@@ -4,8 +4,8 @@ import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect, Schema } from 'effect';
 
 import {
-  FachAktualisierung,
-  FachEingabe,
+  FachInput,
+  FachUpdate,
 } from '#/features/faecher/schemas/fach-schema.ts';
 import {
   createFach,
@@ -13,7 +13,7 @@ import {
 } from '#/features/faecher/services/fach-service.ts';
 import { migrateDatabase } from '#/shared/db/migrate.ts';
 import {
-  gewichtungsGrenzen,
+  gewichtungLimits,
   standardgewichtung,
 } from '#/shared/noten/fach-gewichtung.ts';
 import {
@@ -21,14 +21,14 @@ import {
   withPostgresTestDatabase,
 } from './postgres-test-database.ts';
 
-const mittleresTestgewicht = 3.75;
-const ungueltigeTestgewichte = [
-  gewichtungsGrenzen.gewichtSchritt,
-  mittleresTestgewicht,
-  gewichtungsGrenzen.gewichtMax,
+const middleTestGewichtung = 3.75;
+const invalidTestGewichtungen = [
+  gewichtungLimits.gewichtungStep,
+  middleTestGewichtung,
+  gewichtungLimits.maxGewichtung,
 ] as const;
 
-const mitTestgewicht = (gewicht: number) => ({
+const withTestGewichtung = (gewichtung: number) => ({
   schoolYear: '2026/27',
   name: 'Mathematik',
   shortName: 'M',
@@ -36,18 +36,16 @@ const mitTestgewicht = (gewicht: number) => ({
     ...standardgewichtung,
     arten: {
       ...standardgewichtung.arten,
-      test: { gewicht, sammlung: 'gesammelt' },
+      test: { gewicht: gewichtung, sammlung: 'gesammelt' },
     },
   },
 });
 
-const createValidatedFach = (roh: unknown) =>
-  Schema.decodeUnknown(FachEingabe)(roh).pipe(Effect.flatMap(createFach));
+const createValidatedFach = (raw: unknown) =>
+  Schema.decodeUnknown(FachInput)(raw).pipe(Effect.flatMap(createFach));
 
-const updateValidatedFach = (roh: unknown) =>
-  Schema.decodeUnknown(FachAktualisierung)(roh).pipe(
-    Effect.flatMap(updateFach),
-  );
+const updateValidatedFach = (raw: unknown) =>
+  Schema.decodeUnknown(FachUpdate)(raw).pipe(Effect.flatMap(updateFach));
 
 describe('Fachgewichtung an der Persistenzgrenze', () => {
   it('schreibt ungültige gesammelte Testgewichte in keine Gewichtungsspalte', () =>
@@ -63,32 +61,34 @@ describe('Fachgewichtung an der Persistenzgrenze', () => {
       ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
 
       await Promise.all(
-        ungueltigeTestgewichte.map((gewicht) =>
-          provided(Effect.flip(createValidatedFach(mitTestgewicht(gewicht)))),
+        invalidTestGewichtungen.map((gewichtung) =>
+          provided(
+            Effect.flip(createValidatedFach(withTestGewichtung(gewichtung))),
+          ),
         ),
       );
 
-      const vorAnlage = await pool.query<{ readonly anzahl: string }>(
-        'SELECT count(*) AS anzahl FROM subject',
+      const beforeCreate = await pool.query<{ readonly count: string }>(
+        'SELECT count(*) AS count FROM subject',
       );
-      expect(vorAnlage.rows[0]?.anzahl).toBe('0');
+      expect(beforeCreate.rows[0]?.count).toBe('0');
 
-      await provided(createValidatedFach(mitTestgewicht(1)));
-      const fach = await pool.query<{ readonly id: string }>(
+      await provided(createValidatedFach(withTestGewichtung(1)));
+      const fachRows = await pool.query<{ readonly id: string }>(
         'SELECT id FROM subject',
       );
-      const fachId = fach.rows[0]?.id;
+      const fachId = fachRows.rows[0]?.id;
       expect(fachId).toBeString();
       if (fachId === undefined) {
         throw new Error('Angelegtes Fach fehlt.');
       }
 
       await Promise.all(
-        ungueltigeTestgewichte.map((gewicht) =>
+        invalidTestGewichtungen.map((gewichtung) =>
           provided(
             Effect.flip(
               updateValidatedFach({
-                ...mitTestgewicht(gewicht),
+                ...withTestGewichtung(gewichtung),
                 id: fachId,
               }),
             ),
@@ -96,12 +96,12 @@ describe('Fachgewichtung an der Persistenzgrenze', () => {
         ),
       );
 
-      const gewichte = await pool.query<{ readonly weighting: unknown }>(`
+      const weightingRows = await pool.query<{ readonly weighting: unknown }>(`
         SELECT weighting FROM subject
         UNION ALL
         SELECT weighting FROM school_year_subject
       `);
-      expect(gewichte.rows.map(({ weighting }) => weighting)).toEqual([
+      expect(weightingRows.rows.map(({ weighting }) => weighting)).toEqual([
         standardgewichtung,
         standardgewichtung,
       ]);

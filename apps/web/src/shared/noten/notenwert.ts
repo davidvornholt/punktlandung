@@ -1,7 +1,6 @@
 /**
  * Reine Notenmathematik. Zwei Systeme: "sechser" (1–6, kleiner ist besser)
- * und "punkte" (Notenpunkte 0–15, größer ist besser). Amtliche Umrechnung:
- * Punkte = 17 − 3 × Note.
+ * und "punkte" (Notenpunkte 0–15, größer ist besser).
  */
 
 export type Notensystem = 'sechser' | 'punkte';
@@ -44,11 +43,11 @@ export const bereichDerLeistungsart: Readonly<
  */
 export type Sammlung = 'einzeln' | 'gesammelt';
 
-export type Leistung = {
-  readonly value: number;
+export type Assessment = {
+  readonly notenwert: number;
   /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */
-  readonly weight: number;
-  readonly kind: Leistungsart;
+  readonly individualGewichtung: number;
+  readonly leistungsart: Leistungsart;
 };
 
 /** Gewichtung einer Leistungsart, wie von der Lehrkraft verkündet. */
@@ -73,120 +72,76 @@ export type Fachgewichtung = {
   readonly arten: Readonly<Record<Leistungsart, Artgewichtung>>;
 };
 
-/** Amtliche Umrechnungskonstanten: Punkte = 17 − 3 × Note. */
-const umrechnungsBasis = 17;
-const punkteProNotenstufe = 3;
-const punkteMin = 0;
-const punkteMax = 15;
+const minNotenpunkte = 0;
+const maxNotenpunkte = 15;
+
+type ConversionAnchor = {
+  readonly input: number;
+  readonly output: number;
+};
+
+/**
+ * Baden-Württemberg vergibt ganze Notenpunkte nach Notentendenz. Die
+ * Dezimalwerte links sind die Viertelnoten, mit denen die App diese Tendenzen
+ * im Sechsersystem erfasst; sie selbst sind keine amtliche Umrechnungstabelle.
+ */
+const sechserToNotenpunkteAnchors: ReadonlyArray<ConversionAnchor> = [
+  { input: 0.75, output: 15 },
+  { input: 1, output: 14 },
+  { input: 1.25, output: 13 },
+  { input: 1.75, output: 12 },
+  { input: 2, output: 11 },
+  { input: 2.25, output: 10 },
+  { input: 2.75, output: 9 },
+  { input: 3, output: 8 },
+  { input: 3.25, output: 7 },
+  { input: 3.75, output: 6 },
+  { input: 4, output: 5 },
+  { input: 4.25, output: 4 },
+  { input: 4.75, output: 3 },
+  { input: 5, output: 2 },
+  { input: 5.25, output: 1 },
+  { input: 6, output: 0 },
+];
+
+const notenpunkteToSechserAnchors: ReadonlyArray<ConversionAnchor> = [
+  ...sechserToNotenpunkteAnchors,
+]
+  .reverse()
+  .map(({ input, output }) => ({ input: output, output: input }));
+
+const interpolate = (
+  value: number,
+  anchors: ReadonlyArray<ConversionAnchor>,
+): number => {
+  if (Number.isNaN(value)) {
+    return value;
+  }
+  const [first] = anchors;
+  const last = anchors.at(-1);
+  if (first === undefined || last === undefined) {
+    return value;
+  }
+  if (value <= first.input) {
+    return first.output;
+  }
+  for (let index = 1; index < anchors.length; index += 1) {
+    const left = anchors[index - 1];
+    const right = anchors[index];
+    if (left !== undefined && right !== undefined && value <= right.input) {
+      const position = (value - left.input) / (right.input - left.input);
+      return left.output + position * (right.output - left.output);
+    }
+  }
+  return last.output;
+};
 
 /** Normalisiert einen nativen Wert auf die Punkteskala (0–15, dezimal). */
-export const zuPunkten = (value: number, system: Notensystem): number => {
-  const punkte =
-    system === 'punkte'
-      ? value
-      : umrechnungsBasis - punkteProNotenstufe * value;
-  return Math.min(punkteMax, Math.max(punkteMin, punkte));
-};
+export const toNotenpunkte = (value: number, system: Notensystem): number =>
+  system === 'punkte'
+    ? Math.min(maxNotenpunkte, Math.max(minNotenpunkte, value))
+    : interpolate(value, sechserToNotenpunkteAnchors);
 
 /** Rechnet einen Punktewert (dezimal) in die Sechserskala um. */
-export const zuSechser = (punkte: number): number =>
-  (umrechnungsBasis - punkte) / punkteProNotenstufe;
-
-/** Ein wertbarer Posten: eine Einzelnote oder eine gemittelte Sammelnote. */
-type Contribution = {
-  readonly value: number;
-  readonly weight: number;
-};
-
-const average = (items: ReadonlyArray<Contribution>): number | null => {
-  let sum = 0;
-  let weights = 0;
-  for (const contribution of items) {
-    sum += contribution.value * contribution.weight;
-    weights += contribution.weight;
-  }
-  return weights === 0 ? null : sum / weights;
-};
-
-/**
- * Die eine Note, mit der eine gesammelte Leistungsart antritt: das Mittel
- * ihrer Einzelnoten. Auch die Vorschau im Formular zeigt genau diesen Wert.
- */
-export const sammelnote = (noten: ReadonlyArray<Leistung>): number | null =>
-  average(noten.map((note) => ({ value: note.value, weight: note.weight })));
-
-const contributionsOfArt = (
-  noten: ReadonlyArray<Leistung>,
-  art: Artgewichtung,
-): ReadonlyArray<Contribution> => {
-  if (art.sammlung === 'einzeln') {
-    return noten.map((note) => ({
-      value: note.value,
-      weight: note.weight * art.gewicht,
-    }));
-  }
-  const gesammelt = sammelnote(noten);
-  return gesammelt === null ? [] : [{ value: gesammelt, weight: art.gewicht }];
-};
-
-/** Alle Beiträge eines Bereichs; `null` sammelt über alle Bereiche hinweg. */
-const contributions = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
-  bereich: Wertungsbereich | null,
-): ReadonlyArray<Contribution> =>
-  leistungsarten.flatMap((kind) => {
-    if (bereich !== null && bereichDerLeistungsart[kind] !== bereich) {
-      return [];
-    }
-    return contributionsOfArt(
-      leistungen.filter((leistung) => leistung.kind === kind),
-      gewichtung.arten[kind],
-    );
-  });
-
-export type Fachauswertung = {
-  /** Fachschnitt im nativen System; null, solange nichts zählt. */
-  readonly schnitt: number | null;
-  readonly schriftlich: number | null;
-  readonly muendlich: number | null;
-};
-
-/**
- * Wertet ein Fach vollständig aus: die beiden Bereichsschnitte und daraus den
- * Fachschnitt — entweder als eine gemeinsame gewichtete Liste oder nach dem
- * verkündeten Verhältnis. Ein Bereich ohne Noten oder ohne Anteil zählt nicht
- * mit, sodass der vorhandene Bereich allein steht.
- */
-export const fachauswertung = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
-): Fachauswertung => {
-  const schriftlich = average(
-    contributions(leistungen, gewichtung, 'schriftlich'),
-  );
-  const muendlich = average(contributions(leistungen, gewichtung, 'muendlich'));
-  const { verhaeltnis } = gewichtung;
-  if (verhaeltnis === null) {
-    return {
-      schnitt: average(contributions(leistungen, gewichtung, null)),
-      schriftlich,
-      muendlich,
-    };
-  }
-  const bereichContributions = [
-    { value: schriftlich, weight: verhaeltnis.schriftlich },
-    { value: muendlich, weight: verhaeltnis.muendlich },
-  ].flatMap((contribution) =>
-    contribution.value === null || contribution.weight <= 0
-      ? []
-      : [{ value: contribution.value, weight: contribution.weight }],
-  );
-  return { schnitt: average(bereichContributions), schriftlich, muendlich };
-};
-
-/** Fachschnitt im nativen System des Halbjahrs. */
-export const fachschnitt = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
-): number | null => fachauswertung(leistungen, gewichtung).schnitt;
+export const toSechser = (notenpunkte: number): number =>
+  interpolate(notenpunkte, notenpunkteToSechserAnchors);

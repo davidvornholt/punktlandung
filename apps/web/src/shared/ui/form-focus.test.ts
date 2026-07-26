@@ -2,29 +2,29 @@ import { describe, expect, it, mock } from 'bun:test';
 
 import { restoreFormFocus } from './form-focus.ts';
 
-const fokusziel = (isConnected: boolean) => ({
+const focusTarget = (isConnected: boolean) => ({
   focus: mock(() => undefined),
   isConnected,
 });
 
 describe('restoreFormFocus', () => {
   it('behält den Fokus auf einem verbundenen Schuljahr-Select statt auf dem alten Formularauslöser', () => {
-    const schuljahrAuswahl = fokusziel(true);
-    const alterAusloeser = fokusziel(true);
+    const schoolYearOptions = focusTarget(true);
+    const previousTrigger = focusTarget(true);
 
-    restoreFormFocus(schuljahrAuswahl, alterAusloeser);
+    restoreFormFocus(schoolYearOptions, previousTrigger);
 
-    expect(schuljahrAuswahl.focus).toHaveBeenCalledTimes(1);
-    expect(alterAusloeser.focus).not.toHaveBeenCalled();
+    expect(schoolYearOptions.focus).toHaveBeenCalledTimes(1);
+    expect(previousTrigger.focus).not.toHaveBeenCalled();
   });
 
   it('nutzt den Ersatzauslöser, wenn das ursprüngliche Ziel entfernt wurde', () => {
-    const entfernterAusloeser = fokusziel(false);
-    const ersatzAusloeser = fokusziel(true);
+    const removedTrigger = focusTarget(false);
+    const replacementTrigger = focusTarget(true);
 
-    restoreFormFocus(entfernterAusloeser, ersatzAusloeser);
+    restoreFormFocus(removedTrigger, replacementTrigger);
 
-    expect(entfernterAusloeser.focus).not.toHaveBeenCalled();
-    expect(ersatzAusloeser.focus).toHaveBeenCalledTimes(1);
+    expect(removedTrigger.focus).not.toHaveBeenCalled();
+    expect(replacementTrigger.focus).toHaveBeenCalledTimes(1);
   });
 });

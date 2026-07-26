@@ -1,18 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 
-import { HeuteGelernt } from '#/features/lernen/ui/heute-gelernt.tsx';
-import { verlaufQueryOptions } from '#/features/noten/server/noten-fns.ts';
-import { Verlaufslinie } from '#/features/noten/ui/verlaufslinie.tsx';
-import { zuSechser } from '#/shared/noten/notenwert.ts';
+import { LearnedToday } from '#/features/lernen/ui/learned-today.tsx';
+import { trendQueryOptions } from '#/features/noten/server/noten-fns.ts';
+import { TrendChart } from '#/features/noten/ui/trend-chart.tsx';
+import { toSechser } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { StatCard } from '#/shared/ui/stat-card.tsx';
 
-const Uebersicht = () => {
-  const verlaufAbfrage = useQuery(verlaufQueryOptions);
-  if (verlaufAbfrage.isPending) {
+const Overview = () => {
+  const trendQuery = useQuery(trendQueryOptions);
+  if (trendQuery.isPending) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
@@ -24,7 +24,7 @@ const Uebersicht = () => {
       </>
     );
   }
-  if (verlaufAbfrage.isError) {
+  if (trendQuery.isError) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
@@ -32,15 +32,15 @@ const Uebersicht = () => {
         </h1>
         <div className="mt-6">
           <QueryError
-            onRetry={() => verlaufAbfrage.refetch()}
+            onRetry={() => trendQuery.refetch()}
             text="Die Übersicht konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
       </>
     );
   }
-  const verlauf = verlaufAbfrage.data;
-  const letzter = verlauf.at(-1);
+  const trend = trendQuery.data;
+  const last = trend.at(-1);
 
   return (
     <>
@@ -50,25 +50,23 @@ const Uebersicht = () => {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           detail={
-            letzter === undefined
+            last === undefined
               ? undefined
-              : `entspricht Note ${formatNote(zuSechser(letzter.schnitt), 'sechser')}`
+              : `entspricht Note ${formatNote(toSechser(last.schnitt), 'sechser')}`
           }
           label="Gesamtschnitt"
-          value={
-            letzter === undefined ? '—' : formatNote(letzter.schnitt, 'punkte')
-          }
+          value={last === undefined ? '—' : formatNote(last.schnitt, 'punkte')}
         />
-        <StatCard label="Anzahl Noten" value={`${verlauf.length}`} />
-        <HeuteGelernt />
+        <StatCard label="Anzahl Noten" value={`${trend.length}`} />
+        <LearnedToday />
       </div>
       <section className="mt-8">
         <h2 className="font-display text-2xl text-ink tracking-tight">
           Verlaufslinie
         </h2>
-        {verlauf.length > 0 ? (
+        {trend.length > 0 ? (
           <div className="mt-4 border border-border bg-surface p-4 shadow-card">
-            <Verlaufslinie eintraege={verlauf} />
+            <TrendChart entries={trend} />
           </div>
         ) : (
           <div className="mt-4 border border-border bg-surface-sunken p-8">
@@ -93,6 +91,6 @@ const Uebersicht = () => {
 };
 
 export const Route = createFileRoute('/_app/')({
-  component: Uebersicht,
+  component: Overview,
   head: () => ({ meta: [{ title: pageTitle('Übersicht') }] }),
 });

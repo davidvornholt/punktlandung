@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Fach } from '#/features/faecher/services/fach-service.ts';
-import { FachListe } from '#/features/faecher/ui/fach-liste.tsx';
-import type { NoteMitFach } from '#/features/noten/services/noten-service.ts';
-import { NotenKarten } from '#/features/noten/ui/noten-karten.tsx';
+import { FachList } from '#/features/faecher/ui/fach-list.tsx';
+import type { NoteWithFach } from '#/features/noten/services/noten-service.ts';
+import { NotenCards } from '#/features/noten/ui/noten-cards.tsx';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { ListMutation } from './list-mutation.ts';
 
-const verzoegerteAblehnung = () => {
-  let ablehnen: (fehler: unknown) => void = () => undefined;
-  const ergebnis = new Promise<void>((_aufloesen, ablehnung) => {
-    ablehnen = ablehnung;
+const delayedRejection = () => {
+  let reject: (error: unknown) => void = () => undefined;
+  const result = new Promise<void>((_resolve, rejection) => {
+    reject = rejection;
   });
-  return { ablehnen, ergebnis };
+  return { reject, result };
 };
 
 const fach = (id: string): Fach => ({
@@ -23,7 +23,7 @@ const fach = (id: string): Fach => ({
   sortOrder: id === 'A' ? 0 : 1,
 });
 
-const note = (id: string): NoteMitFach => ({
+const note = (id: string): NoteWithFach => ({
   datum: id === 'A' ? '2026-01-01' : '2026-01-02',
   fachId: 'mathematik',
   fachKuerzel: 'M',
@@ -36,68 +36,68 @@ const note = (id: string): NoteMitFach => ({
   wert: 2,
 });
 
-const ausstehend: ListMutation<string> = {
+const pending: ListMutation<string> = {
   error: null,
   isError: false,
   isPending: true,
   variables: 'A',
 };
 
-const fehlerposition = (markup: string) => ({
-  alarm: markup.indexOf('role="alert"'),
-  alarmAnzahl: markup.match(/role="alert"/gu)?.length ?? 0,
-  zielA: markup.indexOf('Ziel A'),
-  zielB: markup.indexOf('Ziel B'),
+const errorPosition = (markup: string) => ({
+  alert: markup.indexOf('role="alert"'),
+  alertCount: markup.match(/role="alert"/gu)?.length ?? 0,
+  targetA: markup.indexOf('Ziel A'),
+  targetB: markup.indexOf('Ziel B'),
 });
 
 describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
-  it('FachListe sperrt B während A und kündigt As verzögerten Fehler an', async () => {
-    const verzoegerung = verzoegerteAblehnung();
-    const laufVonA = verzoegerung.ergebnis.catch((ursache: unknown) => ursache);
+  it('FachList sperrt B während A und kündigt As verzögerten Fehler an', async () => {
+    const delay = delayedRejection();
+    const runFromA = delay.result.catch((cause: unknown) => cause);
     const faecher = [fach('A'), fach('B')];
     const pendingMarkup = renderToStaticMarkup(
-      <FachListe
-        archivierung={ausstehend}
+      <FachList
+        archiveMutation={pending}
         faecher={faecher}
-        onArchivieren={() => undefined}
-        onBearbeiten={() => undefined}
+        onArchive={() => undefined}
+        onEdit={() => undefined}
       />,
     );
 
     expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(2);
     expect(pendingMarkup.match(/Wird archiviert …/gu)).toHaveLength(1);
 
-    verzoegerung.ablehnen(new Error('A ist fehlgeschlagen'));
-    const fehler = await laufVonA;
-    const fehlerMarkup = renderToStaticMarkup(
-      <FachListe
-        archivierung={{
-          error: fehler,
+    delay.reject(new Error('A ist fehlgeschlagen'));
+    const error = await runFromA;
+    const errorMarkup = renderToStaticMarkup(
+      <FachList
+        archiveMutation={{
+          error,
           isError: true,
           isPending: false,
           variables: 'A',
         }}
         faecher={faecher}
-        onArchivieren={() => undefined}
-        onBearbeiten={() => undefined}
+        onArchive={() => undefined}
+        onEdit={() => undefined}
       />,
     );
-    const position = fehlerposition(fehlerMarkup);
-    expect(position.zielA).toBeGreaterThanOrEqual(0);
-    expect(position.alarm).toBeGreaterThan(position.zielA);
-    expect(position.zielB).toBeGreaterThan(position.alarm);
-    expect(position.alarmAnzahl).toBe(1);
+    const position = errorPosition(errorMarkup);
+    expect(position.targetA).toBeGreaterThanOrEqual(0);
+    expect(position.alert).toBeGreaterThan(position.targetA);
+    expect(position.targetB).toBeGreaterThan(position.alert);
+    expect(position.alertCount).toBe(1);
   });
 
-  it('NotenKarten sperrt B während A und kündigt As verzögerten Fehler an', async () => {
-    const verzoegerung = verzoegerteAblehnung();
-    const laufVonA = verzoegerung.ergebnis.catch((ursache: unknown) => ursache);
+  it('NotenCards sperrt B während A und kündigt As verzögerten Fehler an', async () => {
+    const delay = delayedRejection();
+    const runFromA = delay.result.catch((cause: unknown) => cause);
     const noten = [note('A'), note('B')];
     const pendingMarkup = renderToStaticMarkup(
-      <NotenKarten
-        loeschung={ausstehend}
+      <NotenCards
+        deleteMutation={pending}
         noten={noten}
-        onLoeschen={() => undefined}
+        onDelete={() => undefined}
         system="sechser"
       />,
     );
@@ -105,25 +105,25 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(2);
     expect(pendingMarkup.match(/Wird gelöscht …/gu)).toHaveLength(1);
 
-    verzoegerung.ablehnen(new Error('A ist fehlgeschlagen'));
-    const fehler = await laufVonA;
-    const fehlerMarkup = renderToStaticMarkup(
-      <NotenKarten
-        loeschung={{
-          error: fehler,
+    delay.reject(new Error('A ist fehlgeschlagen'));
+    const error = await runFromA;
+    const errorMarkup = renderToStaticMarkup(
+      <NotenCards
+        deleteMutation={{
+          error,
           isError: true,
           isPending: false,
           variables: 'A',
         }}
         noten={noten}
-        onLoeschen={() => undefined}
+        onDelete={() => undefined}
         system="sechser"
       />,
     );
-    const position = fehlerposition(fehlerMarkup);
-    expect(position.zielA).toBeGreaterThanOrEqual(0);
-    expect(position.alarm).toBeGreaterThan(position.zielA);
-    expect(position.zielB).toBeGreaterThan(position.alarm);
-    expect(position.alarmAnzahl).toBe(1);
+    const position = errorPosition(errorMarkup);
+    expect(position.targetA).toBeGreaterThanOrEqual(0);
+    expect(position.alert).toBeGreaterThan(position.targetA);
+    expect(position.targetB).toBeGreaterThan(position.alert);
+    expect(position.alertCount).toBe(1);
   });
 });

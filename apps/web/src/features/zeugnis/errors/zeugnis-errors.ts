@@ -1,6 +1,6 @@
 import { Data } from 'effect';
 
-export class ZeugnisHalbjahrNichtGefunden extends Data.TaggedError(
+export class ZeugnisHalbjahrNotFound extends Data.TaggedError(
   'ZeugnisHalbjahrNichtGefunden',
 )<{
   readonly termId: string;

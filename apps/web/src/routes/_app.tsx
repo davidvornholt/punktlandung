@@ -6,11 +6,11 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router';
-import { lehneAuthFehlerAb } from '#/shared/auth/auth-antwort.ts';
 import { authClient } from '#/shared/auth/auth-client.ts';
-import { getSitzung } from '#/shared/auth/session-fn.ts';
+import { rejectAuthError } from '#/shared/auth/auth-response.ts';
+import { getSessionFn } from '#/shared/auth/session-fn.ts';
 
-const navPunkte = [
+const navItems = [
   { to: '/', label: 'Übersicht' },
   { to: '/noten', label: 'Noten' },
   { to: '/zeugnis', label: 'Zeugnis' },
@@ -18,13 +18,13 @@ const navPunkte = [
   { to: '/einstellungen', label: 'Einstellungen' },
 ] as const;
 
-const navLinkKlasse =
+const navLinkClass =
   'border-b-2 border-transparent px-1 pb-1 text-ink-muted text-sm transition-colors duration-150 ease-standard hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 const AppShell = () => {
   const router = useRouter();
-  const abmelden = useMutation({
-    mutationFn: () => authClient.signOut().then(lehneAuthFehlerAb),
+  const signOutMutation = useMutation({
+    mutationFn: () => authClient.signOut().then(rejectAuthError),
     onSuccess: () => router.navigate({ to: '/anmelden' }),
   });
 
@@ -42,13 +42,13 @@ const AppShell = () => {
           </p>
           <button
             className="text-ink-muted text-sm underline decoration-border-strong underline-offset-4 transition-colors duration-150 ease-standard hover:text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            disabled={abmelden.isPending}
-            onClick={() => abmelden.mutate()}
+            disabled={signOutMutation.isPending}
+            onClick={() => signOutMutation.mutate()}
             type="button"
           >
-            {abmelden.isPending ? 'Wird abgemeldet …' : 'Abmelden'}
+            {signOutMutation.isPending ? 'Wird abgemeldet …' : 'Abmelden'}
           </button>
-          {abmelden.isError ? (
+          {signOutMutation.isError ? (
             <p
               className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
               role="alert"
@@ -63,17 +63,17 @@ const AppShell = () => {
           className="mx-auto max-w-4xl overflow-x-auto px-4 sm:px-6"
         >
           <ul className="flex gap-5 pt-3 pb-2">
-            {navPunkte.map((punkt) => (
-              <li className="shrink-0" key={punkt.to}>
+            {navItems.map((point) => (
+              <li className="shrink-0" key={point.to}>
                 <Link
-                  activeOptions={{ exact: punkt.to === '/' }}
+                  activeOptions={{ exact: point.to === '/' }}
                   activeProps={{
-                    className: `${navLinkKlasse} border-primary font-medium text-ink`,
+                    className: `${navLinkClass} border-primary font-medium text-ink`,
                   }}
-                  className={navLinkKlasse}
-                  to={punkt.to}
+                  className={navLinkClass}
+                  to={point.to}
                 >
-                  {punkt.label}
+                  {point.label}
                 </Link>
               </li>
             ))}
@@ -89,11 +89,11 @@ const AppShell = () => {
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: async () => {
-    const sitzung = await getSitzung();
-    if (sitzung === null) {
+    const session = await getSessionFn();
+    if (session === null) {
       throw redirect({ to: '/anmelden' });
     }
-    return { sitzung };
+    return { session };
   },
   component: AppShell,
 });

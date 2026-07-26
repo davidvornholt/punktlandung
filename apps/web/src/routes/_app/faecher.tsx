@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { FaecherVerwaltung } from '#/features/faecher/ui/faecher-verwaltung.tsx';
+import { FaecherManagement } from '#/features/faecher/ui/faecher-management.tsx';
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 
-const FaecherSeite = () => {
-  const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
-  const halbjahre = halbjahreAbfrage.data;
-  if (halbjahreAbfrage.isPending) {
+const FaecherPage = () => {
+  const halbjahreQuery = useQuery(halbjahreQueryOptions);
+  const halbjahre = halbjahreQuery.data;
+  if (halbjahreQuery.isPending) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
@@ -20,7 +20,7 @@ const FaecherSeite = () => {
       </>
     );
   }
-  if (halbjahreAbfrage.isError || halbjahre === undefined) {
+  if (halbjahreQuery.isError || halbjahre === undefined) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
@@ -28,7 +28,7 @@ const FaecherSeite = () => {
         </h1>
         <div className="mt-6">
           <QueryError
-            onRetry={() => halbjahreAbfrage.refetch()}
+            onRetry={() => halbjahreQuery.refetch()}
             text="Die Schuljahre für die Fachverwaltung konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
@@ -37,7 +37,7 @@ const FaecherSeite = () => {
   }
   // Ein Schuljahr ist eine Klassenstufe: seine Halbjahre teilen das
   // Notensystem, deshalb genügt eines davon für die Vorschau im Formular.
-  const schuljahre = [
+  const schoolYears = [
     ...new Map(
       halbjahre.map((halbjahr) => [
         halbjahr.schoolYear,
@@ -53,13 +53,13 @@ const FaecherSeite = () => {
         verkündet hat. Änderungen gelten nur für das gewählte Schuljahr.
       </p>
       <div className="mt-6">
-        <FaecherVerwaltung schuljahre={schuljahre} />
+        <FaecherManagement schoolYears={schoolYears} />
       </div>
     </>
   );
 };
 
 export const Route = createFileRoute('/_app/faecher')({
-  component: FaecherSeite,
+  component: FaecherPage,
   head: () => ({ meta: [{ title: pageTitle('Fächer') }] }),
 });

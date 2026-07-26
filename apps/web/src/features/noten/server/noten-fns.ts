@@ -2,13 +2,13 @@ import { queryOptions } from '@tanstack/react-query';
 import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
-import { sitzungErforderlich } from '#/shared/auth/auth-middleware.ts';
+import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
 import { runtime } from '#/shared/runtime.ts';
 import {
-  NoteAktualisierung,
-  NoteEingabe,
-  NoteKennung,
-  NotenAbfrage,
+  NoteId,
+  NoteInput,
+  NotenQuery,
+  NoteUpdate,
 } from '../schemas/note-schema.ts';
 import {
   createNote,
@@ -16,39 +16,39 @@ import {
   listNoten,
   updateNote,
 } from '../services/noten-service.ts';
-import { ladeVerlauf } from '../services/verlauf-service.ts';
+import { loadTrend } from '../services/trend-service.ts';
 
 export const listNotenFn = createServerFn({ method: 'GET' })
-  .middleware([sitzungErforderlich])
-  .inputValidator(Schema.standardSchemaV1(NotenAbfrage))
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(NotenQuery))
   .handler(({ data }) => runtime.runPromise(listNoten(data.termId)));
 
 export const createNoteFn = createServerFn({ method: 'POST' })
-  .middleware([sitzungErforderlich])
-  .inputValidator(Schema.standardSchemaV1(NoteEingabe))
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(NoteInput))
   .handler(({ data }) => runtime.runPromise(createNote(data)));
 
 export const updateNoteFn = createServerFn({ method: 'POST' })
-  .middleware([sitzungErforderlich])
-  .inputValidator(Schema.standardSchemaV1(NoteAktualisierung))
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(NoteUpdate))
   .handler(({ data }) => runtime.runPromise(updateNote(data)));
 
 export const deleteNoteFn = createServerFn({ method: 'POST' })
-  .middleware([sitzungErforderlich])
-  .inputValidator(Schema.standardSchemaV1(NoteKennung))
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(NoteId))
   .handler(({ data }) => runtime.runPromise(deleteNote(data.id)));
 
 export const verlaufFn = createServerFn({ method: 'GET' })
-  .middleware([sitzungErforderlich])
-  .handler(() => runtime.runPromise(ladeVerlauf));
+  .middleware([sessionRequired])
+  .handler(() => runtime.runPromise(loadTrend));
 
-export const notenQueryOptions = (termId: string) =>
+export const notenQueryOptions = (halbjahrId: string) =>
   queryOptions({
-    queryKey: ['noten', termId],
-    queryFn: () => listNotenFn({ data: { termId } }),
+    queryKey: ['noten', halbjahrId],
+    queryFn: () => listNotenFn({ data: { termId: halbjahrId } }),
   });
 
-export const verlaufQueryOptions = queryOptions({
-  queryKey: ['verlauf'],
+export const trendQueryOptions = queryOptions({
+  queryKey: ['trend'],
   queryFn: () => verlaufFn(),
 });

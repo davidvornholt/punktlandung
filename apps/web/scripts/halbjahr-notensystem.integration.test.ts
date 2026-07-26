@@ -13,7 +13,7 @@ import {
   withPostgresTestDatabase,
 } from './postgres-test-database.ts';
 
-const eingabe = {
+const input = {
   klassenstufe: 'J1' as const,
   schoolYear: '2026/27',
   half: 1 as const,
@@ -30,18 +30,18 @@ describe('Notensystem eines Halbjahrs', () => {
         effect: Effect.Effect<Value, Error, SqlClient | PgDrizzle>,
       ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
 
-      await provided(createHalbjahr(eingabe));
-      const [angelegt] = await provided(listHalbjahre);
-      if (angelegt === undefined) {
+      await provided(createHalbjahr(input));
+      const [created] = await provided(listHalbjahre);
+      if (created === undefined) {
         throw new Error('Angelegtes Halbjahr fehlt.');
       }
-      expect(angelegt.system).toBe('punkte');
+      expect(created.system).toBe('punkte');
 
       await provided(
-        updateHalbjahr({ ...eingabe, id: angelegt.id, klassenstufe: '10' }),
+        updateHalbjahr({ ...input, id: created.id, klassenstufe: '10' }),
       );
-      const [geaendert] = await provided(listHalbjahre);
+      const [changed] = await provided(listHalbjahre);
 
-      expect(geaendert?.system).toBe('sechser');
+      expect(changed?.system).toBe('sechser');
     }));
 });

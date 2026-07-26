@@ -2,7 +2,7 @@ import { Data } from 'effect';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 
-export class HalbjahrNichtGefunden extends Data.TaggedError(
+export class HalbjahrNotFound extends Data.TaggedError(
   'HalbjahrNichtGefunden',
 )<{
   readonly termId: string;
@@ -12,7 +12,7 @@ export class HalbjahrNichtGefunden extends Data.TaggedError(
   }
 }
 
-export class NoteNichtGefunden extends Data.TaggedError('NoteNichtGefunden')<{
+export class NoteNotFound extends Data.TaggedError('NoteNichtGefunden')<{
   readonly noteId: string;
 }> {
   override get message(): string {
@@ -20,9 +20,7 @@ export class NoteNichtGefunden extends Data.TaggedError('NoteNichtGefunden')<{
   }
 }
 
-export class UngueltigerNotenwert extends Data.TaggedError(
-  'UngueltigerNotenwert',
-)<{
+export class InvalidNotenwert extends Data.TaggedError('UngueltigerNotenwert')<{
   readonly wert: number;
   readonly system: Notensystem;
 }> {
@@ -33,7 +31,7 @@ export class UngueltigerNotenwert extends Data.TaggedError(
   }
 }
 
-export class NoteAusserhalbHalbjahr extends Data.TaggedError(
+export class NoteOutsideHalbjahr extends Data.TaggedError(
   'NoteAusserhalbHalbjahr',
 )<{
   readonly datum: string;
@@ -45,7 +43,7 @@ export class NoteAusserhalbHalbjahr extends Data.TaggedError(
   }
 }
 
-export class FachNichtImSchuljahr extends Data.TaggedError(
+export class FachNotInSchoolYear extends Data.TaggedError(
   'FachNichtImSchuljahr',
 )<{ readonly fachId: string; readonly schoolYear: string }> {
   override get message(): string {

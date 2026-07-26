@@ -1,6 +1,6 @@
 # DESIGN.md
 
-Punktlandung instantiates the **Refined Heritage** archetype: warm, valuable, and enduring — a well-made heirloom for school grades. A noble serif meets disciplined, sharp-edged construction on warm cream ground; the app should feel like a trusted paper Zeugnisheft that grew up, not like a dashboard template. It is emphatically not minimalism: surfaces are warm rather than white, color is present rather than withheld, and screens are furnished, not emptied.
+Punktlandung instantiates the **Refined Heritage** archetype: warm, valuable, and enduring — a well-made heirloom for school Noten. A noble serif meets disciplined, sharp-edged construction on warm cream ground; the app should feel like a trusted paper Zeugnisheft that grew up, not like a dashboard template. It is emphatically not minimalism: surfaces are warm rather than white, color is present rather than withheld, and screens are furnished, not emptied.
 
 All design values live in `packages/ui/src/theme.css`. It is the single source of truth; no raw color, radius, shadow, or easing literals anywhere else.
 
@@ -8,11 +8,11 @@ All design values live in `packages/ui/src/theme.css`. It is the single source o
 
 - UI language is German (sentence case per the writing standards); domain terms — Fach, Klausur, Halbjahr, Notenpunkte, GFS — are product vocabulary, never translated.
 - Dark mode follows the system preference; there is no manual toggle in v1.
-- Charts are first-class product surface, not illustration: they use the primary and accent tokens only, and judgement coloring (positive/critical) is reserved for grade deltas and warnings.
+- Charts are first-class product surface, not illustration: they use the primary and accent tokens only, and judgement coloring (positive/critical) is reserved for Noten deltas and warnings.
 
 ## Type
 
-- Display type is the serif (`font-display`): page titles, section statements, card titles, and — always — grades themselves. A grade is the most valuable object in the product; set it in the serif, larger than its context, with tabular feel through consistent placement rather than monospace.
+- Display type is the serif (`font-display`): page titles, section statements, card titles, and — always — Noten themselves. A Note is the most valuable object in the product; set it in the serif, larger than its context, with tabular feel through consistent placement rather than monospace.
 - Body and UI text is the grotesque (`font-sans`).
 - Labels and metadata: grotesque, small, letterspaced, uppercase.
 - Keep display tracking slightly tight.
@@ -29,14 +29,14 @@ All design values live in `packages/ui/src/theme.css`. It is the single source o
 - On `background` and `surface`: text is `ink`, secondary text `ink-muted`, tertiary/metadata `ink-faint`.
 - On `primary`: only `on-primary`.
 - `accent` is for contrast moments — the current Halbjahr chip, a highlighted trend — never for large fills.
-- Judgement colors: `positive` and `critical` communicate grade direction and Zeugnis warnings; never use them decoratively, and never communicate judgement by color alone (pair with text or symbol).
+- Judgement colors: `positive` and `critical` communicate Noten direction and Zeugnis warnings; never use them decoratively, and never communicate judgement by color alone (pair with text or symbol).
 
 ## Pattern vocabulary
 
-- **Notenkarte** — a surface card holding one subject: serif subject name, uppercase metadata row, current average as a large serif figure.
+- **Notenkarte** — a surface card holding one Fach: serif Fach name, uppercase metadata row, current average as a large serif figure.
 - **Zeugnisblatt** — the featured report-card preview: a formal, table-like arrangement that visibly echoes a printed Zeugnis, one per Halbjahr.
 - **Verlaufslinie** — the trend chart: primary line on quiet grid, accent for comparison series, no chart junk.
-- **Eintragsleiste** — the quick-add grade form: one row, immediate, optimized for phone entry right after a Klausur is handed back.
+- **Eintragsleiste** — the quick-add Note form: one row, immediate, optimized for phone entry right after a Klausur is handed back.
 
 ## Layout rhythm
 

@@ -3,21 +3,19 @@ import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { and, eq, max } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import { schoolYearSubject, subject, term } from '#/shared/db/schema.ts';
+import {
+  fachTable,
+  halbjahrTable,
+  schoolYearFachTable,
+} from '#/shared/db/schema.ts';
 import type { Fachgewichtung } from '#/shared/noten/notenwert.ts';
-import type { SchuljahrFach } from '#/shared/noten/schuljahr-fachstand.ts';
+import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
-  ladeSchuljahrFachstand,
-  materialisiereBestehendeSchuljahre,
-} from '#/shared/noten/schuljahr-fachstand.ts';
-import {
-  FachNichtGefunden,
-  FachSchuljahrNichtGefunden,
-} from '../errors/fach-errors.ts';
-import type {
-  FachAktualisierung,
-  FachEingabe,
-} from '../schemas/fach-schema.ts';
+  loadSchoolYearFachSnapshot,
+  materializeExistingSchoolYears,
+} from '#/shared/noten/school-year-fach-snapshot.ts';
+import { FachNotFound, FachSchoolYearNotFound } from '../errors/fach-errors.ts';
+import type { FachInput, FachUpdate } from '../schemas/fach-schema.ts';
 
 export type Fach = {
   readonly id: string;
@@ -27,88 +25,88 @@ export type Fach = {
   readonly sortOrder: number;
 };
 
-const zuFach = (zeile: SchuljahrFach): Fach => ({
-  id: zeile.id,
-  name: zeile.name,
-  shortName: zeile.shortName,
-  gewichtung: zeile.gewichtung,
-  sortOrder: zeile.sortOrder,
+const toFach = (row: SchoolYearFach): Fach => ({
+  id: row.id,
+  name: row.name,
+  shortName: row.shortName,
+  gewichtung: row.gewichtung,
+  sortOrder: row.sortOrder,
 });
 
-const zuSpalten = (eingabe: FachEingabe | FachAktualisierung) => ({
-  name: eingabe.name,
-  shortName: eingabe.shortName,
-  weighting: eingabe.gewichtung,
+const toColumns = (input: FachInput | FachUpdate) => ({
+  name: input.name,
+  shortName: input.shortName,
+  weighting: input.gewichtung,
 });
 
-const bereiteMutationVor = (schoolYear: string) =>
+const prepareMutation = (schoolYear: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
-    const halbjahre = yield* db.select().from(term).for('update');
+    const halbjahre = yield* db.select().from(halbjahrTable).for('update');
     if (!halbjahre.some((halbjahr) => halbjahr.schoolYear === schoolYear)) {
-      return yield* Effect.fail(new FachSchuljahrNichtGefunden({ schoolYear }));
+      return yield* Effect.fail(new FachSchoolYearNotFound({ schoolYear }));
     }
-    yield* materialisiereBestehendeSchuljahre;
+    yield* materializeExistingSchoolYears;
   });
 
 export const listFaecher = (schoolYear: string) =>
-  ladeSchuljahrFachstand(schoolYear).pipe(
+  loadSchoolYearFachSnapshot(schoolYear).pipe(
     Effect.map((faecher) =>
-      faecher.filter((fach) => !fach.archived).map(zuFach),
+      faecher.filter((fach) => !fach.archived).map(toFach),
     ),
   );
 
-export const createFach = (eingabe: FachEingabe) =>
+export const createFach = (input: FachInput) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     yield* sql.withTransaction(
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
-        yield* bereiteMutationVor(eingabe.schoolYear);
-        const hoechste = yield* db
-          .select({ wert: max(schoolYearSubject.sortOrder) })
-          .from(schoolYearSubject)
-          .where(eq(schoolYearSubject.schoolYear, eingabe.schoolYear));
+        yield* prepareMutation(input.schoolYear);
+        const highest = yield* db
+          .select({ value: max(schoolYearFachTable.sortOrder) })
+          .from(schoolYearFachTable)
+          .where(eq(schoolYearFachTable.schoolYear, input.schoolYear));
         const id = crypto.randomUUID();
-        const sortOrder = (hoechste[0]?.wert ?? -1) + 1;
-        const spalten = zuSpalten(eingabe);
-        yield* db.insert(subject).values({
+        const sortOrder = (highest[0]?.value ?? -1) + 1;
+        const columns = toColumns(input);
+        yield* db.insert(fachTable).values({
           id,
           sortOrder,
-          ...spalten,
+          ...columns,
         });
-        yield* db.insert(schoolYearSubject).values({
-          schoolYear: eingabe.schoolYear,
+        yield* db.insert(schoolYearFachTable).values({
+          schoolYear: input.schoolYear,
           subjectId: id,
           sortOrder,
-          ...spalten,
+          ...columns,
         });
       }),
     );
   });
 
-export const updateFach = (eingabe: FachAktualisierung) =>
+export const updateFach = (input: FachUpdate) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     yield* sql.withTransaction(
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
-        yield* bereiteMutationVor(eingabe.schoolYear);
-        const aktualisiert = yield* db
-          .update(schoolYearSubject)
-          .set(zuSpalten(eingabe))
+        yield* prepareMutation(input.schoolYear);
+        const updated = yield* db
+          .update(schoolYearFachTable)
+          .set(toColumns(input))
           .where(
             and(
-              eq(schoolYearSubject.schoolYear, eingabe.schoolYear),
-              eq(schoolYearSubject.subjectId, eingabe.id),
+              eq(schoolYearFachTable.schoolYear, input.schoolYear),
+              eq(schoolYearFachTable.subjectId, input.id),
             ),
           )
-          .returning({ id: schoolYearSubject.subjectId });
-        if (aktualisiert.length === 0) {
+          .returning({ id: schoolYearFachTable.subjectId });
+        if (updated.length === 0) {
           return yield* Effect.fail(
-            new FachNichtGefunden({
-              fachId: eingabe.id,
-              schoolYear: eingabe.schoolYear,
+            new FachNotFound({
+              fachId: input.id,
+              schoolYear: input.schoolYear,
             }),
           );
         }
@@ -122,20 +120,20 @@ export const archiveFach = (id: string, schoolYear: string) =>
     yield* sql.withTransaction(
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
-        yield* bereiteMutationVor(schoolYear);
-        const archiviert = yield* db
-          .update(schoolYearSubject)
+        yield* prepareMutation(schoolYear);
+        const archived = yield* db
+          .update(schoolYearFachTable)
           .set({ archived: true })
           .where(
             and(
-              eq(schoolYearSubject.schoolYear, schoolYear),
-              eq(schoolYearSubject.subjectId, id),
+              eq(schoolYearFachTable.schoolYear, schoolYear),
+              eq(schoolYearFachTable.subjectId, id),
             ),
           )
-          .returning({ id: schoolYearSubject.subjectId });
-        if (archiviert.length === 0) {
+          .returning({ id: schoolYearFachTable.subjectId });
+        if (archived.length === 0) {
           return yield* Effect.fail(
-            new FachNichtGefunden({ fachId: id, schoolYear }),
+            new FachNotFound({ fachId: id, schoolYear }),
           );
         }
       }),

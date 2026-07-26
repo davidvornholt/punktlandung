@@ -2,49 +2,49 @@ import { Schema } from 'effect';
 
 import { leistungsarten } from '#/shared/noten/notenwert.ts';
 
-export const notenGrenzen = {
-  gewichtMax: 10,
-  gewichtSchritt: 0.25,
-  punkteMax: 15,
+export const notenLimits = {
+  maxGewichtung: 10,
+  gewichtungStep: 0.25,
+  maxNotenpunkte: 15,
   sechserMin: 1,
   sechserMax: 6,
 } as const;
 
-const isoDatumMuster = /^\d{4}-\d{2}-\d{2}$/u;
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
 const Leistungsart = Schema.Literal(...leistungsarten);
 
-const NotenFelder = Schema.Struct({
+const NotenFields = Schema.Struct({
   subjectId: Schema.String,
   kind: Leistungsart,
   /** Nativer Wert; die Systemprüfung übernimmt der Service anhand des Halbjahrs. */
   wert: Schema.Number,
   gewicht: Schema.Number.pipe(
     Schema.positive(),
-    Schema.lessThanOrEqualTo(notenGrenzen.gewichtMax),
+    Schema.lessThanOrEqualTo(notenLimits.maxGewichtung),
   ),
-  datum: Schema.String.pipe(Schema.pattern(isoDatumMuster)),
+  datum: Schema.String.pipe(Schema.pattern(isoDatePattern)),
   notiz: Schema.NullOr(Schema.String),
 });
 
-export const NoteEingabe = Schema.Struct({
+export const NoteInput = Schema.Struct({
   termId: Schema.String,
-  ...NotenFelder.fields,
+  ...NotenFields.fields,
 });
 
-export type NoteEingabe = typeof NoteEingabe.Type;
+export type NoteInput = typeof NoteInput.Type;
 
-export const NoteAktualisierung = Schema.Struct({
+export const NoteUpdate = Schema.Struct({
   id: Schema.String,
-  ...NotenFelder.fields,
+  ...NotenFields.fields,
 });
 
-export type NoteAktualisierung = typeof NoteAktualisierung.Type;
+export type NoteUpdate = typeof NoteUpdate.Type;
 
-export const NoteKennung = Schema.Struct({
+export const NoteId = Schema.Struct({
   id: Schema.String,
 });
 
-export const NotenAbfrage = Schema.Struct({
+export const NotenQuery = Schema.Struct({
   termId: Schema.String,
 });

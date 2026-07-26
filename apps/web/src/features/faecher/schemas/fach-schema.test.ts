@@ -3,9 +3,9 @@ import { Schema } from 'effect';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { Leistungsart } from '#/shared/noten/notenwert.ts';
-import { FachAktualisierung, FachEingabe } from './fach-schema.ts';
+import { FachInput, FachUpdate } from './fach-schema.ts';
 
-const eingabeMitGesammelterArt = (kind: Leistungsart) => ({
+const inputWithCollectedKind = (kind: Leistungsart) => ({
   schoolYear: '2026/27',
   name: 'Mathematik',
   shortName: 'M',
@@ -21,7 +21,7 @@ const eingabeMitGesammelterArt = (kind: Leistungsart) => ({
   },
 });
 
-const eingabeMitTestgewicht = (
+const inputWithTestGewichtung = (
   gewicht: number,
   sammlung: 'einzeln' | 'gesammelt',
   klausurGewicht = standardgewichtung.arten.klausur.gewicht,
@@ -42,27 +42,25 @@ const eingabeMitTestgewicht = (
   },
 });
 
-const ergebnisse = (eingabe: ReturnType<typeof eingabeMitTestgewicht>) => [
-  Schema.decodeUnknownEither(FachEingabe)(eingabe)._tag,
-  Schema.decodeUnknownEither(FachAktualisierung)({
-    ...eingabe,
+const results = (input: ReturnType<typeof inputWithTestGewichtung>) => [
+  Schema.decodeUnknownEither(FachInput)(input)._tag,
+  Schema.decodeUnknownEither(FachUpdate)({
+    ...input,
     id: 'mathematik',
   })._tag,
 ];
 
-const beliebigeGewichte = [0.25, 3.75, 10] as const;
+const arbitraryGewichtungen = [0.25, 3.75, 10] as const;
 
 describe('Fach-Eingabegrenzen', () => {
   for (const kind of ['klausur', 'gfs', 'muendlich', 'sonstige'] as const) {
     it(`lassen gesammelt für ${kind} weder beim Anlegen noch beim Ändern zur Persistenz durch`, () => {
-      const eingabe = eingabeMitGesammelterArt(kind);
+      const input = inputWithCollectedKind(kind);
 
-      expect(Schema.decodeUnknownEither(FachEingabe)(eingabe)._tag).toBe(
-        'Left',
-      );
+      expect(Schema.decodeUnknownEither(FachInput)(input)._tag).toBe('Left');
       expect(
-        Schema.decodeUnknownEither(FachAktualisierung)({
-          ...eingabe,
+        Schema.decodeUnknownEither(FachUpdate)({
+          ...input,
           id: 'mathematik',
         })._tag,
       ).toBe('Left');
@@ -72,8 +70,8 @@ describe('Fach-Eingabegrenzen', () => {
 
 describe('Testgewicht an Fach-Eingabegrenzen', () => {
   it('weist abweichende gesammelte Gewichte beim Anlegen und Ändern zurück', () => {
-    for (const gewicht of beliebigeGewichte) {
-      expect(ergebnisse(eingabeMitTestgewicht(gewicht, 'gesammelt'))).toEqual([
+    for (const gewicht of arbitraryGewichtungen) {
+      expect(results(inputWithTestGewichtung(gewicht, 'gesammelt'))).toEqual([
         'Left',
         'Left',
       ]);
@@ -81,8 +79,8 @@ describe('Testgewicht an Fach-Eingabegrenzen', () => {
   });
 
   it('akzeptiert beliebige einzelne Gewichte beim Anlegen und Ändern', () => {
-    for (const gewicht of beliebigeGewichte) {
-      expect(ergebnisse(eingabeMitTestgewicht(gewicht, 'einzeln'))).toEqual([
+    for (const gewicht of arbitraryGewichtungen) {
+      expect(results(inputWithTestGewichtung(gewicht, 'einzeln'))).toEqual([
         'Right',
         'Right',
       ]);
@@ -90,9 +88,9 @@ describe('Testgewicht an Fach-Eingabegrenzen', () => {
   });
 
   it('akzeptiert passende gesammelte Gewichte beim Anlegen und Ändern', () => {
-    for (const gewicht of beliebigeGewichte) {
+    for (const gewicht of arbitraryGewichtungen) {
       expect(
-        ergebnisse(eingabeMitTestgewicht(gewicht, 'gesammelt', gewicht)),
+        results(inputWithTestGewichtung(gewicht, 'gesammelt', gewicht)),
       ).toEqual(['Right', 'Right']);
     }
   });
