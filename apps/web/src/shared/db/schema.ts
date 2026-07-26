@@ -30,10 +30,10 @@ export const subject = pgTable('subject', {
   name: text('name').notNull(),
   shortName: text('short_name').notNull(),
   /**
-   * Die verkündete Gewichtung als Ganzes (Bereichsverhältnis und je
-   * Leistungsart Bereich, Gewicht und Sammlung). Eine Spalte statt einer je
-   * Leistungsart: nur so kopieren Fachstand-Historisierung und Formular
-   * genau eine Form. Gelesen wird sie über `dekodiereGewichtung`.
+   * Die verkündete Gewichtung als Ganzes: optionales Bereichsverhältnis sowie
+   * Gewicht und Sammlung je Leistungsart. Eine Spalte statt einer je Art: nur
+   * so kopieren Fachstand-Historisierung und Formular genau eine Form. Gelesen
+   * wird sie über `dekodiereGewichtung`.
    */
   weighting: jsonb('weighting').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),

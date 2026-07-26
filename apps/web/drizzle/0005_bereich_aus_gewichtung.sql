@@ -29,6 +29,4 @@ UPDATE "school_year_subject" SET "weighting" = jsonb_set(
 		)
 		FROM jsonb_each("weighting" -> 'arten') AS eintrag(art, wert)
 	)
-);--> statement-breakpoint
-ALTER TABLE "subject" ALTER COLUMN "weighting" SET DEFAULT '{"verhaeltnis":null,"arten":{"klausur":{"gewicht":1,"sammlung":"einzeln"},"test":{"gewicht":1,"sammlung":"gesammelt"},"muendlich":{"gewicht":1,"sammlung":"einzeln"},"gfs":{"gewicht":1,"sammlung":"einzeln"},"sonstige":{"gewicht":1,"sammlung":"einzeln"}}}'::jsonb;--> statement-breakpoint
-ALTER TABLE "school_year_subject" ALTER COLUMN "weighting" SET DEFAULT '{"verhaeltnis":null,"arten":{"klausur":{"gewicht":1,"sammlung":"einzeln"},"test":{"gewicht":1,"sammlung":"gesammelt"},"muendlich":{"gewicht":1,"sammlung":"einzeln"},"gfs":{"gewicht":1,"sammlung":"einzeln"},"sonstige":{"gewicht":1,"sammlung":"einzeln"}}}'::jsonb;
+);

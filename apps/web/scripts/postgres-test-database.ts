@@ -6,6 +6,16 @@ import pg, { type Pool } from 'pg';
 import { preservePostgresDates } from '../src/shared/db/postgres-date.ts';
 
 const initialMigrationTimestamp = 1_784_738_851_477;
+const laterInitialMigrations = [
+  {
+    name: '0001_acoustic_white_queen',
+    timestamp: 1_784_746_557_636,
+  },
+  {
+    name: '0002_amused_shotgun',
+    timestamp: 1_784_986_637_608,
+  },
+] as const;
 
 const testDatabaseUrl = (): URL => {
   const configured = Bun.env.DATABASE_URL;
@@ -49,6 +59,17 @@ export const postgresTestLayer = (pool: Pool) => {
   return Layer.merge(sql, pgDrizzleLayer.pipe(Layer.provide(sql)));
 };
 
+const executeStatements = async (
+  pool: Pool,
+  statements: ReadonlyArray<string>,
+): Promise<void> => {
+  const [statement, ...remaining] = statements;
+  if (statement !== undefined) {
+    await pool.query(statement);
+    await executeStatements(pool, remaining);
+  }
+};
+
 export const applyInitialMigration = async (pool: Pool): Promise<void> => {
   const migrationUrl = new URL(
     '../drizzle/0000_lucky_loa.sql',
@@ -57,16 +78,7 @@ export const applyInitialMigration = async (pool: Pool): Promise<void> => {
   const migration = await Bun.file(migrationUrl).text();
   await pool.query('BEGIN');
   try {
-    const executeStatements = async (
-      statements: ReadonlyArray<string>,
-    ): Promise<void> => {
-      const [statement, ...remaining] = statements;
-      if (statement !== undefined) {
-        await pool.query(statement);
-        await executeStatements(remaining);
-      }
-    };
-    await executeStatements(migration.split('--> statement-breakpoint'));
+    await executeStatements(pool, migration.split('--> statement-breakpoint'));
     await pool.query('CREATE SCHEMA drizzle');
     await pool.query(`CREATE TABLE drizzle.__drizzle_migrations (
       id serial PRIMARY KEY,
@@ -85,4 +97,32 @@ export const applyInitialMigration = async (pool: Pool): Promise<void> => {
     await pool.query('ROLLBACK');
     throw error;
   }
+};
+
+const applyRecordedMigration = async (
+  pool: Pool,
+  entry: (typeof laterInitialMigrations)[number],
+): Promise<void> => {
+  const migration = await Bun.file(
+    new URL(`../drizzle/${entry.name}.sql`, import.meta.url),
+  ).text();
+  await pool.query('BEGIN');
+  try {
+    await executeStatements(pool, migration.split('--> statement-breakpoint'));
+    await pool.query(
+      'INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)',
+      [createHash('sha256').update(migration).digest('hex'), entry.timestamp],
+    );
+    await pool.query('COMMIT');
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+};
+
+/** Baut den direkt vor der Gewichtungsumstellung ausgelieferten Stand auf. */
+export const applyMigrationsThrough0002 = async (pool: Pool): Promise<void> => {
+  await applyInitialMigration(pool);
+  await applyRecordedMigration(pool, laterInitialMigrations[0]);
+  await applyRecordedMigration(pool, laterInitialMigrations[1]);
 };
