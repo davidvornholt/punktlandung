@@ -104,6 +104,13 @@ const sechserToNotenpunkteAnchors: ReadonlyArray<ConversionAnchor> = [
   { input: 6, output: 0 },
 ];
 
+/**
+ * Ob eine Note genau auf einer Notentendenz liegt. Nur diese Werte haben ein
+ * amtlich verkündetes Punktegegenstück; zwischen ihnen interpoliert die App.
+ */
+export const isNotentendenz = (note: number): boolean =>
+  sechserToNotenpunkteAnchors.some((anchor) => anchor.input === note);
+
 const notenpunkteToSechserAnchors: ReadonlyArray<ConversionAnchor> = [
   ...sechserToNotenpunkteAnchors,
 ]
