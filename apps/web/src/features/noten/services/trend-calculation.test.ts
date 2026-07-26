@@ -21,11 +21,16 @@ const note = (
 ) => ({
   date,
   notenpunkte,
+  notenwert: notenpunkte,
+  notensystem: 'punkte' as const,
   individualGewichtung: 1,
   fachSnapshotId,
   fachShortName: fachSnapshotId,
+  fachName: fachSnapshotId,
   leistungsart: 'klausur' as const,
   fachGewichtung: equallyWeighted,
+  klassenstufe: 'J1' as const,
+  half: 1 as const,
   ...overrides,
 });
 
@@ -35,10 +40,41 @@ describe('calculateTrend', () => {
       note('M', '2026-09-20', 12, { individualGewichtung: 2 }),
       note('M', '2026-10-05', 9),
     ]);
-    expect(trend).toEqual([
-      { datum: '2026-09-20', punkte: 12, schnitt: 12, fachKuerzel: 'M' },
-      { datum: '2026-10-05', punkte: 9, schnitt: 11, fachKuerzel: 'M' },
+    expect(
+      trend.map(({ datum, punkte, schnitt }) => ({
+        datum,
+        punkte,
+        schnitt,
+      })),
+    ).toEqual([
+      { datum: '2026-09-20', punkte: 12, schnitt: 12 },
+      { datum: '2026-10-05', punkte: 9, schnitt: 11 },
     ]);
+  });
+
+  it('reicht Note, Notensystem, Fach, Leistungsart und Halbjahr an den Chartpunkt durch', () => {
+    const [entry] = calculateTrend([
+      note('M', '2026-09-20', 11, {
+        notenwert: 2,
+        notensystem: 'sechser',
+        fachName: 'Mathematik',
+        leistungsart: 'gfs',
+        klassenstufe: '10',
+        half: 2,
+      }),
+    ]);
+    expect(entry).toEqual({
+      datum: '2026-09-20',
+      punkte: 11,
+      schnitt: 11,
+      fachKuerzel: 'M',
+      fachName: 'Mathematik',
+      notenwert: 2,
+      notensystem: 'sechser',
+      leistungsart: 'gfs',
+      klassenstufe: '10',
+      half: 2,
+    });
   });
 
   it('liefert für keine Noten eine leere Liste', () => {

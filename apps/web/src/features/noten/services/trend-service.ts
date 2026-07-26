@@ -39,11 +39,16 @@ export const loadTrend = Effect.gen(function* () {
             {
               date: note.takenOn,
               notenpunkte: toNotenpunkte(Number(note.value), halbjahr.system),
+              notenwert: Number(note.value),
+              notensystem: halbjahr.system,
               individualGewichtung: Number(note.weight),
               fachSnapshotId: `${halbjahr.schoolYear}:${fach.id}`,
               fachShortName: fach.shortName,
+              fachName: fach.name,
               leistungsart: note.kind,
               fachGewichtung: fach.gewichtung,
+              klassenstufe: halbjahr.klassenstufe,
+              half: halbjahr.half,
             },
           ];
     }),
