@@ -4,7 +4,7 @@ import { file } from 'bun';
 const sensitiveServerFiles = [
   '../../features/faecher/server/fach-fns.ts',
   '../../features/halbjahre/server/halbjahr-fns.ts',
-  '../../features/learning/server/learning-fns.ts',
+  '../../features/lernen/server/lernen-fns.ts',
   '../../features/noten/server/noten-fns.ts',
   '../../features/zeugnis/server/zeugnis-fns.ts',
 ] as const;

@@ -1,177 +1,151 @@
 import { describe, expect, it } from 'bun:test';
+import type { SqlClient } from '@effect/sql/SqlClient';
+import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
+import { Effect } from 'effect';
 
-import type { Fach } from '#/features/faecher/services/fach-service.ts';
-import type { Halbjahr } from '#/features/halbjahre/services/halbjahr-service.ts';
-import type { LearningStatistics } from '#/features/learning/services/learning-statistics.ts';
-import type { NoteWithFach } from '#/features/noten/services/noten-service.ts';
-import type { TrendEntry } from '#/features/noten/services/trend-calculation.ts';
-import type { Zeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
-import type { studyDayTable } from '#/shared/db/schema.ts';
+import { listFaecher } from '#/features/faecher/services/fach-service.ts';
+import { listHalbjahre } from '#/features/halbjahre/services/halbjahr-service.ts';
+import {
+  listStudyDays,
+  loadLearningStatistics,
+} from '#/features/lernen/services/learning-service.ts';
+import { listNoten } from '#/features/noten/services/noten-service.ts';
+import { loadTrend } from '#/features/noten/services/trend-service.ts';
+import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
+import { migrateDatabase } from '../src/shared/db/migrate.ts';
+import {
+  postgresTestLayer,
+  withPostgresTestDatabase,
+} from './postgres-test-database.ts';
 
 const keys = (value: unknown): ReadonlyArray<string> =>
   Object.keys(JSON.parse(JSON.stringify(value))).sort();
 
-describe('Fach and Halbjahr response wire contract', () => {
-  it('keeps the pre-rename Fach result keys', () => {
-    const fach: Fach = {
-      id: 'mathematik',
-      name: 'Mathematik',
-      shortName: 'M',
-      writtenShare: 50,
-      klausurWeight: 2,
-      testWeight: 1,
-      muendlichWeight: 1,
-      gfsWeight: 1,
-      sonstigeWeight: 1,
-      sortOrder: 0,
-    };
-    expect(keys(fach)).toEqual([
-      'gfsWeight',
-      'id',
-      'klausurWeight',
-      'muendlichWeight',
-      'name',
-      'shortName',
-      'sonstigeWeight',
-      'sortOrder',
-      'testWeight',
-      'writtenShare',
-    ]);
-  });
+const required = <Value>(value: Value | undefined, name: string): Value => {
+  if (value === undefined) {
+    throw new Error(`${name} fehlt in der Produktionsantwort.`);
+  }
+  return value;
+};
 
-  it('keeps the pre-rename Halbjahr result keys', () => {
-    const halbjahr: Halbjahr = {
-      id: 'halbjahr-1',
-      klassenstufe: '10',
-      schoolYear: '2026/27',
-      half: 1,
-      system: 'sechser',
-      startsOn: '2026-08-01',
-      endsOn: '2027-01-31',
-    };
-    expect(keys(halbjahr)).toEqual([
-      'endsOn',
-      'half',
-      'id',
-      'klassenstufe',
-      'schoolYear',
-      'startsOn',
-      'system',
-    ]);
-  });
-});
+describe('server response wire contract', () => {
+  it('keeps established keys through the exported production pipelines', () =>
+    withPostgresTestDatabase(async (pool) => {
+      await Effect.runPromise(migrateDatabase(pool));
+      await pool.query(`
+        INSERT INTO subject (
+          id, name, short_name, written_share, klausur_weight, test_weight,
+          muendlich_weight, gfs_weight, sonstige_weight, sort_order
+        )
+        VALUES ('mathematik', 'Mathematik', 'M', 50, 2, 1, 1, 1, 1, 0);
 
-describe('Lerntag response wire contract', () => {
-  it('keeps the pre-rename Lerntag and statistics result keys', () => {
-    const studyDay: typeof studyDayTable.$inferSelect = {
-      id: 'study-day-1',
-      day: '2026-10-01',
-      subjectId: 'mathematik',
-      minutes: 30,
-      note: null,
-      createdAt: new Date('2026-10-01T00:00:00Z'),
-    };
-    const statistics: LearningStatistics = {
-      tageDiesenMonat: 1,
-      serie: 1,
-    };
-    expect(keys(studyDay)).toEqual([
-      'createdAt',
-      'day',
-      'id',
-      'minutes',
-      'note',
-      'subjectId',
-    ]);
-    expect(keys(statistics)).toEqual(['serie', 'tageDiesenMonat']);
-  });
-});
+        INSERT INTO term (
+          id, klassenstufe, school_year, half, system, starts_on, ends_on
+        )
+        VALUES
+          ('halbjahr-1', '10', '2026/27', 1, 'sechser', '2026-08-01', '2027-01-31'),
+          ('halbjahr-2', '10', '2026/27', 2, 'sechser', '2027-02-01', '2027-07-31');
 
-describe('Note and Zeugnis response wire contract', () => {
-  it('keeps the pre-rename Note and trend result keys', () => {
-    const note: NoteWithFach = {
-      id: 'note-1',
-      kind: 'klausur',
-      area: 'schriftlich',
-      wert: 2,
-      gewicht: 1,
-      datum: '2026-10-01',
-      notiz: null,
-      fachId: 'mathematik',
-      fachName: 'Mathematik',
-      fachKuerzel: 'M',
-      gewichtung: {
-        writtenShare: 50,
-        kindWeights: {
-          klausur: 2,
-          test: 1,
-          muendlich: 1,
-          gfs: 1,
-          sonstige: 1,
-        },
-      },
-    };
-    const trend: TrendEntry = {
-      datum: '2026-10-01',
-      punkte: 11,
-      schnitt: 11,
-      fachKuerzel: 'M',
-    };
-    expect(keys(note)).toEqual([
-      'area',
-      'datum',
-      'fachId',
-      'fachKuerzel',
-      'fachName',
-      'gewicht',
-      'gewichtung',
-      'id',
-      'kind',
-      'notiz',
-      'wert',
-    ]);
-    expect(keys(note.gewichtung)).toEqual(['kindWeights', 'writtenShare']);
-    expect(keys(trend)).toEqual(['datum', 'fachKuerzel', 'punkte', 'schnitt']);
-  });
+        INSERT INTO grade (
+          id, subject_id, term_id, kind, area, value, weight, taken_on, note
+        )
+        VALUES
+          ('note-1', 'mathematik', 'halbjahr-1', 'klausur', 'schriftlich', 2, 1, '2026-10-01', NULL),
+          ('note-2', 'mathematik', 'halbjahr-2', 'muendlich', 'muendlich', 3, 1, '2027-03-01', 'Mitarbeit');
 
-  it('keeps the pre-rename Zeugnis result keys', () => {
-    const zeugnis: Zeugnis = {
-      termId: 'halbjahr-1',
-      label: '10.1',
-      schoolYear: '2026/27',
-      system: 'sechser',
-      gesamtschnitt: '2,5',
-      zeilen: [
-        {
-          fachId: 'mathematik',
-          fachName: 'Mathematik',
-          anzeige: '2+',
-          anzahlNoten: 2,
-        },
-      ],
-      jahresvorschau: [
-        {
-          fachId: 'mathematik',
-          fachName: 'Mathematik',
-          note: 2,
-          grenzfall: false,
-        },
-      ],
-    };
-    expect(keys(zeugnis)).toEqual([
-      'gesamtschnitt',
-      'jahresvorschau',
-      'label',
-      'schoolYear',
-      'system',
-      'termId',
-      'zeilen',
-    ]);
-    expect(keys(zeugnis.zeilen[0])).toEqual([
-      'anzahlNoten',
-      'anzeige',
-      'fachId',
-      'fachName',
-    ]);
-  });
+        INSERT INTO study_day (id, day, subject_id, minutes, note)
+        VALUES ('lerntag-1', '2026-10-01', 'mathematik', 30, NULL);
+      `);
+
+      const layer = postgresTestLayer(pool);
+      const provided = <Value, Error>(
+        effect: Effect.Effect<Value, Error, SqlClient | PgDrizzle>,
+      ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
+
+      const fach = required(
+        (await provided(listFaecher('2026/27')))[0],
+        'Fach',
+      );
+      const halbjahr = required((await provided(listHalbjahre))[0], 'Halbjahr');
+      const studyDay = required(
+        (await provided(listStudyDays()))[0],
+        'Lerntag',
+      );
+      const statistics = await provided(loadLearningStatistics('2026-10-02'));
+      const note = required(
+        (await provided(listNoten('halbjahr-1')))[0],
+        'Note',
+      );
+      const trend = required((await provided(loadTrend))[0], 'Verlaufspunkt');
+      const zeugnis = await provided(loadZeugnis('halbjahr-1'));
+
+      expect(keys(fach)).toEqual([
+        'gfsWeight',
+        'id',
+        'klausurWeight',
+        'muendlichWeight',
+        'name',
+        'shortName',
+        'sonstigeWeight',
+        'sortOrder',
+        'testWeight',
+        'writtenShare',
+      ]);
+      expect(keys(halbjahr)).toEqual([
+        'endsOn',
+        'half',
+        'id',
+        'klassenstufe',
+        'schoolYear',
+        'startsOn',
+        'system',
+      ]);
+      expect(keys(studyDay)).toEqual([
+        'createdAt',
+        'day',
+        'id',
+        'minutes',
+        'note',
+        'subjectId',
+      ]);
+      expect(keys(statistics)).toEqual(['serie', 'tageDiesenMonat']);
+      expect(keys(note)).toEqual([
+        'area',
+        'datum',
+        'fachId',
+        'fachKuerzel',
+        'fachName',
+        'gewicht',
+        'gewichtung',
+        'id',
+        'kind',
+        'notiz',
+        'wert',
+      ]);
+      expect(keys(note.gewichtung)).toEqual(['kindWeights', 'writtenShare']);
+      expect(keys(trend)).toEqual([
+        'datum',
+        'fachKuerzel',
+        'punkte',
+        'schnitt',
+      ]);
+      expect(keys(zeugnis)).toEqual([
+        'gesamtschnitt',
+        'jahresvorschau',
+        'label',
+        'schoolYear',
+        'system',
+        'termId',
+        'zeilen',
+      ]);
+      expect(keys(required(zeugnis.zeilen[0], 'Zeugniszeile'))).toEqual([
+        'anzahlNoten',
+        'anzeige',
+        'fachId',
+        'fachName',
+      ]);
+      expect(
+        keys(required(zeugnis.jahresvorschau?.[0], 'Jahresvorschauzeile')),
+      ).toEqual(['fachId', 'fachName', 'grenzfall', 'note']);
+    }));
 });

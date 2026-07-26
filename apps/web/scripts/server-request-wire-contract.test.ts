@@ -11,7 +11,7 @@ import {
   HalbjahrInput,
   HalbjahrUpdate,
 } from '#/features/halbjahre/schemas/halbjahr-schema.ts';
-import { StudyDayInput } from '#/features/learning/schemas/study-day-schema.ts';
+import { StudyDayInput } from '#/features/lernen/schemas/study-day-schema.ts';
 import {
   NoteId,
   NoteInput,

@@ -12,22 +12,22 @@ import {
   logStudyDay,
 } from '../services/learning-service.ts';
 
-export const logStudyDayFn = createServerFn({ method: 'POST' })
+export const logLerntagFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
   .inputValidator(Schema.standardSchemaV1(StudyDayInput))
   .handler(({ data }) => runtime.runPromise(logStudyDay(data)));
 
-export const learningStatisticsFn = createServerFn({ method: 'GET' })
+export const lernStatistikFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
   .handler(() =>
     runtime.runPromise(loadLearningStatistics(berlinCalendarDate())),
   );
 
-export const listStudyDaysFn = createServerFn({ method: 'GET' })
+export const listLerntageFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
   .handler(() => runtime.runPromise(listStudyDays()));
 
 export const learningStatisticsQueryOptions = queryOptions({
   queryKey: ['learning-statistics'],
-  queryFn: () => learningStatisticsFn(),
+  queryFn: () => lernStatistikFn(),
 });

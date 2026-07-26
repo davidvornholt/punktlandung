@@ -11,8 +11,8 @@ import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { learningLimits } from '../schemas/study-day-schema.ts';
 import {
   learningStatisticsQueryOptions,
-  logStudyDayFn,
-} from '../server/learning-fns.ts';
+  logLerntagFn,
+} from '../server/lernen-fns.ts';
 
 /** Kompakte Lernen-Kachel: „Heute gelernt" plus kleine Statistikleiste. */
 export const LearnedToday = () => {
@@ -20,7 +20,7 @@ export const LearnedToday = () => {
   const statisticsQuery = useQuery(learningStatisticsQueryOptions);
   const createMutation = useMutation({
     mutationFn: (minutes: number | null) =>
-      logStudyDayFn({
+      logLerntagFn({
         data: {
           day: berlinCalendarDate(),
           subjectId: null,

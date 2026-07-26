@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 
-import { LearnedToday } from '#/features/learning/ui/learned-today.tsx';
+import { LearnedToday } from '#/features/lernen/ui/learned-today.tsx';
 import { trendQueryOptions } from '#/features/noten/server/noten-fns.ts';
 import { TrendChart } from '#/features/noten/ui/trend-chart.tsx';
 import { toSechser } from '#/shared/noten/notenwert.ts';

@@ -38,7 +38,7 @@ export const deleteNoteFn = createServerFn({ method: 'POST' })
   .inputValidator(Schema.standardSchemaV1(NoteId))
   .handler(({ data }) => runtime.runPromise(deleteNote(data.id)));
 
-export const trendFn = createServerFn({ method: 'GET' })
+export const verlaufFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
   .handler(() => runtime.runPromise(loadTrend));
 
@@ -50,5 +50,5 @@ export const notenQueryOptions = (halbjahrId: string) =>
 
 export const trendQueryOptions = queryOptions({
   queryKey: ['trend'],
-  queryFn: () => trendFn(),
+  queryFn: () => verlaufFn(),
 });
