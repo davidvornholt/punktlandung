@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -72,66 +73,71 @@ export const TrendChart = ({
   readonly entries: ReadonlyArray<TrendEntry>;
 }) => {
   const textModel = createTrendTextModel(entries);
+  const descriptionId = useId();
 
   return (
     <figure>
-      <div aria-hidden="true">
-        <ResponsiveContainer height={chartHeight} width="100%">
-          <LineChart
-            accessibilityLayer={false}
-            data={[...entries]}
-            margin={chartMargin}
-          >
-            <CartesianGrid stroke="var(--pl-border)" vertical={false} />
-            <XAxis
-              dataKey="datum"
-              stroke="var(--pl-ink-faint)"
-              tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
-              tickFormatter={shortDate}
-              tickLine={false}
-            />
-            <YAxis
-              domain={[0, maxNotenpunkte]}
-              stroke="var(--pl-ink-faint)"
-              tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
-              tickCount={yAxisTicks}
-              tickLine={false}
-            />
-            <Tooltip
-              content={TrendTooltip}
-              cursor={{ stroke: 'var(--pl-border-strong)', strokeWidth: 1 }}
-              isAnimationActive={false}
-            />
-            <Line
-              activeDot={{
-                fill: 'var(--pl-accent)',
-                r: activePointRadius,
-                stroke: 'none',
-              }}
-              dataKey="punkte"
-              dot={{ fill: 'var(--pl-accent)', r: pointRadius, stroke: 'none' }}
-              isAnimationActive={false}
-              name="Einzelnoten"
-              stroke="var(--pl-accent)"
-              strokeWidth={1}
-              type="monotone"
-            />
-            <Line
-              activeDot={false}
-              dataKey="schnitt"
-              dot={false}
-              isAnimationActive={false}
-              name="Gesamtschnitt"
-              stroke="var(--pl-primary)"
-              strokeWidth={2}
-              type="monotone"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <figcaption className="mt-2 text-ink-faint text-sm">
+      <ResponsiveContainer
+        className="[&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-primary [&_.recharts-surface:focus-visible]:outline-offset-2"
+        height={chartHeight}
+        width="100%"
+      >
+        <LineChart
+          aria-describedby={descriptionId}
+          aria-label="Interaktive Verlaufslinie der Noten"
+          data={[...entries]}
+          margin={chartMargin}
+        >
+          <CartesianGrid stroke="var(--pl-border)" vertical={false} />
+          <XAxis
+            dataKey="datum"
+            stroke="var(--pl-ink-faint)"
+            tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
+            tickFormatter={shortDate}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[0, maxNotenpunkte]}
+            stroke="var(--pl-ink-faint)"
+            tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
+            tickCount={yAxisTicks}
+            tickLine={false}
+          />
+          <Tooltip
+            content={TrendTooltip}
+            cursor={{ stroke: 'var(--pl-border-strong)', strokeWidth: 1 }}
+            isAnimationActive={false}
+          />
+          <Line
+            activeDot={{
+              fill: 'var(--pl-accent)',
+              r: activePointRadius,
+              stroke: 'none',
+            }}
+            dataKey="punkte"
+            dot={{ fill: 'var(--pl-accent)', r: pointRadius, stroke: 'none' }}
+            isAnimationActive={false}
+            name="Einzelnoten"
+            stroke="var(--pl-accent)"
+            strokeWidth={1}
+            type="monotone"
+          />
+          <Line
+            activeDot={false}
+            dataKey="schnitt"
+            dot={false}
+            isAnimationActive={false}
+            name="Gesamtschnitt"
+            stroke="var(--pl-primary)"
+            strokeWidth={2}
+            type="monotone"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+      <figcaption className="mt-2 text-ink-faint text-sm" id={descriptionId}>
         {textModel.summary} Dünne Linie: Einzelnoten, kräftige Linie: laufender
-        Schnitt.
+        Schnitt. Mit Tab die Verlaufslinie auswählen und mit der linken und
+        rechten Pfeiltaste die Notenpunkte erkunden.
       </figcaption>
       <div className="sr-only">
         <table>
