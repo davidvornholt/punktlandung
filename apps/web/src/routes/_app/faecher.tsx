@@ -1,42 +1,49 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { FaecherVerwaltung } from '#/features/faecher/ui/faecher-verwaltung.tsx';
+import { FaecherManagement } from '#/features/faecher/ui/faecher-management.tsx';
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { pageTitle } from '#/shared/ui/page-title.ts';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 
-const FaecherSeite = () => {
-  const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
-  const halbjahre = halbjahreAbfrage.data;
-  if (halbjahreAbfrage.isPending) {
+const FaecherPage = () => {
+  const halbjahreQuery = useQuery(halbjahreQueryOptions);
+  const halbjahre = halbjahreQuery.data;
+  if (halbjahreQuery.isPending) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
           Fächer
         </h1>
         <div className="mt-6">
-          <Ladehinweis text="Fächer werden geladen …" />
+          <LoadingHint text="Fächer werden geladen …" />
         </div>
       </>
     );
   }
-  if (halbjahreAbfrage.isError || halbjahre === undefined) {
+  if (halbjahreQuery.isError || halbjahre === undefined) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">
           Fächer
         </h1>
         <div className="mt-6">
-          <AbfrageFehler
-            onWiederholen={() => halbjahreAbfrage.refetch()}
+          <QueryError
+            onRetry={() => halbjahreQuery.refetch()}
             text="Die Schuljahre für die Fachverwaltung konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
       </>
     );
   }
+  // Ein Schuljahr ist eine Klassenstufe: seine Halbjahre teilen das
+  // Notensystem, deshalb genügt eines davon für die Vorschau im Formular.
   const schoolYears = [
-    ...new Set(halbjahre.map((halbjahr) => halbjahr.schoolYear)),
+    ...new Map(
+      halbjahre.map((halbjahr) => [
+        halbjahr.schoolYear,
+        { schoolYear: halbjahr.schoolYear, system: halbjahr.system },
+      ]),
+    ).values(),
   ];
   return (
     <>
@@ -46,13 +53,13 @@ const FaecherSeite = () => {
         verkündet hat. Änderungen gelten nur für das gewählte Schuljahr.
       </p>
       <div className="mt-6">
-        <FaecherVerwaltung schoolYears={schoolYears} />
+        <FaecherManagement schoolYears={schoolYears} />
       </div>
     </>
   );
 };
 
 export const Route = createFileRoute('/_app/faecher')({
-  component: FaecherSeite,
-  head: () => ({ meta: [{ title: seitentitel('Fächer') }] }),
+  component: FaecherPage,
+  head: () => ({ meta: [{ title: pageTitle('Fächer') }] }),
 });

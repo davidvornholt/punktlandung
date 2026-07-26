@@ -1,155 +1,117 @@
 import type { RefObject } from 'react';
+import { useReducer } from 'react';
+
+import type { Fachgewichtung, Notensystem } from '#/shared/noten/notenwert.ts';
 import {
-  eingabeKlasse,
-  labelKlasse,
-  primaerKnopfKlasse,
-  sekundaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
-import type { FachFelder } from '../schemas/fach-schema.ts';
-import { fachGrenzen } from '../schemas/fach-schema.ts';
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from '#/shared/ui/form-classes.ts';
+import type { FachFields } from '../schemas/fach-schema.ts';
+import { fachLimits } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
-import { fachFormWerte } from './fach-form-modell.ts';
+import { fachFormValues } from './fach-form-model.ts';
+import { GewichtungField } from './gewichtung-field.tsx';
+import {
+  gewichtungReducer,
+  gewichtungStateFrom,
+  isVerhaeltnisValid,
+} from './gewichtung-model.ts';
 
-const gewichtsFelder = [
-  { name: 'klausurWeight', label: 'Klausur' },
-  { name: 'testWeight', label: 'Test' },
-  { name: 'muendlichWeight', label: 'Mündlich' },
-  { name: 'gfsWeight', label: 'GFS' },
-  { name: 'sonstigeWeight', label: 'Sonstige' },
-] as const;
-
-const liesWerte = (form: HTMLFormElement): FachFelder => {
-  const daten = new FormData(form);
-  const text = (name: string) => `${daten.get(name) ?? ''}`.trim();
-  const gewicht = (name: string) => {
-    const roh = text(name).replace(',', '.');
-    return roh === '' ? 1 : Number(roh);
-  };
-  const anteil = text('writtenShare');
+const readValues = (
+  form: HTMLFormElement,
+  gewichtung: Fachgewichtung,
+): FachFields => {
+  const data = new FormData(form);
+  const text = (name: string) => `${data.get(name) ?? ''}`.trim();
   return {
     name: text('name'),
     shortName: text('shortName'),
-    writtenShare: anteil === '' ? null : Number(anteil),
-    klausurWeight: gewicht('klausurWeight'),
-    testWeight: gewicht('testWeight'),
-    muendlichWeight: gewicht('muendlichWeight'),
-    gfsWeight: gewicht('gfsWeight'),
-    sonstigeWeight: gewicht('sonstigeWeight'),
+    gewichtung,
   };
 };
 
 export const FachForm = ({
-  titel,
+  title,
   fach,
-  beschaeftigt,
-  fehler,
-  formularRef,
-  onSpeichern,
-  onAbbrechen,
+  system,
+  pending,
+  error,
+  formRef,
+  onSave,
+  onCancel,
 }: {
-  readonly titel: string;
+  readonly title: string;
   readonly fach: Fach | null;
-  readonly beschaeftigt: boolean;
-  readonly fehler: string | null;
-  readonly formularRef: RefObject<HTMLFormElement | null>;
-  readonly onSpeichern: (werte: FachFelder) => void;
-  readonly onAbbrechen: () => void;
+  readonly system: Notensystem;
+  readonly pending: boolean;
+  readonly error: string | null;
+  readonly formRef: RefObject<HTMLFormElement | null>;
+  readonly onSave: (values: FachFields) => void;
+  readonly onCancel: () => void;
 }) => {
-  const werte = fachFormWerte(fach);
+  const values = fachFormValues(fach);
+  const [state, dispatch] = useReducer(
+    gewichtungReducer,
+    values.gewichtung,
+    gewichtungStateFrom,
+  );
+  const valid = isVerhaeltnisValid(state.gewichtung);
   return (
     <form
       className="border border-border bg-surface p-5 shadow-card"
-      onSubmit={(ereignis) => {
-        ereignis.preventDefault();
-        onSpeichern(liesWerte(ereignis.currentTarget));
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (valid) {
+          onSave(readValues(event.currentTarget, state.gewichtung));
+        }
       }}
-      ref={formularRef}
+      ref={formRef}
     >
-      <h3 className="font-display text-ink text-xl tracking-tight">{titel}</h3>
+      <h3 className="font-display text-ink text-xl tracking-tight">{title}</h3>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Name
           <input
-            className={eingabeKlasse}
-            defaultValue={werte.name}
-            maxLength={fachGrenzen.nameMax}
+            className={inputClass}
+            defaultValue={values.name}
+            maxLength={fachLimits.nameMax}
             name="name"
             required={true}
           />
         </label>
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Kürzel
           <input
-            className={eingabeKlasse}
-            defaultValue={werte.shortName}
-            maxLength={fachGrenzen.kuerzelMax}
+            className={inputClass}
+            defaultValue={values.shortName}
+            maxLength={fachLimits.maxShortName}
             name="shortName"
             required={true}
           />
         </label>
       </div>
-      <fieldset className="mt-5 border border-border p-4">
-        <legend className={`${labelKlasse} px-1`}>
-          Gewichtung je Leistungsart
-        </legend>
-        <p className="text-ink-muted text-sm">
-          Gewichtung wie von der Lehrkraft verkündet, z. B. Klausuren doppelt:
-          Klausur 2, alles andere 1.
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {gewichtsFelder.map((feld) => (
-            <label className={labelKlasse} key={feld.name}>
-              {feld.label}
-              <input
-                className={eingabeKlasse}
-                defaultValue={werte[feld.name]}
-                inputMode="decimal"
-                max={fachGrenzen.gewichtMax}
-                min={fachGrenzen.gewichtSchritt}
-                name={feld.name}
-                step={fachGrenzen.gewichtSchritt}
-                type="number"
-              />
-            </label>
-          ))}
-        </div>
-        <label className={`${labelKlasse} mt-4`}>
-          Schriftlicher Anteil in Prozent (optional)
-          <input
-            className={eingabeKlasse}
-            defaultValue={werte.writtenShare}
-            inputMode="numeric"
-            max={fachGrenzen.anteilMax}
-            min={0}
-            name="writtenShare"
-            step={1}
-            type="number"
-          />
-        </label>
-        <p className="mt-2 text-ink-faint text-sm">
-          Leer lassen, wenn die Lehrkraft keine schriftlich/mündlich-Aufteilung
-          verkündet hat — dann zählt eine gemeinsame gewichtete Liste.
-        </p>
-      </fieldset>
-      {fehler === null ? null : (
+      <GewichtungField onAction={dispatch} state={state} system={system} />
+      {error === null ? null : (
         <p
           className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          {fehler}
+          {error}
         </p>
       )}
       <div className="mt-5 flex gap-3">
         <button
-          className={primaerKnopfKlasse}
-          disabled={beschaeftigt}
+          className={primaryButtonClass}
+          disabled={pending || !valid}
           type="submit"
         >
-          {beschaeftigt ? 'Fach wird gespeichert …' : 'Fach speichern'}
+          {pending ? 'Fach wird gespeichert …' : 'Fach speichern'}
         </button>
         <button
-          className={sekundaerKnopfKlasse}
-          onClick={onAbbrechen}
+          className={secondaryButtonClass}
+          onClick={onCancel}
           type="button"
         >
           Abbrechen

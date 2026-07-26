@@ -1,93 +1,154 @@
 /**
  * Reine Notenmathematik. Zwei Systeme: "sechser" (1–6, kleiner ist besser)
- * und "punkte" (Notenpunkte 0–15, größer ist besser). Amtliche Umrechnung:
- * Punkte = 17 − 3 × Note.
+ * und "punkte" (Notenpunkte 0–15, größer ist besser).
  */
 
 export type Notensystem = 'sechser' | 'punkte';
 
-export type Leistungsart =
-  | 'klausur'
-  | 'test'
-  | 'muendlich'
-  | 'gfs'
-  | 'sonstige';
+/** Leistungsarten eines Fachs; die Reihenfolge ist die des grade_kind-Enums. */
+export const leistungsarten = [
+  'klausur',
+  'test',
+  'muendlich',
+  'gfs',
+  'sonstige',
+] as const;
 
-export type Wertungsbereich = 'schriftlich' | 'muendlich';
+export type Leistungsart = (typeof leistungsarten)[number];
 
-export type Leistung = {
-  readonly value: number;
-  readonly weight: number;
-  readonly kind: Leistungsart;
-  readonly area: Wertungsbereich;
-};
+export const wertungsbereiche = ['schriftlich', 'muendlich'] as const;
 
-export type Fachgewichtung = {
-  /** Anteil schriftlicher Leistungen in Prozent; null = eine Gesamtliste. */
-  readonly writtenShare: number | null;
-  readonly kindWeights: Readonly<Record<Leistungsart, number>>;
-};
+export type Wertungsbereich = (typeof wertungsbereiche)[number];
 
-/** Amtliche Umrechnungskonstanten: Punkte = 17 − 3 × Note. */
-const umrechnungsBasis = 17;
-const punkteProNotenstufe = 3;
-const prozentBasis = 100;
-const punkteMin = 0;
-const punkteMax = 15;
-
-/** Normalisiert einen nativen Wert auf die Punkteskala (0–15, dezimal). */
-export const zuPunkten = (value: number, system: Notensystem): number => {
-  const punkte =
-    system === 'punkte'
-      ? value
-      : umrechnungsBasis - punkteProNotenstufe * value;
-  return Math.min(punkteMax, Math.max(punkteMin, punkte));
-};
-
-/** Rechnet einen Punktewert (dezimal) in die Sechserskala um. */
-export const zuSechser = (punkte: number): number =>
-  (umrechnungsBasis - punkte) / punkteProNotenstufe;
-
-const gewichtetesMittel = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
-): number | null => {
-  let summe = 0;
-  let gewichte = 0;
-  for (const l of leistungen) {
-    const gewicht = l.weight * gewichtung.kindWeights[l.kind];
-    summe += l.value * gewicht;
-    gewichte += gewicht;
-  }
-  return gewichte === 0 ? null : summe / gewichte;
+/**
+ * In welchen Bereich eine Leistungsart fällt. Das ist eine Eigenschaft der Art
+ * selbst, keine Verkündung: eine Klausur, eine GFS und ein Test sind
+ * schriftliche Arbeiten, mündliche und sonstige Noten der zweite Bereich. Die
+ * Lehrkraft verkündet das Verhältnis der Bereiche, nicht ihre Besetzung.
+ */
+export const bereichDerLeistungsart: Readonly<
+  Record<Leistungsart, Wertungsbereich>
+> = {
+  klausur: 'schriftlich',
+  gfs: 'schriftlich',
+  test: 'schriftlich',
+  muendlich: 'muendlich',
+  sonstige: 'muendlich',
 };
 
 /**
- * Fachschnitt im nativen System: entweder eine gemeinsame gewichtete Liste
- * oder bereichsweise (schriftlich/mündlich) nach verkündetem Anteil. Fehlt
- * ein Bereich vollständig, zählt der vorhandene allein.
+ * Wie die Noten einer Leistungsart in den Schnitt eingehen: einzeln zählt
+ * jede für sich, gesammelt mitteln alle zu einer einzigen Note — so wird aus
+ * "alle Tests zusammen zählen wie eine Klausur" echte Notenmathematik.
  */
-export const fachschnitt = (
-  leistungen: ReadonlyArray<Leistung>,
-  gewichtung: Fachgewichtung,
-): number | null => {
-  if (gewichtung.writtenShare === null) {
-    return gewichtetesMittel(leistungen, gewichtung);
-  }
-  const schriftlich = gewichtetesMittel(
-    leistungen.filter((l) => l.area === 'schriftlich'),
-    gewichtung,
-  );
-  const muendlich = gewichtetesMittel(
-    leistungen.filter((l) => l.area === 'muendlich'),
-    gewichtung,
-  );
-  if (schriftlich === null) {
-    return muendlich;
-  }
-  if (muendlich === null) {
-    return schriftlich;
-  }
-  const anteil = gewichtung.writtenShare / prozentBasis;
-  return schriftlich * anteil + muendlich * (1 - anteil);
+export type Sammlung = 'einzeln' | 'gesammelt';
+
+export type Assessment = {
+  readonly notenwert: number;
+  /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */
+  readonly individualGewichtung: number;
+  readonly leistungsart: Leistungsart;
 };
+
+/** Gewichtung einer Leistungsart, wie von der Lehrkraft verkündet. */
+export type Artgewichtung = {
+  readonly gewicht: number;
+  readonly sammlung: Sammlung;
+};
+
+/**
+ * Verhältnis der Bereiche, wie die Lehrkraft es nennt: "60:40" und "3:1"
+ * bleiben so erhalten, wie sie verkündet wurden, und werden erst beim
+ * Rechnen normalisiert.
+ */
+export type Bereichsverhaeltnis = {
+  readonly schriftlich: number;
+  readonly muendlich: number;
+};
+
+export type Fachgewichtung = {
+  /** null = eine gemeinsame gewichtete Liste über alle Leistungsarten. */
+  readonly verhaeltnis: Bereichsverhaeltnis | null;
+  readonly arten: Readonly<Record<Leistungsart, Artgewichtung>>;
+};
+
+const minNotenpunkte = 0;
+const maxNotenpunkte = 15;
+
+type ConversionAnchor = {
+  readonly input: number;
+  readonly output: number;
+};
+
+/**
+ * Baden-Württemberg vergibt ganze Notenpunkte nach Notentendenz. Die
+ * Dezimalwerte links sind die Viertelnoten, mit denen die App diese Tendenzen
+ * im Sechsersystem erfasst; sie selbst sind keine amtliche Umrechnungstabelle.
+ */
+const sechserToNotenpunkteAnchors: ReadonlyArray<ConversionAnchor> = [
+  { input: 0.75, output: 15 },
+  { input: 1, output: 14 },
+  { input: 1.25, output: 13 },
+  { input: 1.75, output: 12 },
+  { input: 2, output: 11 },
+  { input: 2.25, output: 10 },
+  { input: 2.75, output: 9 },
+  { input: 3, output: 8 },
+  { input: 3.25, output: 7 },
+  { input: 3.75, output: 6 },
+  { input: 4, output: 5 },
+  { input: 4.25, output: 4 },
+  { input: 4.75, output: 3 },
+  { input: 5, output: 2 },
+  { input: 5.25, output: 1 },
+  { input: 6, output: 0 },
+];
+
+/**
+ * Ob eine Note genau auf einer Notentendenz liegt. Nur diese Werte haben ein
+ * amtlich verkündetes Punktegegenstück; zwischen ihnen interpoliert die App.
+ */
+export const isNotentendenz = (note: number): boolean =>
+  sechserToNotenpunkteAnchors.some((anchor) => anchor.input === note);
+
+const notenpunkteToSechserAnchors: ReadonlyArray<ConversionAnchor> = [
+  ...sechserToNotenpunkteAnchors,
+]
+  .reverse()
+  .map(({ input, output }) => ({ input: output, output: input }));
+
+const interpolate = (
+  value: number,
+  anchors: ReadonlyArray<ConversionAnchor>,
+): number => {
+  if (Number.isNaN(value)) {
+    return value;
+  }
+  const [first] = anchors;
+  const last = anchors.at(-1);
+  if (first === undefined || last === undefined) {
+    return value;
+  }
+  if (value <= first.input) {
+    return first.output;
+  }
+  for (let index = 1; index < anchors.length; index += 1) {
+    const left = anchors[index - 1];
+    const right = anchors[index];
+    if (left !== undefined && right !== undefined && value <= right.input) {
+      const position = (value - left.input) / (right.input - left.input);
+      return left.output + position * (right.output - left.output);
+    }
+  }
+  return last.output;
+};
+
+/** Normalisiert einen nativen Wert auf die Punkteskala (0–15, dezimal). */
+export const toNotenpunkte = (value: number, system: Notensystem): number =>
+  system === 'punkte'
+    ? Math.min(maxNotenpunkte, Math.max(minNotenpunkte, value))
+    : interpolate(value, sechserToNotenpunkteAnchors);
+
+/** Rechnet einen Punktewert (dezimal) in die Sechserskala um. */
+export const toSechser = (notenpunkte: number): number =>
+  interpolate(notenpunkte, notenpunkteToSechserAnchors);

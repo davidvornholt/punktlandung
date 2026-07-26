@@ -1,139 +1,136 @@
 import { describe, expect, it } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { NoteMitFach } from '../services/noten-service.ts';
+import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
+import type { NoteWithFach } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
 
-const note: NoteMitFach = {
-  area: 'schriftlich',
+const note: NoteWithFach = {
   datum: '2026-02-11',
   fachId: 'latein',
   fachKuerzel: 'L',
   fachName: 'Latein',
   gewicht: 1,
-  gewichtung: {
-    kindWeights: { gfs: 1, klausur: 1, muendlich: 1, sonstige: 1, test: 1 },
-    writtenShare: null,
-  },
+  gewichtung: standardgewichtung,
   id: 'note-1',
   kind: 'klausur',
   notiz: null,
   wert: 2,
 };
 
-const term = {
+const halbjahr = {
   endsOn: '2026-07-31',
   startsOn: '2026-01-01',
   system: 'sechser',
 } as const;
 
-type Fachliste = ReadonlyArray<{
+type FachList = ReadonlyArray<{
   readonly id: string;
   readonly name: string;
 }>;
 
 /** Die Bearbeitungsrolle: das Datum stammt aus der Note, nicht aus einer Vorgabe. */
-const bearbeitungsMarkup = (faecher: Fachliste, eigene: NoteMitFach = note) =>
+const editMarkup = (faecher: FachList, own: NoteWithFach = note) =>
   renderToStaticMarkup(
     <NoteForm
-      beschaeftigt={false}
+      error={null}
       faecher={faecher}
-      fehler={null}
-      formularRef={{ current: null }}
-      note={eigene}
-      onAbbrechen={() => undefined}
-      onSpeichern={() => undefined}
-      term={term}
+      formRef={{ current: null }}
+      halbjahr={halbjahr}
+      note={own}
+      onCancel={() => undefined}
+      onSave={() => undefined}
+      pending={false}
     />,
   );
 
 /** Die Eintragsrolle: leere Felder mit vorgeschlagenem Datum. */
-const eintragsMarkup = (faecher: Fachliste) =>
+const entryMarkup = (faecher: FachList) =>
   renderToStaticMarkup(
     <NoteForm
-      beschaeftigt={false}
+      defaultDate="2026-02-11"
+      error={null}
       faecher={faecher}
-      fehler={null}
-      formularRef={{ current: null }}
+      formRef={{ current: null }}
+      halbjahr={halbjahr}
       note={null}
-      onAbbrechen={null}
-      onSpeichern={() => undefined}
-      term={term}
-      vorgabeDatum="2026-02-11"
+      onCancel={null}
+      onSave={() => undefined}
+      pending={false}
     />,
   );
 
 /** Das Fachfeld ohne die umgebenden Felder, damit `selected` eindeutig ist. */
-const fachfeld = (gerendert: string) => {
-  const start = gerendert.indexOf('name="subjectId"');
-  return gerendert.slice(start, gerendert.indexOf('</select>', start));
+const fachField = (rendered: string) => {
+  const start = rendered.indexOf('name="subjectId"');
+  return rendered.slice(start, rendered.indexOf('</select>', start));
 };
 
-const absendeknopf = (gerendert: string) => {
-  const ende = gerendert.indexOf('type="submit"');
-  return gerendert.slice(gerendert.lastIndexOf('<button', ende), ende);
+const submitButton = (rendered: string) => {
+  const end = rendered.indexOf('type="submit"');
+  return rendered.slice(rendered.lastIndexOf('<button', end), end);
 };
 
 describe('NoteForm', () => {
   it('hält das archivierte Fach der bearbeiteten Note wählbar und ausgewählt', () => {
-    const feld = fachfeld(
-      bearbeitungsMarkup([
+    const field = fachField(
+      editMarkup([
         { id: 'biologie', name: 'Biologie' },
         { id: 'deutsch', name: 'Deutsch' },
       ]),
     );
 
-    expect(feld).toContain(
+    expect(field).toContain(
       '<option value="latein" selected="">Latein (archiviert)</option>',
     );
-    expect(feld.match(/selected=""/gu)).toHaveLength(1);
+    expect(field.match(/selected=""/gu)).toHaveLength(1);
   });
 
   it('führt ein noch geführtes Fach genau einmal und ausgewählt', () => {
-    const feld = fachfeld(
-      bearbeitungsMarkup([
+    const field = fachField(
+      editMarkup([
         { id: 'latein', name: 'Latein' },
         { id: 'deutsch', name: 'Deutsch' },
       ]),
     );
 
-    expect(feld.match(/value="latein"/gu)).toHaveLength(1);
-    expect(feld).toContain(
+    expect(field.match(/value="latein"/gu)).toHaveLength(1);
+    expect(field).toContain(
       '<option value="latein" selected="">Latein</option>',
     );
-    expect(feld).not.toContain('archiviert');
+    expect(field).not.toContain('archiviert');
   });
 
   it('bietet beim Neueintrag keine archivierten Fächer an', () => {
-    const feld = fachfeld(
-      eintragsMarkup([{ id: 'biologie', name: 'Biologie' }]),
+    const field = fachField(
+      entryMarkup([{ id: 'biologie', name: 'Biologie' }]),
     );
 
-    expect(feld).not.toContain('archiviert');
-    expect(feld.match(/<option/gu)).toHaveLength(1);
+    expect(field).not.toContain('archiviert');
+    expect(field.match(/<option/gu)).toHaveLength(1);
   });
 
   it('lässt den Eintragsknopf auf dem Telefon die volle Breite füllen', () => {
     expect(
-      absendeknopf(eintragsMarkup([{ id: 'biologie', name: 'Biologie' }])),
+      submitButton(entryMarkup([{ id: 'biologie', name: 'Biologie' }])),
     ).toContain('w-full sm:w-auto');
   });
 
   it('belegt beim Bearbeiten Datum und Gewicht aus der Note', () => {
-    const gerendert = bearbeitungsMarkup([{ id: 'latein', name: 'Latein' }], {
+    const rendered = editMarkup([{ id: 'latein', name: 'Latein' }], {
       ...note,
       datum: '2026-03-05',
       gewicht: 1.5,
     });
 
-    expect(gerendert).toContain('value="2026-03-05"');
-    expect(gerendert).toContain('value="1.5"');
+    expect(rendered).toContain('value="2026-03-05"');
+    expect(rendered).toContain('value="1.5"');
   });
 
   it('lässt Speichern und Abbrechen beim Bearbeiten nebeneinander stehen', () => {
-    const gerendert = bearbeitungsMarkup([{ id: 'latein', name: 'Latein' }]);
+    const rendered = editMarkup([{ id: 'latein', name: 'Latein' }]);
 
-    expect(absendeknopf(gerendert)).not.toContain('w-full');
-    expect(gerendert).toContain('Abbrechen');
+    expect(submitButton(rendered)).not.toContain('w-full');
+    expect(rendered).toContain('Abbrechen');
   });
 });

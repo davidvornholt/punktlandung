@@ -1,6 +1,6 @@
 import { Data } from 'effect';
 
-export class FachSchuljahrNichtGefunden extends Data.TaggedError(
+export class FachSchoolYearNotFound extends Data.TaggedError(
   'FachSchuljahrNichtGefunden',
 )<{ readonly schoolYear: string }> {
   override get message(): string {
@@ -8,7 +8,7 @@ export class FachSchuljahrNichtGefunden extends Data.TaggedError(
   }
 }
 
-export class FachNichtGefunden extends Data.TaggedError('FachNichtGefunden')<{
+export class FachNotFound extends Data.TaggedError('FachNichtGefunden')<{
   readonly fachId: string;
   readonly schoolYear: string;
 }> {

@@ -1,22 +1,26 @@
 import { describe, expect, it } from 'bun:test';
 
-import type { SchuljahrFach } from '#/shared/noten/schuljahr-fachstand.ts';
+import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
-  berechneJahresvorschau,
-  istVollstaendigesSchuljahr,
+  calculateJahresvorschau,
+  isCompleteSchoolYear,
 } from './zeugnis-service.ts';
 
-const fach: SchuljahrFach = {
+const fach: SchoolYearFach = {
   id: 'mathematik',
   schoolYear: '2026/27',
   name: 'Mathematik',
   shortName: 'M',
-  writtenShare: 50,
-  klausurWeight: '1',
-  testWeight: '1',
-  muendlichWeight: '1',
-  gfsWeight: '1',
-  sonstigeWeight: '1',
+  gewichtung: {
+    verhaeltnis: { schriftlich: 50, muendlich: 50 },
+    arten: {
+      klausur: { gewicht: 1, sammlung: 'einzeln' },
+      test: { gewicht: 1, sammlung: 'einzeln' },
+      muendlich: { gewicht: 1, sammlung: 'einzeln' },
+      gfs: { gewicht: 1, sammlung: 'einzeln' },
+      sonstige: { gewicht: 1, sammlung: 'einzeln' },
+    },
+  },
   sortOrder: 0,
   archived: false,
 };
@@ -29,17 +33,15 @@ describe('Jahresvorschau', () => {
         value: '2',
         weight: '1',
         kind: 'klausur' as const,
-        area: 'schriftlich' as const,
       },
       ...Array.from({ length: 4 }, () => ({
         subjectId: fach.id,
         value: '4',
         weight: '1',
         kind: 'muendlich' as const,
-        area: 'muendlich' as const,
       })),
     ];
-    expect(berechneJahresvorschau(noten, [fach])).toEqual([
+    expect(calculateJahresvorschau(noten, [fach])).toEqual([
       {
         fachId: fach.id,
         fachName: fach.name,
@@ -50,8 +52,8 @@ describe('Jahresvorschau', () => {
   });
 
   it('verlangt ausdrücklich erstes und zweites Halbjahr', () => {
-    expect(istVollstaendigesSchuljahr([{ half: 1 }])).toBe(false);
-    expect(istVollstaendigesSchuljahr([{ half: 1 }, { half: 1 }])).toBe(false);
-    expect(istVollstaendigesSchuljahr([{ half: 2 }, { half: 1 }])).toBe(true);
+    expect(isCompleteSchoolYear([{ half: 1 }])).toBe(false);
+    expect(isCompleteSchoolYear([{ half: 1 }, { half: 1 }])).toBe(false);
+    expect(isCompleteSchoolYear([{ half: 2 }, { half: 1 }])).toBe(true);
   });
 });

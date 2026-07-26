@@ -1,38 +1,37 @@
 import type { RefObject } from 'react';
 
+import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import {
-  eingabeKlasse,
-  labelKlasse,
-  primaerKnopfKlasse,
-  sekundaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
-import type { NotenFelder } from '../schemas/note-schema.ts';
-import { notenGrenzen } from '../schemas/note-schema.ts';
-import type { NoteMitFach } from '../services/noten-service.ts';
-import { leistungsartLabel } from './leistungsart-label.ts';
-import type { NoteEingaben } from './note-form-modell.ts';
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from '#/shared/ui/form-classes.ts';
+import type { NotenFields } from '../schemas/note-schema.ts';
+import { notenLimits } from '../schemas/note-schema.ts';
+import type { NoteWithFach } from '../services/noten-service.ts';
+import type { NoteFormValues } from './note-form-model.ts';
 import {
-  leereNoteEingaben,
-  noteEingaben,
-  noteFelderAusEingaben,
-} from './note-form-modell.ts';
+  emptyNoteFormValues,
+  noteFieldsFromValues,
+  noteFormValues,
+} from './note-form-model.ts';
 
-const liesWerte = (form: HTMLFormElement): NotenFelder => {
-  const daten = new FormData(form);
-  const feld = (name: keyof NoteEingaben) => `${daten.get(name) ?? ''}`;
-  return noteFelderAusEingaben({
-    subjectId: feld('subjectId'),
-    kind: feld('kind'),
-    area: feld('area'),
-    wert: feld('wert'),
-    gewicht: feld('gewicht'),
-    datum: feld('datum'),
-    notiz: feld('notiz'),
+const readValues = (form: HTMLFormElement): NotenFields => {
+  const data = new FormData(form);
+  const field = (name: keyof NoteFormValues) => `${data.get(name) ?? ''}`;
+  return noteFieldsFromValues({
+    subjectId: field('subjectId'),
+    kind: field('kind'),
+    wert: field('wert'),
+    gewicht: field('gewicht'),
+    datum: field('datum'),
+    notiz: field('notiz'),
   });
 };
 
-type Fachauswahl = ReadonlyArray<{
+type FachOptions = ReadonlyArray<{
   readonly id: string;
   readonly name: string;
 }>;
@@ -43,22 +42,22 @@ type Fachauswahl = ReadonlyArray<{
  * Auswahlfeld auf das erste Fach zurück und das Speichern verschöbe die Note
  * stillschweigend in ein fremdes Fach.
  */
-const fachAuswahl = (faecher: Fachauswahl, note: NoteMitFach | null) =>
+const fachOptions = (faecher: FachOptions, note: NoteWithFach | null) =>
   note === null || faecher.some((fach) => fach.id === note.fachId)
     ? faecher
     : [...faecher, { id: note.fachId, name: `${note.fachName} (archiviert)` }];
 
-type NoteFormGemeinsam = {
-  readonly faecher: Fachauswahl;
-  readonly term: {
+type NoteFormShared = {
+  readonly faecher: FachOptions;
+  readonly halbjahr: {
     readonly system: Notensystem;
     readonly startsOn: string;
     readonly endsOn: string;
   };
-  readonly beschaeftigt: boolean;
-  readonly fehler: string | null;
-  readonly formularRef: RefObject<HTMLFormElement | null>;
-  readonly onSpeichern: (werte: NotenFelder) => void;
+  readonly pending: boolean;
+  readonly error: string | null;
+  readonly formRef: RefObject<HTMLFormElement | null>;
+  readonly onSave: (values: NotenFields) => void;
 };
 
 /**
@@ -66,15 +65,15 @@ type NoteFormGemeinsam = {
  * vorgeschlagenes Datum; beim Bearbeiten kommt es aus der Note selbst, und
  * abbrechen lässt sich nur eine offene Bearbeitung.
  */
-type NoteFormEigenschaften =
-  | (NoteFormGemeinsam & {
+type NoteFormProps =
+  | (NoteFormShared & {
       readonly note: null;
-      readonly onAbbrechen: null;
-      readonly vorgabeDatum: string;
+      readonly onCancel: null;
+      readonly defaultDate: string;
     })
-  | (NoteFormGemeinsam & {
-      readonly note: NoteMitFach;
-      readonly onAbbrechen: () => void;
+  | (NoteFormShared & {
+      readonly note: NoteWithFach;
+      readonly onCancel: () => void;
     });
 
 /**
@@ -82,93 +81,81 @@ type NoteFormEigenschaften =
  * Schnelleintrag (`note === null`) und als Bearbeitungsformular für eine
  * bestehende Note.
  */
-export const NoteForm = (eigenschaften: NoteFormEigenschaften) => {
-  const {
-    beschaeftigt,
-    faecher,
-    fehler,
-    formularRef,
-    note,
-    onAbbrechen,
-    onSpeichern,
-    term,
-  } = eigenschaften;
-  const werte =
-    eigenschaften.note === null
-      ? leereNoteEingaben(eigenschaften.vorgabeDatum)
-      : noteEingaben(eigenschaften.note);
-  const bearbeitet = note !== null;
-  const punkteSystem = term.system === 'punkte';
-  const knopfText = beschaeftigt
-    ? `Note wird ${bearbeitet ? 'gespeichert' : 'eingetragen'} …`
-    : `Note ${bearbeitet ? 'speichern' : 'eintragen'}`;
+export const NoteForm = (props: NoteFormProps) => {
+  const { error, faecher, formRef, halbjahr, note, onCancel, onSave, pending } =
+    props;
+  const values =
+    props.note === null
+      ? emptyNoteFormValues(props.defaultDate)
+      : noteFormValues(props.note);
+  const isEdit = note !== null;
+  const usesNotenpunkte = halbjahr.system === 'punkte';
+  const buttonText = pending
+    ? `Note wird ${isEdit ? 'gespeichert' : 'eingetragen'} …`
+    : `Note ${isEdit ? 'speichern' : 'eintragen'}`;
 
   return (
     <form
-      aria-label={bearbeitet ? 'Note bearbeiten' : 'Note eintragen'}
+      aria-label={isEdit ? 'Note bearbeiten' : 'Note eintragen'}
       className="border border-border bg-surface p-4 shadow-card"
-      onSubmit={(ereignis) => {
-        ereignis.preventDefault();
-        onSpeichern(liesWerte(ereignis.currentTarget));
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(readValues(event.currentTarget));
       }}
-      ref={formularRef}
+      ref={formRef}
     >
-      {bearbeitet ? (
-        <p className={`${labelKlasse} mb-3`}>Note bearbeiten</p>
-      ) : null}
+      {isEdit ? <p className={`${labelClass} mb-3`}>Note bearbeiten</p> : null}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Fach
           <select
-            className={eingabeKlasse}
-            defaultValue={werte.subjectId}
+            className={inputClass}
+            defaultValue={values.subjectId}
             name="subjectId"
             required={true}
           >
-            {fachAuswahl(faecher, note).map((fach) => (
+            {fachOptions(faecher, note).map((fach) => (
               <option key={fach.id} value={fach.id}>
                 {fach.name}
               </option>
             ))}
           </select>
         </label>
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Art
-          <select
-            className={eingabeKlasse}
-            defaultValue={werte.kind}
-            name="kind"
-          >
-            {Object.entries(leistungsartLabel).map(([wert, label]) => (
-              <option key={wert} value={wert}>
+          <select className={inputClass} defaultValue={values.kind} name="kind">
+            {Object.entries(leistungsartLabel).map(([value, label]) => (
+              <option key={value} value={value}>
                 {label}
               </option>
             ))}
           </select>
         </label>
-        <label className={labelKlasse}>
-          {punkteSystem ? 'Punkte' : 'Note'}
+        <label className={labelClass}>
+          {usesNotenpunkte ? 'Punkte' : 'Note'}
           <input
-            className={eingabeKlasse}
-            defaultValue={werte.wert}
+            className={inputClass}
+            defaultValue={values.wert}
             inputMode="decimal"
             max={
-              punkteSystem ? notenGrenzen.punkteMax : notenGrenzen.sechserMax
+              usesNotenpunkte
+                ? notenLimits.maxNotenpunkte
+                : notenLimits.sechserMax
             }
-            min={punkteSystem ? 0 : notenGrenzen.sechserMin}
+            min={usesNotenpunkte ? 0 : notenLimits.sechserMin}
             name="wert"
             required={true}
-            step={punkteSystem ? 1 : notenGrenzen.gewichtSchritt}
+            step={usesNotenpunkte ? 1 : notenLimits.gewichtungStep}
             type="number"
           />
         </label>
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Datum
           <input
-            className={eingabeKlasse}
-            defaultValue={werte.datum}
-            max={term.endsOn}
-            min={term.startsOn}
+            className={inputClass}
+            defaultValue={values.datum}
+            max={halbjahr.endsOn}
+            min={halbjahr.startsOn}
             name="datum"
             required={true}
             type="date"
@@ -176,16 +163,16 @@ export const NoteForm = (eigenschaften: NoteFormEigenschaften) => {
         </label>
         <div className="col-span-2 flex gap-3 sm:col-span-1">
           <button
-            className={`${primaerKnopfKlasse} ${onAbbrechen === null ? 'w-full sm:w-auto' : ''}`}
-            disabled={beschaeftigt}
+            className={`${primaryButtonClass} ${onCancel === null ? 'w-full sm:w-auto' : ''}`}
+            disabled={pending}
             type="submit"
           >
-            {knopfText}
+            {buttonText}
           </button>
-          {onAbbrechen === null ? null : (
+          {onCancel === null ? null : (
             <button
-              className={sekundaerKnopfKlasse}
-              onClick={onAbbrechen}
+              className={secondaryButtonClass}
+              onClick={onCancel}
               type="button"
             >
               Abbrechen
@@ -193,52 +180,40 @@ export const NoteForm = (eigenschaften: NoteFormEigenschaften) => {
           )}
         </div>
       </div>
-      <details className="mt-3" open={bearbeitet}>
+      <details className="mt-3" open={isEdit}>
         <summary className="cursor-pointer text-ink-muted text-sm">
-          Gewicht, Bereich und Notiz
+          Gewicht und Notiz
         </summary>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <label className={labelKlasse}>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <label className={labelClass}>
             Gewicht
             <input
-              className={eingabeKlasse}
-              defaultValue={werte.gewicht}
+              className={inputClass}
+              defaultValue={values.gewicht}
               inputMode="decimal"
-              max={notenGrenzen.gewichtMax}
-              min={notenGrenzen.gewichtSchritt}
+              max={notenLimits.maxGewichtung}
+              min={notenLimits.gewichtungStep}
               name="gewicht"
-              step={notenGrenzen.gewichtSchritt}
+              step={notenLimits.gewichtungStep}
               type="number"
             />
           </label>
-          <label className={labelKlasse}>
-            Bereich
-            <select
-              className={eingabeKlasse}
-              defaultValue={werte.area}
-              name="area"
-            >
-              <option value="">Automatisch nach Art</option>
-              <option value="schriftlich">Schriftlich</option>
-              <option value="muendlich">Mündlich</option>
-            </select>
-          </label>
-          <label className={`${labelKlasse} col-span-2 sm:col-span-1`}>
+          <label className={labelClass}>
             Notiz
             <input
-              className={eingabeKlasse}
-              defaultValue={werte.notiz}
+              className={inputClass}
+              defaultValue={values.notiz}
               name="notiz"
             />
           </label>
         </div>
       </details>
-      {fehler === null ? null : (
+      {error === null ? null : (
         <p
           className="mt-3 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          {fehler}
+          {error}
         </p>
       )}
     </form>

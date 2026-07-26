@@ -43,8 +43,8 @@ const server = Bun.serve({
   hostname: '0.0.0.0',
   fetch: async (request) => {
     const { pathname } = new URL(request.url);
-    const statisch = await serveStatic(pathname);
-    return statisch ?? startServer.fetch(request);
+    const staticValue = await serveStatic(pathname);
+    return staticValue ?? startServer.fetch(request);
   },
 });
 

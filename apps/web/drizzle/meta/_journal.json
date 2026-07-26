@@ -22,6 +22,27 @@
       "when": 1784986637608,
       "tag": "0002_amused_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784991709321,
+      "tag": "0003_gewichtung_als_jsonb",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784991747938,
+      "tag": "0004_alte_gewichtsspalten_entfernen",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784991747939,
+      "tag": "0005_bereich_aus_gewichtung",
+      "breakpoints": true
     }
   ]
 }
