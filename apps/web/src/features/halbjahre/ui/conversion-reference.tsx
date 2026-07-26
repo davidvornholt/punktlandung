@@ -17,11 +17,13 @@ export const ConversionReference = () => (
       Notenpunkte um.
     </p>
     <p className="mt-2 text-ink-muted">
-      Die Ankerwerte sind die amtlichen Notentendenzen: 1+ sind 15 Punkte, 1
-      sind 14, 1- sind 13, 2+ sind 12 und so weiter bis 6 mit 0 Punkten.
-      Zwischennoten wie 1-2 stehen in keiner amtlichen Tabelle. Dort teilt
-      Punktlandung gleichmäßig zwischen den benachbarten Tendenzen und markiert
-      das Ergebnis mit ≈. Die Tabelle gilt in beide Richtungen.
+      Die Tabelle zeigt zuerst den Dezimalwert aus der Übersicht und dahinter
+      die Notentendenz in Klammern. Die Ankerwerte sind die amtlichen
+      Notentendenzen: 1+ sind 15 Punkte, 1 sind 14, 1- sind 13, 2+ sind 12 und
+      so weiter bis 6 mit 0 Punkten. Zwischennoten wie 1-2 stehen in keiner
+      amtlichen Tabelle. Dort teilt Punktlandung gleichmäßig zwischen den
+      benachbarten Tendenzen und markiert das Ergebnis mit ≈. Die Tabelle gilt
+      in beide Richtungen.
     </p>
     <details className="mt-4">
       <summary className="cursor-pointer text-ink-muted text-sm transition-colors duration-150 ease-standard hover:text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">
@@ -29,7 +31,8 @@ export const ConversionReference = () => (
       </summary>
       <table className="mt-3 w-full max-w-xs border-collapse">
         <caption className="sr-only">
-          Noten mit ihren Notenpunkten, von 1+ bis 6
+          Dezimalnoten mit ihrer Notentendenz und ihren Notenpunkten, von 1+ bis
+          6
         </caption>
         <thead>
           <tr className="border-border border-b text-left">
@@ -54,7 +57,7 @@ export const ConversionReference = () => (
                 className="py-1.5 pr-3 text-left font-display font-normal text-ink text-lg"
                 scope="row"
               >
-                {row.noteLabel}
+                {row.noteLabel} ({row.tendenzLabel})
               </th>
               <td className="py-1.5 font-display text-ink text-lg">
                 {row.tendenz ? null : <span aria-hidden={true}>≈ </span>}

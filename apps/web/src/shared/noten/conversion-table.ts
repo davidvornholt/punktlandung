@@ -9,8 +9,10 @@ import { formatHalbnote, formatNote } from './zeugnisnote.ts';
 
 export type ConversionRow = {
   readonly note: number;
-  /** Note als Tendenz gesetzt: "1+", "1", "1-", "1-2". */
+  /** Nativer Dezimalwert, wie ihn die Übersicht zeigt. */
   readonly noteLabel: string;
+  /** Derselbe Wert als Tendenz gesetzt: "1+", "1", "1-", "1-2". */
+  readonly tendenzLabel: string;
   readonly notenpunkte: number;
   readonly notenpunkteLabel: string;
   /** Amtliche Tendenz statt eines von der App interpolierten Zwischenwerts. */
@@ -29,7 +31,8 @@ export const conversionTable: ReadonlyArray<ConversionRow> = Array.from(
     const notenpunkte = toNotenpunkte(note, 'sechser');
     return {
       note,
-      noteLabel: formatHalbnote(note),
+      noteLabel: formatNote(note, 'sechser'),
+      tendenzLabel: formatHalbnote(note),
       notenpunkte,
       notenpunkteLabel: formatNote(notenpunkte, 'punkte'),
       tendenz: isNotentendenz(note),
