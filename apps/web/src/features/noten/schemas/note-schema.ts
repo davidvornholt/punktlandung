@@ -14,7 +14,7 @@ const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
 const Leistungsart = Schema.Literal(...leistungsarten);
 
-const NotenFields = Schema.Struct({
+export const NotenFields = Schema.Struct({
   subjectId: Schema.String,
   kind: Leistungsart,
   /** Nativer Wert; die Systemprüfung übernimmt der Service anhand des Halbjahrs. */
@@ -26,6 +26,8 @@ const NotenFields = Schema.Struct({
   datum: Schema.String.pipe(Schema.pattern(isoDatePattern)),
   notiz: Schema.NullOr(Schema.String),
 });
+
+export type NotenFields = typeof NotenFields.Type;
 
 export const NoteInput = Schema.Struct({
   termId: Schema.String,

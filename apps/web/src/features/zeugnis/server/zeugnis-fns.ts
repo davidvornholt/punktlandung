@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
 import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
+import { zeugnisKey } from '#/shared/query/query-keys.ts';
 import { runtime } from '#/shared/runtime.ts';
 import { ZeugnisQuery } from '../schemas/zeugnis-schema.ts';
 import { loadZeugnis } from '../services/zeugnis-service.ts';
@@ -14,6 +15,6 @@ export const zeugnisFn = createServerFn({ method: 'GET' })
 
 export const zeugnisQueryOptions = (termId: string) =>
   queryOptions({
-    queryKey: ['zeugnis', termId],
+    queryKey: zeugnisKey(termId),
     queryFn: () => zeugnisFn({ data: { termId } }),
   });

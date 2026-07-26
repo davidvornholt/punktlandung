@@ -1,16 +1,11 @@
+import type { ReactNode } from 'react';
+
 import { fachAverage } from '#/shared/noten/fach-aggregation.ts';
-import {
-  bereichLabel,
-  leistungsartLabel,
-} from '#/shared/noten/leistungsart-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { bereichDerLeistungsart } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
-import { actionErrorText } from '#/shared/ui/action-error.ts';
-import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
-import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { NoteWithFach } from '../services/noten-service.ts';
+import { NoteRow } from './note-row.tsx';
 
 type FachGroup = {
   readonly fachId: string;
@@ -49,22 +44,38 @@ const groupByFach = (
   }));
 };
 
-const formatDisplayDate = (iso: string): string => {
-  const [year, month, day] = iso.split('-');
-  return `${day}.${month}.${year}`;
-};
-
 /** Notenkarten: je Fach die Einzelnoten und der gewichtete Fachschnitt. */
 export const NotenCards = ({
   deleteMutation,
+  editNoteId,
+  editPending,
+  form,
   noten,
   onDelete,
+  onEdit,
   system,
+  updateErrors,
 }: {
   readonly deleteMutation: ListMutation<string>;
+  readonly editNoteId: string | null;
+  /** Läuft gerade das Speichern der offenen Bearbeitung? */
+  readonly editPending: boolean;
+  /** Das Bearbeitungsformular; erscheint unter der bearbeiteten Note. */
+  readonly form: ReactNode;
   readonly noten: ReadonlyArray<NoteWithFach>;
   readonly onDelete: (id: string) => void;
+  /** Öffnet das Formular für die Note; `null` schließt die offene Zeile. */
+  readonly onEdit: (
+    note: NoteWithFach | null,
+    trigger: HTMLButtonElement,
+  ) => void;
   readonly system: Notensystem;
+  /**
+   * Gescheiterte Änderungen je Note. Eine geteilte Mutation trüge nur ihren
+   * letzten Ausgang, und das Speichern einer zweiten Note verschluckte den
+   * Fehler der ersten.
+   */
+  readonly updateErrors: ReadonlyMap<string, unknown>;
 }) => (
   <div className="mt-6 space-y-4">
     {groupByFach(noten).map((group) => (
@@ -85,51 +96,21 @@ export const NotenCards = ({
           </p>
         </div>
         <ul className="mt-3 divide-y divide-border">
-          {group.noten.map((note) => {
-            const display = listMutationState(deleteMutation, note.id);
-            return (
-              <li
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
-                key={note.id}
-              >
-                <span className="font-display text-ink text-lg">
-                  {formatNote(note.wert, system)}
-                </span>
-                <span className="text-ink-muted text-sm">
-                  {leistungsartLabel[note.kind]}
-                  {note.gewichtung.verhaeltnis === null
-                    ? ''
-                    : ` · ${bereichLabel[bereichDerLeistungsart[note.kind]]}`}
-                  {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
-                </span>
-                <span className="text-ink-faint text-sm">
-                  {formatDisplayDate(note.datum)}
-                </span>
-                {note.notiz === null ? null : (
-                  <span className="text-ink-faint text-sm">{note.notiz}</span>
-                )}
-                <button
-                  className={`${quietButtonClass} ml-auto`}
-                  disabled={display.disabled}
-                  onClick={() => onDelete(note.id)}
-                  type="button"
-                >
-                  {display.pending ? 'Wird gelöscht …' : 'Löschen'}
-                </button>
-                {display.error === null ? null : (
-                  <p
-                    className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
-                    role="alert"
-                  >
-                    {actionErrorText(
-                      display.error,
-                      'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
-                    )}
-                  </p>
-                )}
-              </li>
-            );
-          })}
+          {group.noten.map((note, index) => (
+            <NoteRow
+              deleteMutation={deleteMutation}
+              editPending={editPending}
+              form={form}
+              isEditing={note.id === editNoteId}
+              key={note.id}
+              note={note}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              position={index + 1}
+              savedError={updateErrors.get(note.id) ?? null}
+              system={system}
+            />
+          ))}
         </ul>
       </section>
     ))}

@@ -11,16 +11,12 @@ import {
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { determineQueryState } from '#/shared/ui/query-state-model.ts';
-import type { FachFields } from '../schemas/fach-schema.ts';
-import {
-  archiveFachFn,
-  createFachFn,
-  faecherQueryOptions,
-  updateFachFn,
-} from '../server/fach-fns.ts';
+import { faecherQueryOptions } from '../server/fach-fns.ts';
 import type { Fach } from '../services/fach-service.ts';
 import { FachForm } from './fach-form.tsx';
 import { FachList } from './fach-list.tsx';
+import { fachMutationOptions } from './fach-mutations.ts';
+import { liveFachOperations } from './fach-operations.ts';
 import { changeSchoolYear } from './school-year-change.ts';
 
 const editKey = (editTarget: Fach | 'create' | null) => {
@@ -89,27 +85,15 @@ export const FaecherManagement = ({
   const formKey = editKey(editTarget);
   const focus = useFormFocus(formKey);
 
-  const closeOnSuccess = () => {
-    setEditTarget(null);
-    return queryClient.invalidateQueries({
-      queryKey: ['faecher', schoolYear],
-    });
-  };
-  const createMutation = useMutation({
-    mutationFn: (values: FachFields) =>
-      createFachFn({ data: { ...values, schoolYear } }),
-    onSuccess: closeOnSuccess,
+  const mutationOptions = fachMutationOptions({
+    onEditorClose: () => setEditTarget(null),
+    operations: liveFachOperations,
+    queryClient,
+    schoolYear,
   });
-  const updateMutation = useMutation({
-    mutationFn: (values: FachFields & { readonly id: string }) =>
-      updateFachFn({ data: { ...values, schoolYear } }),
-    onSuccess: closeOnSuccess,
-  });
-  const archiveMutation = useMutation({
-    mutationFn: (id: string) => archiveFachFn({ data: { id, schoolYear } }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['faecher', schoolYear] }),
-  });
+  const createMutation = useMutation(mutationOptions.create);
+  const updateMutation = useMutation(mutationOptions.update);
+  const archiveMutation = useMutation(mutationOptions.archive);
   const faecher = faecherQuery.data;
   const queryState = determineQueryState({
     data: faecher,

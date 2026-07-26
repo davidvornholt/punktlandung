@@ -2,23 +2,17 @@ import { SqlClient } from '@effect/sql/SqlClient';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { isIsoDateInRange } from '#/shared/date/date-range.ts';
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
-import type {
-  Fachgewichtung,
-  Leistungsart,
-  Notensystem,
-} from '#/shared/noten/notenwert.ts';
+import type { Fachgewichtung, Leistungsart } from '#/shared/noten/notenwert.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
-import {
-  FachNotInSchoolYear,
-  HalbjahrNotFound,
-  InvalidNotenwert,
-  NoteNotFound,
-  NoteOutsideHalbjahr,
-} from '../errors/noten-errors.ts';
+import { HalbjahrNotFound, NoteNotFound } from '../errors/noten-errors.ts';
 import type { NoteInput, NoteUpdate } from '../schemas/note-schema.ts';
-import { isValueValid } from './noten-validation.ts';
+import {
+  loadLockedHalbjahr,
+  validateDate,
+  validateFach,
+  validateValue,
+} from './noten-invariants.ts';
 
 export type NoteWithFach = {
   readonly id: string;
@@ -32,47 +26,6 @@ export type NoteWithFach = {
   readonly fachKuerzel: string;
   readonly gewichtung: Fachgewichtung;
 };
-
-const validateValue = (value: number, system: Notensystem) =>
-  isValueValid(value, system)
-    ? Effect.void
-    : Effect.fail(new InvalidNotenwert({ wert: value, system }));
-
-const validateDate = (
-  date: string,
-  halbjahr: Pick<typeof halbjahrTable.$inferSelect, 'startsOn' | 'endsOn'>,
-) =>
-  isIsoDateInRange(date, halbjahr.startsOn, halbjahr.endsOn)
-    ? Effect.void
-    : Effect.fail(
-        new NoteOutsideHalbjahr({
-          datum: date,
-          startsOn: halbjahr.startsOn,
-          endsOn: halbjahr.endsOn,
-        }),
-      );
-
-const loadLockedHalbjahr = (termId: string) =>
-  Effect.gen(function* () {
-    const db = yield* PgDrizzle;
-    const rows = yield* db
-      .select()
-      .from(halbjahrTable)
-      .where(eq(halbjahrTable.id, termId))
-      .for('share');
-    const [halbjahr] = rows;
-    return halbjahr ?? (yield* Effect.fail(new HalbjahrNotFound({ termId })));
-  });
-
-const validateFach = (fachId: string, schoolYear: string) =>
-  Effect.gen(function* () {
-    const faecher = yield* loadSchoolYearFachSnapshot(schoolYear);
-    if (!faecher.some((fach) => fach.id === fachId && !fach.archived)) {
-      return yield* Effect.fail(
-        new FachNotInSchoolYear({ fachId, schoolYear }),
-      );
-    }
-  });
 
 /** Noten eines Halbjahrs samt historischem Fachstand und Gewichtung. */
 export const listNoten = (termId: string) =>
@@ -124,7 +77,7 @@ export const createNote = (input: NoteInput) =>
         const halbjahr = yield* loadLockedHalbjahr(input.termId);
         yield* validateValue(input.wert, halbjahr.system);
         yield* validateDate(input.datum, halbjahr);
-        yield* validateFach(input.subjectId, halbjahr.schoolYear);
+        yield* validateFach(input.subjectId, halbjahr.schoolYear, null);
         yield* db.insert(noteTable).values({
           id: crypto.randomUUID(),
           subjectId: input.subjectId,
@@ -146,7 +99,7 @@ export const updateNote = (input: NoteUpdate) =>
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
         const existing = yield* db
-          .select({ termId: noteTable.termId })
+          .select({ termId: noteTable.termId, subjectId: noteTable.subjectId })
           .from(noteTable)
           .where(eq(noteTable.id, input.id))
           .for('update');
@@ -157,7 +110,11 @@ export const updateNote = (input: NoteUpdate) =>
         const halbjahr = yield* loadLockedHalbjahr(row.termId);
         yield* validateValue(input.wert, halbjahr.system);
         yield* validateDate(input.datum, halbjahr);
-        yield* validateFach(input.subjectId, halbjahr.schoolYear);
+        yield* validateFach(
+          input.subjectId,
+          halbjahr.schoolYear,
+          row.subjectId,
+        );
         yield* db
           .update(noteTable)
           .set({

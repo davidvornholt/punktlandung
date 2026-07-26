@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
 import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
+import { trendKey } from '#/shared/query/query-keys.ts';
 import { runtime } from '#/shared/runtime.ts';
 import {
   NoteId,
@@ -42,13 +43,7 @@ export const verlaufFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
   .handler(() => runtime.runPromise(loadTrend));
 
-export const notenQueryOptions = (halbjahrId: string) =>
-  queryOptions({
-    queryKey: ['noten', halbjahrId],
-    queryFn: () => listNotenFn({ data: { termId: halbjahrId } }),
-  });
-
 export const trendQueryOptions = queryOptions({
-  queryKey: ['trend'],
+  queryKey: trendKey,
   queryFn: () => verlaufFn(),
 });

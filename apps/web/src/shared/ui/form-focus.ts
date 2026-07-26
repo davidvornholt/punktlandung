@@ -12,10 +12,18 @@ export const restoreFormFocus = (
   (trigger?.isConnected ? trigger : fallbackTrigger)?.focus();
 };
 
-export const useFormFocus = (formKey: string | null) => {
+/**
+ * Fokusführung für ein Formular, das über einen Auslöser geöffnet wird. Der
+ * Ersatzauslöser fängt den Fokus auf, wenn der ursprüngliche Auslöser beim
+ * Schließen nicht mehr im Dokument steht; sein Elementtyp ist wählbar, weil
+ * nicht jede Ansicht einen bleibenden Knopf anbietet.
+ */
+export const useFormFocus = <Fallback extends HTMLElement = HTMLButtonElement>(
+  formKey: string | null,
+) => {
   const formRef = useRef<HTMLFormElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
-  const fallbackTriggerRef = useRef<HTMLButtonElement>(null);
+  const fallbackTriggerRef = useRef<Fallback>(null);
   const suppressRestoreRef = useRef(false);
   const wasOpenRef = useRef(false);
 
