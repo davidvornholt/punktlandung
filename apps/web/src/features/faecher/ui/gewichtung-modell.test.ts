@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test';
+import { Schema } from 'effect';
 
-import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
+import {
+  FachgewichtungSchema,
+  standardgewichtung,
+} from '#/shared/noten/fach-gewichtung.ts';
 import type { GewichtungAction } from './gewichtung-modell.ts';
 import {
   gewichtungReducer,
@@ -46,20 +50,40 @@ describe('Gewichtungseditor', () => {
 });
 
 describe('Gewichtungseditor-Persistenz', () => {
-  it('bewahrt beide gültigen Test-Sammlungen beim Öffnen unverändert', () => {
-    for (const sammlung of ['einzeln', 'gesammelt'] as const) {
-      const gewichtung = {
+  it('bewahrt beliebige gültige Testgewichte beim Öffnen unverändert', () => {
+    for (const gewicht of [0.25, 3.75, 10] as const) {
+      for (const sammlung of ['einzeln', 'gesammelt'] as const) {
+        const roh = {
+          ...standardgewichtung,
+          arten: {
+            ...standardgewichtung.arten,
+            klausur: {
+              ...standardgewichtung.arten.klausur,
+              gewicht: sammlung === 'gesammelt' ? gewicht : 1,
+            },
+            test: { gewicht, sammlung },
+          },
+        };
+        const gewichtung = Schema.decodeUnknownSync(FachgewichtungSchema)(roh);
+
+        expect(gewichtungStateFrom(gewichtung).gewichtung).toEqual(gewichtung);
+      }
+    }
+  });
+
+  it('weist gesammelte Tests mit abweichendem Gewicht vor dem Editor zurück', () => {
+    for (const gewicht of [0.25, 3.75, 10] as const) {
+      const roh = {
         ...standardgewichtung,
         arten: {
           ...standardgewichtung.arten,
-          test: {
-            gewicht: sammlung === 'einzeln' ? 0.5 : 1,
-            sammlung,
-          },
+          test: { gewicht, sammlung: 'gesammelt' },
         },
       };
 
-      expect(gewichtungStateFrom(gewichtung).gewichtung).toEqual(gewichtung);
+      expect(Schema.decodeUnknownEither(FachgewichtungSchema)(roh)._tag).toBe(
+        'Left',
+      );
     }
   });
 

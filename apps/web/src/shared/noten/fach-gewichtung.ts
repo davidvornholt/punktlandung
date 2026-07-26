@@ -57,7 +57,14 @@ export const FachgewichtungSchema = Schema.Struct({
     muendlich: EinzelgewichtungSchema,
     sonstige: EinzelgewichtungSchema,
   }),
-});
+}).pipe(
+  Schema.filter(
+    ({ arten }) =>
+      arten.test.sammlung === 'einzeln' ||
+      arten.test.gewicht === arten.klausur.gewicht ||
+      'Gesammelte Tests müssen wie eine Klausur gewichtet werden.',
+  ),
+);
 
 export class GewichtungUngueltig extends Data.TaggedError(
   'GewichtungUngueltig',
