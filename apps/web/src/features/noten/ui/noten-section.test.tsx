@@ -1,4 +1,9 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
+import { NoteEntryBar } from './note-entry-bar.tsx';
+import { NotenList } from './noten-list.tsx';
+import type { NotenOperations } from './noten-operations.ts';
+import { NotenSection } from './noten-section.tsx';
 
 type Element = {
   readonly props?: { readonly children?: unknown };
@@ -12,26 +17,12 @@ const halbjahr = {
   system: 'sechser',
 } as const;
 
-/**
- * Die Serverfunktionsmodule lesen beim Laden die Umgebung und lassen sich in
- * einem Test nicht echt einbinden. Sie sind das Einzige, was hier ersetzt wird:
- * Bun hält Modulattrappen prozessweit, also nähme eine Attrappe eines geteilten
- * Moduls — React, der Abfragespeicher, ein Datumshelfer — jeder später
- * laufenden Testdatei das echte Modul weg. Keine andere Testdatei bindet die
- * Serverfunktionen ein, also endet diese Attrappe hier folgenlos.
- */
-mock.module('../server/noten-fns.ts', () => ({
-  createNoteFn: () => Promise.resolve(),
-  deleteNoteFn: () => Promise.resolve(),
-  notenQueryOptions: (halbjahrId: string) => ({
-    queryKey: ['noten', halbjahrId],
-  }),
-  updateNoteFn: () => Promise.resolve(),
-}));
-
-const { NoteEntryBar } = await import('./note-entry-bar.tsx');
-const { NotenList } = await import('./noten-list.tsx');
-const { NotenSection } = await import('./noten-section.tsx');
+const operations: NotenOperations = {
+  create: () => Promise.resolve(),
+  delete: () => Promise.resolve(),
+  list: () => Promise.resolve([]),
+  update: () => Promise.resolve(),
+};
 
 const flatten = (node: unknown): ReadonlyArray<Element> => {
   if (Array.isArray(node)) {
@@ -52,7 +43,9 @@ const flatten = (node: unknown): ReadonlyArray<Element> => {
 const buildingBlocks = (
   faecher: ReadonlyArray<{ readonly id: string; readonly name: string }>,
 ) =>
-  flatten(NotenSection({ faecher, halbjahr })).map((element) => element.type);
+  flatten(NotenSection({ faecher, halbjahr, operations })).map(
+    (element) => element.type,
+  );
 
 describe('NotenSection', () => {
   /**

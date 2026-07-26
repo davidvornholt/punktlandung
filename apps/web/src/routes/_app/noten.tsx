@@ -6,6 +6,7 @@ import { faecherQueryOptions } from '#/features/faecher/server/fach-fns.ts';
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
 import { currentHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
 import { HalbjahrSelect } from '#/features/halbjahre/ui/halbjahr-select.tsx';
+import { liveNotenOperations } from '#/features/noten/ui/noten-operations.ts';
 import { NotenSection } from '#/features/noten/ui/noten-section.tsx';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
@@ -97,6 +98,7 @@ const NotenPage = () => {
             faecher={faecher ?? []}
             halbjahr={halbjahr}
             key={halbjahr.id}
+            operations={liveNotenOperations}
           />
         </>
       )}

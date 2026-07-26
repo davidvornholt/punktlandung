@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { NoteEntryBar } from './note-entry-bar.tsx';
 import { NotenList } from './noten-list.tsx';
+import type { NotenOperations } from './noten-operations.ts';
 
 type Halbjahr = {
   readonly id: string;
@@ -19,12 +20,14 @@ type Halbjahr = {
 export const NotenSection = ({
   halbjahr,
   faecher,
+  operations,
 }: {
   readonly halbjahr: Halbjahr;
   readonly faecher: ReadonlyArray<{
     readonly id: string;
     readonly name: string;
   }>;
+  readonly operations: NotenOperations;
 }) => (
   <>
     {/*
@@ -47,9 +50,13 @@ export const NotenSection = ({
       </div>
     ) : (
       <div className="mt-4">
-        <NoteEntryBar faecher={faecher} halbjahr={halbjahr} />
+        <NoteEntryBar
+          faecher={faecher}
+          halbjahr={halbjahr}
+          operations={operations}
+        />
       </div>
     )}
-    <NotenList faecher={faecher} halbjahr={halbjahr} />
+    <NotenList faecher={faecher} halbjahr={halbjahr} operations={operations} />
   </>
 );

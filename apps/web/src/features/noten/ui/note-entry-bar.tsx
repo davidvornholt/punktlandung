@@ -6,14 +6,15 @@ import { clampIsoDate } from '#/shared/date/date-range.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import type { NotenFields } from '../schemas/note-schema.ts';
-import { createNoteFn } from '../server/noten-fns.ts';
 import { NoteForm } from './note-form.tsx';
 import { invalidateNotenQueries } from './noten-invalidation.ts';
+import type { NotenOperations } from './noten-operations.ts';
 
 /** Die Eintragsleiste: eine Note direkt nach der Rückgabe erfassen. */
 export const NoteEntryBar = ({
   halbjahr,
   faecher,
+  operations,
 }: {
   readonly halbjahr: {
     readonly id: string;
@@ -25,12 +26,13 @@ export const NoteEntryBar = ({
     readonly id: string;
     readonly name: string;
   }>;
+  readonly operations: NotenOperations;
 }) => {
   const queryClient = useQueryClient();
   const formRef = useRef<HTMLFormElement>(null);
   const createMutation = useMutation({
     mutationFn: (values: NotenFields) =>
-      createNoteFn({ data: { ...values, termId: halbjahr.id } }),
+      operations.create({ ...values, termId: halbjahr.id }),
     onSuccess: () => {
       formRef.current?.reset();
       return invalidateNotenQueries(queryClient, halbjahr.id);

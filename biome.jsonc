@@ -112,22 +112,6 @@
       }
     },
     {
-      // Shared test scaffolding, not a test file itself: the Notenlisten
-      // container is mounted the same way by two test files, and a copy per
-      // file drifted apart. It imports `bun:test` for `mock.module`, which
-      // Biome's resolver cannot follow because it is a Bun runtime module —
-      // the same reason biome.base.jsonc turns this rule off for every
-      // *.test.ts(x) file and for its own *-test-support.ts helpers.
-      "includes": ["apps/web/src/**/*-harness.ts"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnresolvedImports": "off"
-          }
-        }
-      }
-    },
-    {
       // Notenmath tests compare against literal numeric fixtures (Noten,
       // Punkte, Gewichte, Daten); naming each expected value would obscure
       // the arithmetic the tests pin down.

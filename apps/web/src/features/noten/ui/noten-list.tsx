@@ -2,19 +2,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { actionErrorText } from '#/shared/ui/action-error.ts';
+import { notenKey } from '#/shared/query/query-keys.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
-import type { NoteUpdate } from '../schemas/note-schema.ts';
-import {
-  deleteNoteFn,
-  notenQueryOptions,
-  updateNoteFn,
-} from '../server/noten-fns.ts';
 import type { NoteWithFach } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
 import { NotenCards } from './noten-cards.tsx';
-import { invalidateNotenQueries } from './noten-invalidation.ts';
+import {
+  closeIfSaved,
+  isEditPending,
+  noUpdateErrors,
+  updateErrorText,
+  withNote,
+  withoutNote,
+} from './noten-list-model.ts';
+import { notenMutationOptions } from './noten-mutations.ts';
+import type { NotenOperations } from './noten-operations.ts';
 
 type Halbjahr = {
   readonly id: string;
@@ -28,80 +31,46 @@ type FachList = ReadonlyArray<{
   readonly name: string;
 }>;
 
-type UpdateErrors = ReadonlyMap<string, unknown>;
-
-const noUpdateErrors: UpdateErrors = new Map();
-
-const withoutNote = (errors: UpdateErrors, id: string): UpdateErrors => {
-  const rest = new Map(errors);
-  rest.delete(id);
-  return rest;
-};
-
-const updateErrorText = (error: unknown) =>
-  error === undefined
-    ? null
-    : actionErrorText(
-        error,
-        'Die Note konnte nicht geändert werden. Die Eingaben bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
-      );
-
 export const NotenList = ({
   halbjahr,
   faecher,
+  operations,
 }: {
   readonly halbjahr: Halbjahr;
   readonly faecher: FachList;
+  readonly operations: NotenOperations;
 }) => {
   const queryClient = useQueryClient();
-  const notenQuery = useQuery(notenQueryOptions(halbjahr.id));
+  const notenQuery = useQuery({
+    queryFn: () => operations.list(halbjahr.id),
+    queryKey: notenKey(halbjahr.id),
+  });
   const [editTarget, setEditTarget] = useState<NoteWithFach | null>(null);
-  /*
-   * Gescheiterte Änderungen, je Note festgehalten. Die geteilte Mutation kennt
-   * nur ihren letzten Ausgang: das Speichern einer zweiten Note verwarf sonst
-   * den Fehler der ersten, und diese bliebe stillschweigend ungeändert.
-   */
-  const [updateErrors, setUpdateErrors] =
-    useState<UpdateErrors>(noUpdateErrors);
+  const [updateErrors, setUpdateErrors] = useState(noUpdateErrors);
   const focus = useFormFocus<HTMLElement>(editTarget?.id ?? null);
 
   const forgetUpdateError = (id: string) =>
     setUpdateErrors((errors) => withoutNote(errors, id));
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteNoteFn({ data: { id } }),
+  const options = notenMutationOptions({
+    halbjahrId: halbjahr.id,
     /*
      * Mit der gelöschten Zeile verschwindet ihr Löschknopf; ohne das
      * Auffangziel fiele der Fokus auf <body>.
      */
-    onSuccess: (_result, id) =>
-      invalidateNotenQueries(queryClient, halbjahr.id).then(() => {
-        forgetUpdateError(id);
-        focus.fallbackTriggerRef.current?.focus();
-      }),
+    onDeleted: (id) => {
+      forgetUpdateError(id);
+      focus.fallbackTriggerRef.current?.focus();
+    },
+    onUpdated: (id) => setEditTarget(closeIfSaved(id)),
+    onUpdateFailed: (id, error) =>
+      setUpdateErrors((errors) => withNote(errors, id, error)),
+    operations,
+    queryClient,
   });
-  const updateMutation = useMutation({
-    mutationFn: (values: NoteUpdate) => updateNoteFn({ data: values }),
-    onError: (error, values) =>
-      setUpdateErrors((errors) => new Map(errors).set(values.id, error)),
-    /*
-     * Erst die Listen erneuern, dann schließen: schließt das Formular vorher,
-     * gibt die Fokusrückgabe den Fokus an den Zeilenknopf, den der folgende
-     * Neuabruf entfernt, sobald die Note in ein anderes Fach gewandert ist.
-     * Geschlossen wird nur die Bearbeitung, die dieser Vorgang betraf — der
-     * Benutzer kann inzwischen eine andere Note geöffnet haben.
-     */
-    onSuccess: (_result, values) =>
-      invalidateNotenQueries(queryClient, halbjahr.id).then(() => {
-        setEditTarget((open) => (open?.id === values.id ? null : open));
-      }),
-  });
-
-  /** Läuft gerade das Speichern der offenen Bearbeitung? */
-  const editPending =
-    updateMutation.isPending &&
-    editTarget !== null &&
-    updateMutation.variables?.id === editTarget.id;
+  const deleteMutation = useMutation(options.delete);
+  const updateMutation = useMutation(options.update);
+  const editPending = isEditPending(updateMutation, editTarget);
 
   const noten = notenQuery.data;
   if (notenQuery.isPending) {
