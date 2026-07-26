@@ -1,7 +1,7 @@
-import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
-import { leiseKnopfKlasse } from '#/shared/ui/form-klassen.ts';
-import type { ListenMutation } from '#/shared/ui/listen-mutation.ts';
-import { listenMutationsanzeige } from '#/shared/ui/listen-mutation.ts';
+import { actionErrorText } from '#/shared/ui/action-error.ts';
+import { quietButtonClass } from '#/shared/ui/form-classes.ts';
+import type { ListMutation } from '#/shared/ui/list-mutation.ts';
+import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { Fach } from '../services/fach-service.ts';
 
 const gewichtszeile = (fach: Fach): string =>
@@ -39,14 +39,14 @@ const FachZeile = ({
     </p>
     <div className="mt-2 flex gap-3">
       <button
-        className={leiseKnopfKlasse}
+        className={quietButtonClass}
         onClick={(ereignis) => onBearbeiten(ereignis.currentTarget)}
         type="button"
       >
         Bearbeiten
       </button>
       <button
-        className={leiseKnopfKlasse}
+        className={quietButtonClass}
         disabled={wirdArchivierungAusgefuehrt}
         onClick={onArchivieren}
         type="button"
@@ -59,7 +59,7 @@ const FachZeile = ({
         className="mt-3 border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
         role="alert"
       >
-        {aktionsfehlerText(
+        {actionErrorText(
           archivFehler,
           'Das Fach konnte nicht archiviert werden. Es bleibt sichtbar; versuche es erneut.',
         )}
@@ -75,22 +75,22 @@ export const FachListe = ({
   onBearbeiten,
 }: {
   readonly faecher: ReadonlyArray<Fach>;
-  readonly archivierung: ListenMutation<string>;
+  readonly archivierung: ListMutation<string>;
   readonly onArchivieren: (id: string) => void;
   readonly onBearbeiten: (fach: Fach, ausloeser: HTMLButtonElement) => void;
 }) => (
   <ul className="mt-4 space-y-3">
     {faecher.map((fach) => {
-      const anzeige = listenMutationsanzeige(archivierung, fach.id);
+      const anzeige = listMutationState(archivierung, fach.id);
       return (
         <FachZeile
-          archivFehler={anzeige.fehler}
+          archivFehler={anzeige.error}
           fach={fach}
           key={fach.id}
           onArchivieren={() => onArchivieren(fach.id)}
           onBearbeiten={(ausloeser) => onBearbeiten(fach, ausloeser)}
-          wirdArchiviert={anzeige.laeuft}
-          wirdArchivierungAusgefuehrt={anzeige.gesperrt}
+          wirdArchiviert={anzeige.pending}
+          wirdArchivierungAusgefuehrt={anzeige.disabled}
         />
       );
     })}

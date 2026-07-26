@@ -6,7 +6,8 @@ Punktlandung is a single-user grade tracker for a Baden-Württemberg Gymnasium (
 
 - Two grade systems coexist: `sechser` (1–6, lower is better, Unter-/Mittelstufe) and `punkte` (Notenpunkte 0–15, higher is better, Kursstufe). A Halbjahr (`term`) fixes the system; never mix systems inside a term. The official conversion (Punkte = 17 − 3 × Note) lives in `src/shared/noten/` and is the only place allowed to encode it.
 - Grade weighting is teacher-declared per subject (per-Leistungsart weights plus optional schriftlich/mündlich share). Zeugnis previews round: Halbjahr to quarter steps (sechser) or whole Notenpunkte, Jahreszeugnis to whole grades with an explicit Grenzfall flag. These rules are load-bearing product logic — change only with tests.
-- UI language is German with sentence case; domain terms (Fach, Klausur, GFS, Halbjahr, Lerntage) are never translated. Code identifiers may be German for domain concepts.
+- UI language is German with sentence case; domain terms (Fach, Klausur, GFS, Halbjahr, Lerntage) are never translated.
+- Code identifiers are German only where English has no faithful word. Domain vocabulary stays German — Fach, Note, Halbjahr, Klassenstufe, Leistungsart, Wertungsbereich, Gewichtung, Sammlung, Klausur, GFS, Notenpunkte, Zeugnis — because an English rendering would collapse a distinction the product turns on ("semester" is not a Halbjahr; "exam" erases Klausur vs. Test). Everything else is English: UI and React plumbing, dates, HTTP, persistence, generic helpers, local variables (`state`, `action`, `average`), and internal union values that never reach the screen. Mixed compounds are expected, not a smell: `createFach`, `faecherQueryOptions`, `halbjahrDateRange`. German UI copy is unaffected by this rule.
 
 ## Architecture decisions
 

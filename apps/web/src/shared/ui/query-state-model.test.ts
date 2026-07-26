@@ -1,53 +1,53 @@
 import { describe, expect, it } from 'bun:test';
 
-import { bestimmeAbfrageZustand } from './abfrage-zustand-modell.ts';
+import { determineQueryState } from './query-state-model.ts';
 
-const istLeer = (werte: ReadonlyArray<unknown>) => werte.length === 0;
+const isEmpty = (values: ReadonlyArray<unknown>) => values.length === 0;
 
-describe('bestimmeAbfrageZustand', () => {
+describe('determineQueryState', () => {
   it('hält ausstehend, fehlgeschlagen, leer und erfolgreich auseinander', () => {
     expect(
-      bestimmeAbfrageZustand({
+      determineQueryState({
         data: undefined,
         isError: false,
         isPending: true,
-        istLeer,
+        isEmpty,
       }),
-    ).toBe('ausstehend');
+    ).toBe('pending');
     expect(
-      bestimmeAbfrageZustand({
+      determineQueryState({
         data: undefined,
         isError: true,
         isPending: false,
-        istLeer,
+        isEmpty,
       }),
-    ).toBe('fehler');
+    ).toBe('error');
     expect(
-      bestimmeAbfrageZustand({
+      determineQueryState({
         data: [],
         isError: false,
         isPending: false,
-        istLeer,
+        isEmpty,
       }),
-    ).toBe('leer');
+    ).toBe('empty');
     expect(
-      bestimmeAbfrageZustand({
+      determineQueryState({
         data: ['wert'],
         isError: false,
         isPending: false,
-        istLeer,
+        isEmpty,
       }),
-    ).toBe('erfolg');
+    ).toBe('success');
   });
 
   it('zeigt während einer initialen fehlgeschlagenen Anfrage den Fehler', () => {
     expect(
-      bestimmeAbfrageZustand({
+      determineQueryState({
         data: undefined,
         isError: true,
         isPending: false,
-        istLeer,
+        isEmpty,
       }),
-    ).not.toBe('leer');
+    ).not.toBe('empty');
   });
 });

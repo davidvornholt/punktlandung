@@ -1,18 +1,18 @@
 import { describe, expect, it, mock } from 'bun:test';
 
-import { stelleFormularFokusWiederHer } from './formular-fokus.ts';
+import { restoreFormFocus } from './form-focus.ts';
 
 const fokusziel = (isConnected: boolean) => ({
   focus: mock(() => undefined),
   isConnected,
 });
 
-describe('stelleFormularFokusWiederHer', () => {
+describe('restoreFormFocus', () => {
   it('behält den Fokus auf einem verbundenen Schuljahr-Select statt auf dem alten Formularauslöser', () => {
     const schuljahrAuswahl = fokusziel(true);
     const alterAusloeser = fokusziel(true);
 
-    stelleFormularFokusWiederHer(schuljahrAuswahl, alterAusloeser);
+    restoreFormFocus(schuljahrAuswahl, alterAusloeser);
 
     expect(schuljahrAuswahl.focus).toHaveBeenCalledTimes(1);
     expect(alterAusloeser.focus).not.toHaveBeenCalled();
@@ -22,7 +22,7 @@ describe('stelleFormularFokusWiederHer', () => {
     const entfernterAusloeser = fokusziel(false);
     const ersatzAusloeser = fokusziel(true);
 
-    stelleFormularFokusWiederHer(entfernterAusloeser, ersatzAusloeser);
+    restoreFormFocus(entfernterAusloeser, ersatzAusloeser);
 
     expect(entfernterAusloeser.focus).not.toHaveBeenCalled();
     expect(ersatzAusloeser.focus).toHaveBeenCalledTimes(1);

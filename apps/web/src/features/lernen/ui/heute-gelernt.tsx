@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
-import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
+import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
-  eingabeKlasse,
-  labelKlasse,
-  primaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+} from '#/shared/ui/form-classes.ts';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { lernGrenzen } from '../schemas/lerntag-schema.ts';
 import {
   lernStatistikQueryOptions,
@@ -22,7 +22,7 @@ export const HeuteGelernt = () => {
     mutationFn: (minutes: number | null) =>
       logLerntagFn({
         data: {
-          day: berlinKalenderdatum(),
+          day: berlinCalendarDate(),
           subjectId: null,
           minutes,
           notiz: null,
@@ -39,13 +39,13 @@ export const HeuteGelernt = () => {
       </h2>
       {statistikAbfrage.isPending ? (
         <div className="mt-2">
-          <Ladehinweis text="Lerntage werden geladen …" />
+          <LoadingHint text="Lerntage werden geladen …" />
         </div>
       ) : null}
       {statistikAbfrage.isError ? (
         <div className="mt-3">
-          <AbfrageFehler
-            onWiederholen={() => statistikAbfrage.refetch()}
+          <QueryError
+            onRetry={() => statistikAbfrage.refetch()}
             text="Die Lernstatistik konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
@@ -76,10 +76,10 @@ export const HeuteGelernt = () => {
           eintragen.mutate(roh === '' ? null : Number(roh));
         }}
       >
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Minuten (optional)
           <input
-            className={`${eingabeKlasse} w-28`}
+            className={`${inputClass} w-28`}
             inputMode="numeric"
             max={lernGrenzen.minutenMax}
             min={1}
@@ -89,7 +89,7 @@ export const HeuteGelernt = () => {
           />
         </label>
         <button
-          className={primaerKnopfKlasse}
+          className={primaryButtonClass}
           disabled={eintragen.isPending}
           type="submit"
         >
@@ -106,7 +106,7 @@ export const HeuteGelernt = () => {
           className="mt-3 border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
           role="alert"
         >
-          {aktionsfehlerText(
+          {actionErrorText(
             eintragen.error,
             'Der Lerntag konnte nicht eingetragen werden. Die Minuten bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
           )}

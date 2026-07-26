@@ -1,15 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
-import { bestimmeAbfrageZustand } from '#/shared/ui/abfrage-zustand-modell.ts';
-import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
+import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
-  eingabeKlasse,
-  labelKlasse,
-  primaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
-import { useFormularFokus } from '#/shared/ui/formular-fokus.ts';
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+} from '#/shared/ui/form-classes.ts';
+import { useFormFocus } from '#/shared/ui/form-focus.ts';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { determineQueryState } from '#/shared/ui/query-state-model.ts';
 import type { FachFelder } from '../schemas/fach-schema.ts';
 import {
   archiveFachFn,
@@ -33,13 +32,13 @@ const fachFormularFehler = (
   aendern: { readonly error: unknown; readonly isError: boolean },
 ): string | null => {
   if (anlegen.isError) {
-    return aktionsfehlerText(
+    return actionErrorText(
       anlegen.error,
       'Das Fach konnte nicht angelegt werden. Prüfe die Verbindung und versuche es erneut.',
     );
   }
   if (aendern.isError) {
-    return aktionsfehlerText(
+    return actionErrorText(
       aendern.error,
       'Das Fach konnte nicht geändert werden. Die Eingaben bleiben erhalten; versuche es erneut.',
     );
@@ -60,7 +59,7 @@ export const FaecherVerwaltung = ({
   });
   const [bearbeitung, setBearbeitung] = useState<Fach | 'neu' | null>(null);
   const formularKennung = bearbeitungskennung(bearbeitung);
-  const fokus = useFormularFokus(formularKennung);
+  const fokus = useFormFocus(formularKennung);
 
   const schliesseNachErfolg = () => {
     setBearbeitung(null);
@@ -84,11 +83,11 @@ export const FaecherVerwaltung = ({
       queryClient.invalidateQueries({ queryKey: ['faecher', schoolYear] }),
   });
   const faecher = faecherAbfrage.data;
-  const abfrageZustand = bestimmeAbfrageZustand({
+  const abfrageZustand = determineQueryState({
     data: faecher,
     isError: faecherAbfrage.isError,
     isPending: faecherAbfrage.isPending,
-    istLeer: (werte) => werte.length === 0,
+    isEmpty: (werte) => werte.length === 0,
   });
   const formularFehler = fachFormularFehler(anlegen, aendern);
 
@@ -113,12 +112,12 @@ export const FaecherVerwaltung = ({
           <h2 className="font-display text-2xl text-ink tracking-tight">
             Fächer {schoolYear}
           </h2>
-          <label className={`${labelKlasse} mt-3 max-w-xs`}>
+          <label className={`${labelClass} mt-3 max-w-xs`}>
             Schuljahr
             <select
-              className={eingabeKlasse}
+              className={inputClass}
               onChange={(ereignis) => {
-                fokus.merkeAusloeser(ereignis.currentTarget);
+                fokus.rememberTrigger(ereignis.currentTarget);
                 setBearbeitung(null);
                 setSchoolYear(ereignis.currentTarget.value);
               }}
@@ -134,14 +133,14 @@ export const FaecherVerwaltung = ({
         </div>
         {bearbeitung === null ? (
           <button
-            className={primaerKnopfKlasse}
+            className={primaryButtonClass}
             onClick={(ereignis) => {
-              fokus.merkeAusloeser(ereignis.currentTarget);
+              fokus.rememberTrigger(ereignis.currentTarget);
               anlegen.reset();
               aendern.reset();
               setBearbeitung('neu');
             }}
-            ref={fokus.ersatzAusloeserRef}
+            ref={fokus.fallbackTriggerRef}
             type="button"
           >
             Fach anlegen
@@ -154,7 +153,7 @@ export const FaecherVerwaltung = ({
             beschaeftigt={anlegen.isPending || aendern.isPending}
             fehler={formularFehler}
             fach={bearbeitung === 'neu' ? null : bearbeitung}
-            formularRef={fokus.formularRef}
+            formRef={fokus.formRef}
             key={formularKennung}
             onAbbrechen={() => setBearbeitung(null)}
             onSpeichern={(werte) => {
@@ -170,20 +169,20 @@ export const FaecherVerwaltung = ({
           />
         </div>
       )}
-      {abfrageZustand === 'ausstehend' ? (
+      {abfrageZustand === 'pending' ? (
         <div className="mt-4">
-          <Ladehinweis text="Fächer werden geladen …" />
+          <LoadingHint text="Fächer werden geladen …" />
         </div>
       ) : null}
-      {abfrageZustand === 'fehler' ? (
+      {abfrageZustand === 'error' ? (
         <div className="mt-4">
-          <AbfrageFehler
-            onWiederholen={() => faecherAbfrage.refetch()}
+          <QueryError
+            onRetry={() => faecherAbfrage.refetch()}
             text="Die Fächer konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
       ) : null}
-      {abfrageZustand === 'erfolg' && faecher !== undefined ? (
+      {abfrageZustand === 'success' && faecher !== undefined ? (
         <FachListe
           archivierung={archivieren}
           faecher={faecher}
@@ -192,14 +191,14 @@ export const FaecherVerwaltung = ({
             archivieren.mutate(id);
           }}
           onBearbeiten={(fach, ausloeser) => {
-            fokus.merkeAusloeser(ausloeser);
+            fokus.rememberTrigger(ausloeser);
             anlegen.reset();
             aendern.reset();
             setBearbeitung(fach);
           }}
         />
       ) : null}
-      {abfrageZustand === 'leer' && bearbeitung === null ? (
+      {abfrageZustand === 'empty' && bearbeitung === null ? (
         <div className="mt-4 border border-border bg-surface-sunken p-6">
           <p className="text-ink-muted">
             Noch keine Fächer. Lege dein erstes Fach an — mit der Gewichtung,

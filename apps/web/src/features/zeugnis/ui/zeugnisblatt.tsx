@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { zeugnisQueryOptions } from '../server/zeugnis-fns.ts';
 import type { Zeugnis } from '../services/zeugnis-service.ts';
 
@@ -66,15 +66,15 @@ export const Zeugnisblatt = ({ termId }: { readonly termId: string }) => {
   if (zeugnisAbfrage.isPending) {
     return (
       <div className="mt-6">
-        <Ladehinweis text="Zeugnis wird berechnet …" />
+        <LoadingHint text="Zeugnis wird berechnet …" />
       </div>
     );
   }
   if (zeugnisAbfrage.isError || zeugnis === undefined) {
     return (
       <div className="mt-6">
-        <AbfrageFehler
-          onWiederholen={() => zeugnisAbfrage.refetch()}
+        <QueryError
+          onRetry={() => zeugnisAbfrage.refetch()}
           text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>

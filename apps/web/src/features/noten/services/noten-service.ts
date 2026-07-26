@@ -2,7 +2,7 @@ import { SqlClient } from '@effect/sql/SqlClient';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { istIsoDatumImZeitraum } from '#/shared/datum/zeitraum.ts';
+import { isIsoDateInRange } from '#/shared/date/date-range.ts';
 import { grade, term } from '#/shared/db/schema.ts';
 import { zuFachgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type {
@@ -48,7 +48,7 @@ const pruefeDatum = (
   datum: string,
   halbjahr: Pick<typeof term.$inferSelect, 'startsOn' | 'endsOn'>,
 ) =>
-  istIsoDatumImZeitraum(datum, halbjahr.startsOn, halbjahr.endsOn)
+  isIsoDateInRange(datum, halbjahr.startsOn, halbjahr.endsOn)
     ? Effect.void
     : Effect.fail(
         new NoteAusserhalbHalbjahr({

@@ -6,9 +6,9 @@ import { verlaufQueryOptions } from '#/features/noten/server/noten-fns.ts';
 import { Verlaufslinie } from '#/features/noten/ui/verlaufslinie.tsx';
 import { zuSechser } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
-import { StatKarte } from '#/shared/ui/stat-karte.tsx';
+import { pageTitle } from '#/shared/ui/page-title.ts';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { StatCard } from '#/shared/ui/stat-card.tsx';
 
 const Uebersicht = () => {
   const verlaufAbfrage = useQuery(verlaufQueryOptions);
@@ -19,7 +19,7 @@ const Uebersicht = () => {
           Übersicht
         </h1>
         <div className="mt-6">
-          <Ladehinweis text="Übersicht wird geladen …" />
+          <LoadingHint text="Übersicht wird geladen …" />
         </div>
       </>
     );
@@ -31,8 +31,8 @@ const Uebersicht = () => {
           Übersicht
         </h1>
         <div className="mt-6">
-          <AbfrageFehler
-            onWiederholen={() => verlaufAbfrage.refetch()}
+          <QueryError
+            onRetry={() => verlaufAbfrage.refetch()}
             text="Die Übersicht konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
@@ -48,18 +48,18 @@ const Uebersicht = () => {
         Übersicht
       </h1>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatKarte
+        <StatCard
           detail={
             letzter === undefined
               ? undefined
               : `entspricht Note ${formatNote(zuSechser(letzter.schnitt), 'sechser')}`
           }
           label="Gesamtschnitt"
-          wert={
+          value={
             letzter === undefined ? '—' : formatNote(letzter.schnitt, 'punkte')
           }
         />
-        <StatKarte label="Anzahl Noten" wert={`${verlauf.length}`} />
+        <StatCard label="Anzahl Noten" value={`${verlauf.length}`} />
         <HeuteGelernt />
       </div>
       <section className="mt-8">
@@ -94,5 +94,5 @@ const Uebersicht = () => {
 
 export const Route = createFileRoute('/_app/')({
   component: Uebersicht,
-  head: () => ({ meta: [{ title: seitentitel('Übersicht') }] }),
+  head: () => ({ meta: [{ title: pageTitle('Übersicht') }] }),
 });

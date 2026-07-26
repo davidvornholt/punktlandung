@@ -1,7 +1,7 @@
-import { formatiereIsoDatum } from '#/shared/datum/kalenderdatum.ts';
+import { formatIsoDate } from '#/shared/date/calendar-date.ts';
 import { notensystemText } from '#/shared/noten/notensystem-text.ts';
 import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
-import { leiseKnopfKlasse } from '#/shared/ui/form-klassen.ts';
+import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
 
 export const HalbjahrListe = ({
@@ -29,13 +29,12 @@ export const HalbjahrListe = ({
           </span>
         </div>
         <p className="mt-1 text-ink-muted text-sm">
-          {formatiereIsoDatum(halbjahr.startsOn)} bis{' '}
-          {formatiereIsoDatum(halbjahr.endsOn)} ·{' '}
-          {notensystemText(halbjahr.system)}
+          {formatIsoDate(halbjahr.startsOn)} bis{' '}
+          {formatIsoDate(halbjahr.endsOn)} · {notensystemText(halbjahr.system)}
         </p>
         <div className="mt-2">
           <button
-            className={leiseKnopfKlasse}
+            className={quietButtonClass}
             onClick={(ereignis) =>
               onBearbeiten(halbjahr, ereignis.currentTarget)
             }

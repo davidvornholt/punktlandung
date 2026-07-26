@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it, mock } from 'bun:test';
 import type { ReactElement } from 'react';
 import { isValidElement } from 'react';
 
-import { stelleFormularFokusWiederHer } from '#/shared/ui/formular-fokus.ts';
+import { restoreFormFocus } from '#/shared/ui/form-focus.ts';
 
 let zustandswerte: Array<readonly [unknown, (wert: unknown) => void]> = [];
 const useState = mock((_initial: unknown) => {
@@ -13,17 +13,17 @@ const useState = mock((_initial: unknown) => {
   return zustand;
 });
 
-const merkeAusloeser = mock((_ausloeser: HTMLElement) => undefined);
-const formularRef = { current: null };
-const ersatzAusloeserRef = { current: null as HTMLButtonElement | null };
+const rememberTrigger = mock((_ausloeser: HTMLElement) => undefined);
+const formRef = { current: null };
+const fallbackTriggerRef = { current: null as HTMLButtonElement | null };
 
 mock.module('react', () => ({ useState }));
-mock.module('#/shared/ui/formular-fokus.ts', () => ({
-  stelleFormularFokusWiederHer,
-  useFormularFokus: () => ({
-    ersatzAusloeserRef,
-    formularRef,
-    merkeAusloeser,
+mock.module('#/shared/ui/form-focus.ts', () => ({
+  restoreFormFocus,
+  useFormFocus: () => ({
+    fallbackTriggerRef,
+    formRef,
+    rememberTrigger,
   }),
 }));
 mock.module('@tanstack/react-query', () => ({
@@ -93,14 +93,14 @@ describe('FaecherVerwaltung', () => {
       isConnected: true,
     } as unknown as HTMLButtonElement;
     let rueckkehrziel: HTMLElement | null = null;
-    merkeAusloeser.mockImplementation((ausloeser) => {
+    rememberTrigger.mockImplementation((ausloeser) => {
       rueckkehrziel = ausloeser;
     });
-    ersatzAusloeserRef.current = ersatzAusloeser;
+    fallbackTriggerRef.current = ersatzAusloeser;
     const setSchoolYear = mock((_wert: unknown) => undefined);
     const setBearbeitung = mock((wert: unknown) => {
       if (wert === null) {
-        stelleFormularFokusWiederHer(rueckkehrziel, ersatzAusloeser);
+        restoreFormFocus(rueckkehrziel, ersatzAusloeser);
       }
     });
     zustandswerte = [
@@ -119,7 +119,7 @@ describe('FaecherVerwaltung', () => {
     };
     onChange({ currentTarget: schuljahrAuswahl });
 
-    expect(merkeAusloeser).toHaveBeenCalledWith(schuljahrAuswahl);
+    expect(rememberTrigger).toHaveBeenCalledWith(schuljahrAuswahl);
     expect(setBearbeitung).toHaveBeenCalledWith(null);
     expect(setSchoolYear).toHaveBeenCalledWith('2026/27');
     expect(schuljahrAuswahl.focus).toHaveBeenCalledTimes(1);

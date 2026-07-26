@@ -1,10 +1,10 @@
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { fachschnitt } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
-import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
-import { leiseKnopfKlasse } from '#/shared/ui/form-klassen.ts';
-import type { ListenMutation } from '#/shared/ui/listen-mutation.ts';
-import { listenMutationsanzeige } from '#/shared/ui/listen-mutation.ts';
+import { actionErrorText } from '#/shared/ui/action-error.ts';
+import { quietButtonClass } from '#/shared/ui/form-classes.ts';
+import type { ListMutation } from '#/shared/ui/list-mutation.ts';
+import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { NoteMitFach } from '../services/noten-service.ts';
 import { bereichLabel, leistungsartLabel } from './leistungsart-label.ts';
 
@@ -58,7 +58,7 @@ export const NotenKarten = ({
   onLoeschen,
   system,
 }: {
-  readonly loeschung: ListenMutation<string>;
+  readonly loeschung: ListMutation<string>;
   readonly noten: ReadonlyArray<NoteMitFach>;
   readonly onLoeschen: (id: string) => void;
   readonly system: Notensystem;
@@ -83,7 +83,7 @@ export const NotenKarten = ({
         </div>
         <ul className="mt-3 divide-y divide-border">
           {gruppe.noten.map((note) => {
-            const anzeige = listenMutationsanzeige(loeschung, note.id);
+            const anzeige = listMutationState(loeschung, note.id);
             return (
               <li
                 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2"
@@ -103,20 +103,20 @@ export const NotenKarten = ({
                   <span className="text-ink-faint text-sm">{note.notiz}</span>
                 )}
                 <button
-                  className={`${leiseKnopfKlasse} ml-auto`}
-                  disabled={anzeige.gesperrt}
+                  className={`${quietButtonClass} ml-auto`}
+                  disabled={anzeige.disabled}
                   onClick={() => onLoeschen(note.id)}
                   type="button"
                 >
-                  {anzeige.laeuft ? 'Wird gelöscht …' : 'Löschen'}
+                  {anzeige.pending ? 'Wird gelöscht …' : 'Löschen'}
                 </button>
-                {anzeige.fehler === null ? null : (
+                {anzeige.error === null ? null : (
                   <p
                     className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
                     role="alert"
                   >
-                    {aktionsfehlerText(
-                      anzeige.fehler,
+                    {actionErrorText(
+                      anzeige.error,
                       'Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut.',
                     )}
                   </p>

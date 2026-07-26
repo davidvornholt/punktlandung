@@ -1,5 +1,5 @@
 import { halbjahrBezeichnung } from '#/shared/schule/klassenstufe.ts';
-import { eingabeKlasse, labelKlasse } from '#/shared/ui/form-klassen.ts';
+import { inputClass, labelClass } from '#/shared/ui/form-classes.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
 
 /** Auswahlfeld für das betrachtete Halbjahr (Noten- und Zeugnisseiten). */
@@ -12,10 +12,10 @@ export const HalbjahrAuswahl = ({
   readonly wert: string;
   readonly onWechsel: (id: string) => void;
 }) => (
-  <label className={labelKlasse}>
+  <label className={labelClass}>
     Halbjahr
     <select
-      className={eingabeKlasse}
+      className={inputClass}
       onChange={(ereignis) => onWechsel(ereignis.target.value)}
       value={wert}
     >

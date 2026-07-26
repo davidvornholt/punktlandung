@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
 import { sitzungErforderlich } from '#/shared/auth/auth-middleware.ts';
-import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
+import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { runtime } from '#/shared/runtime.ts';
 import { LerntagEingabe } from '../schemas/lerntag-schema.ts';
 import {
@@ -19,7 +19,7 @@ export const logLerntagFn = createServerFn({ method: 'POST' })
 
 export const lernStatistikFn = createServerFn({ method: 'GET' })
   .middleware([sitzungErforderlich])
-  .handler(() => runtime.runPromise(ladeLernStatistik(berlinKalenderdatum())));
+  .handler(() => runtime.runPromise(ladeLernStatistik(berlinCalendarDate())));
 
 export const listLerntageFn = createServerFn({ method: 'GET' })
   .middleware([sitzungErforderlich])

@@ -6,9 +6,9 @@ import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.
 import { aktuellesHalbjahr } from '#/features/halbjahre/services/aktuelles-halbjahr.ts';
 import { HalbjahrAuswahl } from '#/features/halbjahre/ui/halbjahr-auswahl.tsx';
 import { Zeugnisblatt } from '#/features/zeugnis/ui/zeugnisblatt.tsx';
-import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { pageTitle } from '#/shared/ui/page-title.ts';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 
 const ZeugnisSeite = () => {
   const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
@@ -22,7 +22,7 @@ const ZeugnisSeite = () => {
           Zeugnis
         </h1>
         <div className="mt-6">
-          <Ladehinweis text="Zeugnis wird geladen …" />
+          <LoadingHint text="Zeugnis wird geladen …" />
         </div>
       </>
     );
@@ -34,8 +34,8 @@ const ZeugnisSeite = () => {
           Zeugnis
         </h1>
         <div className="mt-6">
-          <AbfrageFehler
-            onWiederholen={() => halbjahreAbfrage.refetch()}
+          <QueryError
+            onRetry={() => halbjahreAbfrage.refetch()}
             text="Die Halbjahre für das Zeugnis konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
@@ -43,7 +43,7 @@ const ZeugnisSeite = () => {
     );
   }
 
-  const vorgabe = aktuellesHalbjahr(halbjahre, berlinKalenderdatum());
+  const vorgabe = aktuellesHalbjahr(halbjahre, berlinCalendarDate());
   const halbjahr =
     halbjahre.find((eintrag) => eintrag.id === gewaehltesId) ?? vorgabe;
 
@@ -79,5 +79,5 @@ const ZeugnisSeite = () => {
 
 export const Route = createFileRoute('/_app/zeugnis')({
   component: ZeugnisSeite,
-  head: () => ({ meta: [{ title: seitentitel('Zeugnis') }] }),
+  head: () => ({ meta: [{ title: pageTitle('Zeugnis') }] }),
 });

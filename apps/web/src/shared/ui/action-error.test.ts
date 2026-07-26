@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 
-import { aktionsfehlerText } from './aktionsfehler.ts';
+import { actionErrorText } from './action-error.ts';
 
-describe('aktionsfehlerText', () => {
+describe('actionErrorText', () => {
   it('erhält eine konkrete fachliche Validierungsmeldung', () => {
     expect(
-      aktionsfehlerText(
+      actionErrorText(
         {
           _tag: 'NoteAusserhalbHalbjahr',
           message: 'Das Datum liegt außerhalb des Halbjahrs.',
@@ -17,7 +17,7 @@ describe('aktionsfehlerText', () => {
 
   it('ersetzt unbekannte Laufzeitfehler durch eine handlungsorientierte Meldung', () => {
     expect(
-      aktionsfehlerText(
+      actionErrorText(
         new TypeError('fetch failed'),
         'Die Verbindung ist fehlgeschlagen. Prüfe sie und versuche es erneut.',
       ),

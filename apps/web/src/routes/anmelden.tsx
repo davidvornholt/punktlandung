@@ -3,8 +3,8 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { lehneAuthFehlerAb } from '#/shared/auth/auth-antwort.ts';
 import { authClient } from '#/shared/auth/auth-client.ts';
 import { getSitzung } from '#/shared/auth/session-fn.ts';
-import { primaerKnopfKlasse } from '#/shared/ui/form-klassen.ts';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
+import { pageTitle } from '#/shared/ui/page-title.ts';
 
 const Anmelden = () => {
   const anmelden = useMutation({
@@ -24,7 +24,7 @@ const Anmelden = () => {
           Zeugnis im Blick behalten.
         </p>
         <button
-          className={`${primaerKnopfKlasse} mt-8 w-full py-3`}
+          className={`${primaryButtonClass} mt-8 w-full py-3`}
           disabled={anmelden.isPending}
           onClick={() => anmelden.mutate()}
           type="button"
@@ -59,5 +59,5 @@ export const Route = createFileRoute('/anmelden')({
     }
   },
   component: Anmelden,
-  head: () => ({ meta: [{ title: seitentitel('Anmelden') }] }),
+  head: () => ({ meta: [{ title: pageTitle('Anmelden') }] }),
 });

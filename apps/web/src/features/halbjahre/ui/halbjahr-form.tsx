@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { useState } from 'react';
 
-import { formatiereIsoDatum } from '#/shared/datum/kalenderdatum.ts';
+import { formatIsoDate } from '#/shared/date/calendar-date.ts';
 import { notensystemText } from '#/shared/noten/notensystem-text.ts';
 import {
   halbjahrBezeichnung,
@@ -12,11 +12,11 @@ import {
 } from '#/shared/schule/klassenstufe.ts';
 import { schuljahrAuswahl } from '#/shared/schule/schuljahr.ts';
 import {
-  eingabeKlasse,
-  labelKlasse,
-  primaerKnopfKlasse,
-  sekundaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from '#/shared/ui/form-classes.ts';
 import type { HalbjahrEingabe } from '../schemas/halbjahr-schema.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
 import type { HalbjahrFormWerte } from './halbjahr-form-modell.ts';
@@ -37,8 +37,8 @@ const halbjahrText = (half: 1 | 2) =>
 const Zusammenfassung = ({ werte }: { readonly werte: HalbjahrFormWerte }) => (
   <p className="mt-4 border border-border bg-surface-sunken px-3 py-2 text-ink-muted text-sm">
     <span className="font-semibold text-ink">{halbjahrBezeichnung(werte)}</span>{' '}
-    · Schuljahr {werte.schoolYear} · {formatiereIsoDatum(werte.startsOn)} bis{' '}
-    {formatiereIsoDatum(werte.endsOn)} ·{' '}
+    · Schuljahr {werte.schoolYear} · {formatIsoDate(werte.startsOn)} bis{' '}
+    {formatIsoDate(werte.endsOn)} ·{' '}
     {notensystemText(notensystemFuerKlassenstufe(werte.klassenstufe))}
   </p>
 );
@@ -55,10 +55,10 @@ const Kopffelder = ({
   readonly onAendern: Aendern;
 }) => (
   <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-    <label className={labelKlasse}>
+    <label className={labelClass}>
       Klassenstufe
       <select
-        className={eingabeKlasse}
+        className={inputClass}
         onChange={(ereignis) => {
           const gewaehlt = ereignis.target.value;
           if (istKlassenstufe(gewaehlt)) {
@@ -74,10 +74,10 @@ const Kopffelder = ({
         ))}
       </select>
     </label>
-    <label className={labelKlasse}>
+    <label className={labelClass}>
       Schuljahr
       <select
-        className={eingabeKlasse}
+        className={inputClass}
         onChange={(ereignis) =>
           onAendern({ schoolYear: ereignis.target.value })
         }
@@ -90,10 +90,10 @@ const Kopffelder = ({
         ))}
       </select>
     </label>
-    <label className={labelKlasse}>
+    <label className={labelClass}>
       Halbjahr
       <select
-        className={eingabeKlasse}
+        className={inputClass}
         onChange={(ereignis) =>
           onAendern({ half: ereignis.target.value === '2' ? 2 : 1 })
         }
@@ -119,7 +119,7 @@ export const HalbjahrForm = ({
   heute,
   beschaeftigt,
   fehler,
-  formularRef,
+  formRef,
   onSpeichern,
   onAbbrechen,
 }: {
@@ -129,7 +129,7 @@ export const HalbjahrForm = ({
   readonly heute: string;
   readonly beschaeftigt: boolean;
   readonly fehler: string | null;
-  readonly formularRef: RefObject<HTMLFormElement | null>;
+  readonly formRef: RefObject<HTMLFormElement | null>;
   readonly onSpeichern: (werte: HalbjahrEingabe) => void;
   readonly onAbbrechen: () => void;
 }) => {
@@ -153,7 +153,7 @@ export const HalbjahrForm = ({
         ereignis.preventDefault();
         onSpeichern(zuHalbjahrEingabe(werte));
       }}
-      ref={formularRef}
+      ref={formRef}
     >
       <h3 className="font-display text-ink text-xl tracking-tight">{titel}</h3>
       <Kopffelder
@@ -185,14 +185,14 @@ export const HalbjahrForm = ({
       )}
       <div className="mt-5 flex gap-3">
         <button
-          className={primaerKnopfKlasse}
+          className={primaryButtonClass}
           disabled={beschaeftigt || schonVergeben}
           type="submit"
         >
           {beschaeftigt ? 'Halbjahr wird gespeichert …' : 'Halbjahr speichern'}
         </button>
         <button
-          className={sekundaerKnopfKlasse}
+          className={secondaryButtonClass}
           onClick={onAbbrechen}
           type="button"
         >

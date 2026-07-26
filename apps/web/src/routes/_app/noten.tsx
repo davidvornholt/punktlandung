@@ -8,9 +8,9 @@ import { aktuellesHalbjahr } from '#/features/halbjahre/services/aktuelles-halbj
 import { HalbjahrAuswahl } from '#/features/halbjahre/ui/halbjahr-auswahl.tsx';
 import { Eintragsleiste } from '#/features/noten/ui/eintragsleiste.tsx';
 import { Notenliste } from '#/features/noten/ui/notenliste.tsx';
-import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { pageTitle } from '#/shared/ui/page-title.ts';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 
 const NotenSeite = () => {
   const halbjahreAbfrage = useQuery(halbjahreQueryOptions);
@@ -20,7 +20,7 @@ const NotenSeite = () => {
   const vorgabe =
     halbjahre === undefined
       ? null
-      : aktuellesHalbjahr(halbjahre, berlinKalenderdatum());
+      : aktuellesHalbjahr(halbjahre, berlinCalendarDate());
   const halbjahr =
     halbjahre?.find((eintrag) => eintrag.id === gewaehltesId) ?? vorgabe;
   const faecherAbfrage = useQuery({
@@ -37,7 +37,7 @@ const NotenSeite = () => {
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">Noten</h1>
         <div className="mt-6">
-          <Ladehinweis text="Noten werden geladen …" />
+          <LoadingHint text="Noten werden geladen …" />
         </div>
       </>
     );
@@ -52,8 +52,8 @@ const NotenSeite = () => {
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">Noten</h1>
         <div className="mt-6">
-          <AbfrageFehler
-            onWiederholen={() =>
+          <QueryError
+            onRetry={() =>
               Promise.all([
                 halbjahreAbfrage.isError
                   ? halbjahreAbfrage.refetch()
@@ -125,5 +125,5 @@ const NotenSeite = () => {
 
 export const Route = createFileRoute('/_app/noten')({
   component: NotenSeite,
-  head: () => ({ meta: [{ title: seitentitel('Noten') }] }),
+  head: () => ({ meta: [{ title: pageTitle('Noten') }] }),
 });

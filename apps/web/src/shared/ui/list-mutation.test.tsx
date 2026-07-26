@@ -4,7 +4,7 @@ import type { Fach } from '#/features/faecher/services/fach-service.ts';
 import { FachListe } from '#/features/faecher/ui/fach-liste.tsx';
 import type { NoteMitFach } from '#/features/noten/services/noten-service.ts';
 import { NotenKarten } from '#/features/noten/ui/noten-karten.tsx';
-import type { ListenMutation } from './listen-mutation.ts';
+import type { ListMutation } from './list-mutation.ts';
 
 const verzoegerteAblehnung = () => {
   let ablehnen: (fehler: unknown) => void = () => undefined;
@@ -52,7 +52,7 @@ const note = (id: string): NoteMitFach => ({
   wert: 2,
 });
 
-const ausstehend: ListenMutation<string> = {
+const ausstehend: ListMutation<string> = {
   error: null,
   isError: false,
   isPending: true,

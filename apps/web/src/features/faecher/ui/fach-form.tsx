@@ -1,10 +1,10 @@
 import type { RefObject } from 'react';
 import {
-  eingabeKlasse,
-  labelKlasse,
-  primaerKnopfKlasse,
-  sekundaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from '#/shared/ui/form-classes.ts';
 import type { FachFelder } from '../schemas/fach-schema.ts';
 import { fachGrenzen } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
@@ -43,7 +43,7 @@ export const FachForm = ({
   fach,
   beschaeftigt,
   fehler,
-  formularRef,
+  formRef,
   onSpeichern,
   onAbbrechen,
 }: {
@@ -51,7 +51,7 @@ export const FachForm = ({
   readonly fach: Fach | null;
   readonly beschaeftigt: boolean;
   readonly fehler: string | null;
-  readonly formularRef: RefObject<HTMLFormElement | null>;
+  readonly formRef: RefObject<HTMLFormElement | null>;
   readonly onSpeichern: (werte: FachFelder) => void;
   readonly onAbbrechen: () => void;
 }) => {
@@ -63,24 +63,24 @@ export const FachForm = ({
         ereignis.preventDefault();
         onSpeichern(liesWerte(ereignis.currentTarget));
       }}
-      ref={formularRef}
+      ref={formRef}
     >
       <h3 className="font-display text-ink text-xl tracking-tight">{titel}</h3>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Name
           <input
-            className={eingabeKlasse}
+            className={inputClass}
             defaultValue={werte.name}
             maxLength={fachGrenzen.nameMax}
             name="name"
             required={true}
           />
         </label>
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Kürzel
           <input
-            className={eingabeKlasse}
+            className={inputClass}
             defaultValue={werte.shortName}
             maxLength={fachGrenzen.kuerzelMax}
             name="shortName"
@@ -89,7 +89,7 @@ export const FachForm = ({
         </label>
       </div>
       <fieldset className="mt-5 border border-border p-4">
-        <legend className={`${labelKlasse} px-1`}>
+        <legend className={`${labelClass} px-1`}>
           Gewichtung je Leistungsart
         </legend>
         <p className="text-ink-muted text-sm">
@@ -98,10 +98,10 @@ export const FachForm = ({
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {gewichtsFelder.map((feld) => (
-            <label className={labelKlasse} key={feld.name}>
+            <label className={labelClass} key={feld.name}>
               {feld.label}
               <input
-                className={eingabeKlasse}
+                className={inputClass}
                 defaultValue={werte[feld.name]}
                 inputMode="decimal"
                 max={fachGrenzen.gewichtMax}
@@ -113,10 +113,10 @@ export const FachForm = ({
             </label>
           ))}
         </div>
-        <label className={`${labelKlasse} mt-4`}>
+        <label className={`${labelClass} mt-4`}>
           Schriftlicher Anteil in Prozent (optional)
           <input
-            className={eingabeKlasse}
+            className={inputClass}
             defaultValue={werte.writtenShare}
             inputMode="numeric"
             max={fachGrenzen.anteilMax}
@@ -141,14 +141,14 @@ export const FachForm = ({
       )}
       <div className="mt-5 flex gap-3">
         <button
-          className={primaerKnopfKlasse}
+          className={primaryButtonClass}
           disabled={beschaeftigt}
           type="submit"
         >
           {beschaeftigt ? 'Fach wird gespeichert …' : 'Fach speichern'}
         </button>
         <button
-          className={sekundaerKnopfKlasse}
+          className={secondaryButtonClass}
           onClick={onAbbrechen}
           type="button"
         >

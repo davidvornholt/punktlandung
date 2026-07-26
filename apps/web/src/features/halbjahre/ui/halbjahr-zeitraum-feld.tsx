@@ -1,8 +1,8 @@
 import {
-  eingabeKlasse,
-  labelKlasse,
-  leiseKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
+  inputClass,
+  labelClass,
+  quietButtonClass,
+} from '#/shared/ui/form-classes.ts';
 import type { HalbjahrFormWerte } from './halbjahr-form-modell.ts';
 
 /**
@@ -20,7 +20,7 @@ export const HalbjahrZeitraumFeld = ({
   <div>
     <button
       aria-expanded={werte.zeitraumAngepasst}
-      className={leiseKnopfKlasse}
+      className={quietButtonClass}
       onClick={() => onAendern({ zeitraumAngepasst: !werte.zeitraumAngepasst })}
       type="button"
     >
@@ -34,10 +34,10 @@ export const HalbjahrZeitraumFeld = ({
           Abweichender Zeitraum
         </legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className={labelKlasse}>
+          <label className={labelClass}>
             Beginn
             <input
-              className={eingabeKlasse}
+              className={inputClass}
               onChange={(ereignis) =>
                 onAendern({ startsOn: ereignis.target.value })
               }
@@ -46,10 +46,10 @@ export const HalbjahrZeitraumFeld = ({
               value={werte.startsOn}
             />
           </label>
-          <label className={labelKlasse}>
+          <label className={labelClass}>
             Ende
             <input
-              className={eingabeKlasse}
+              className={inputClass}
               onChange={(ereignis) =>
                 onAendern({ endsOn: ereignis.target.value })
               }

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { AbfrageFehler, Ladehinweis } from '#/shared/ui/abfrage-zustand.tsx';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { deleteNoteFn, notenQueryOptions } from '../server/noten-fns.ts';
 import { NotenKarten } from './noten-karten.tsx';
 
@@ -25,15 +25,15 @@ export const Notenliste = ({
   if (notenAbfrage.isPending) {
     return (
       <div className="mt-6">
-        <Ladehinweis text="Notenliste wird geladen …" />
+        <LoadingHint text="Notenliste wird geladen …" />
       </div>
     );
   }
   if (notenAbfrage.isError || noten === undefined) {
     return (
       <div className="mt-6">
-        <AbfrageFehler
-          onWiederholen={() => notenAbfrage.refetch()}
+        <QueryError
+          onRetry={() => notenAbfrage.refetch()}
           text="Die Notenliste konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>

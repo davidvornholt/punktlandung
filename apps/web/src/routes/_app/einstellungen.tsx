@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { HalbjahreVerwaltung } from '#/features/halbjahre/ui/halbjahre-verwaltung.tsx';
-import { seitentitel } from '#/shared/ui/seitentitel.ts';
+import { pageTitle } from '#/shared/ui/page-title.ts';
 
 const EinstellungenSeite = () => (
   <>
@@ -19,5 +19,5 @@ const EinstellungenSeite = () => (
 
 export const Route = createFileRoute('/_app/einstellungen')({
   component: EinstellungenSeite,
-  head: () => ({ meta: [{ title: seitentitel('Einstellungen') }] }),
+  head: () => ({ meta: [{ title: pageTitle('Einstellungen') }] }),
 });

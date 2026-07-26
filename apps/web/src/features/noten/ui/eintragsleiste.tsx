@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
-import { berlinKalenderdatum } from '#/shared/datum/kalenderdatum.ts';
-import { begrenzeIsoDatum } from '#/shared/datum/zeitraum.ts';
+import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { clampIsoDate } from '#/shared/date/date-range.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { aktionsfehlerText } from '#/shared/ui/aktionsfehler.ts';
+import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
-  eingabeKlasse,
-  labelKlasse,
-  primaerKnopfKlasse,
-} from '#/shared/ui/form-klassen.ts';
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+} from '#/shared/ui/form-classes.ts';
 import type { NoteEingabe } from '../schemas/note-schema.ts';
 import { notenGrenzen } from '../schemas/note-schema.ts';
 import { createNoteFn } from '../server/noten-fns.ts';
@@ -76,9 +76,9 @@ export const Eintragsleiste = ({
       ref={formRef}
     >
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Fach
-          <select className={eingabeKlasse} name="subjectId" required={true}>
+          <select className={inputClass} name="subjectId" required={true}>
             {faecher.map((fach) => (
               <option key={fach.id} value={fach.id}>
                 {fach.name}
@@ -86,9 +86,9 @@ export const Eintragsleiste = ({
             ))}
           </select>
         </label>
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Art
-          <select className={eingabeKlasse} name="kind">
+          <select className={inputClass} name="kind">
             {Object.entries(leistungsartLabel).map(([wert, label]) => (
               <option key={wert} value={wert}>
                 {label}
@@ -96,10 +96,10 @@ export const Eintragsleiste = ({
             ))}
           </select>
         </label>
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           {punkteSystem ? 'Punkte' : 'Note'}
           <input
-            className={eingabeKlasse}
+            className={inputClass}
             inputMode="decimal"
             max={
               punkteSystem ? notenGrenzen.punkteMax : notenGrenzen.sechserMax
@@ -111,12 +111,12 @@ export const Eintragsleiste = ({
             type="number"
           />
         </label>
-        <label className={labelKlasse}>
+        <label className={labelClass}>
           Datum
           <input
-            className={eingabeKlasse}
-            defaultValue={begrenzeIsoDatum(
-              berlinKalenderdatum(),
+            className={inputClass}
+            defaultValue={clampIsoDate(
+              berlinCalendarDate(),
               term.startsOn,
               term.endsOn,
             )}
@@ -128,7 +128,7 @@ export const Eintragsleiste = ({
           />
         </label>
         <button
-          className={`${primaerKnopfKlasse} col-span-2 sm:col-span-1`}
+          className={`${primaryButtonClass} col-span-2 sm:col-span-1`}
           disabled={eintragen.isPending}
           type="submit"
         >
@@ -140,10 +140,10 @@ export const Eintragsleiste = ({
           Gewicht, Bereich und Notiz
         </summary>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <label className={labelKlasse}>
+          <label className={labelClass}>
             Gewicht
             <input
-              className={eingabeKlasse}
+              className={inputClass}
               defaultValue={1}
               inputMode="decimal"
               max={notenGrenzen.gewichtMax}
@@ -153,17 +153,17 @@ export const Eintragsleiste = ({
               type="number"
             />
           </label>
-          <label className={labelKlasse}>
+          <label className={labelClass}>
             Bereich
-            <select className={eingabeKlasse} name="area">
+            <select className={inputClass} name="area">
               <option value="">Automatisch nach Art</option>
               <option value="schriftlich">Schriftlich</option>
               <option value="muendlich">Mündlich</option>
             </select>
           </label>
-          <label className={`${labelKlasse} col-span-2 sm:col-span-1`}>
+          <label className={`${labelClass} col-span-2 sm:col-span-1`}>
             Notiz
-            <input className={eingabeKlasse} name="notiz" />
+            <input className={inputClass} name="notiz" />
           </label>
         </div>
       </details>
@@ -172,7 +172,7 @@ export const Eintragsleiste = ({
           className="mt-3 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          {aktionsfehlerText(
+          {actionErrorText(
             eintragen.error,
             'Die Note konnte wegen eines technischen Fehlers nicht gespeichert werden. Die Eingaben bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
           )}

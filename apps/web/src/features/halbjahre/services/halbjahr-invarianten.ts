@@ -1,4 +1,4 @@
-import { istIsoDatumImZeitraum } from '#/shared/datum/zeitraum.ts';
+import { isIsoDateInRange } from '#/shared/date/date-range.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 
 type HalbjahrStand = {
@@ -22,7 +22,7 @@ export const halbjahrVerstoss = (
     return 'schoolYear';
   }
   return notenDaten.some(
-    (datum) => !istIsoDatumImZeitraum(datum, neu.startsOn, neu.endsOn),
+    (datum) => !isIsoDateInRange(datum, neu.startsOn, neu.endsOn),
   )
     ? 'zeitraum'
     : null;

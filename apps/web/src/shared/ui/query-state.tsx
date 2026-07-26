@@ -1,17 +1,17 @@
-import { sekundaerKnopfKlasse } from './form-klassen.ts';
+import { secondaryButtonClass } from './form-classes.ts';
 
-export const Ladehinweis = ({ text }: { readonly text: string }) => (
+export const LoadingHint = ({ text }: { readonly text: string }) => (
   <p aria-live="polite" className="text-ink-muted" role="status">
     {text}
   </p>
 );
 
-export const AbfrageFehler = ({
+export const QueryError = ({
   text,
-  onWiederholen,
+  onRetry,
 }: {
   readonly text: string;
-  readonly onWiederholen: () => unknown;
+  readonly onRetry: () => unknown;
 }) => (
   <div
     className="border border-critical bg-critical-subtle p-4 text-ink"
@@ -19,8 +19,8 @@ export const AbfrageFehler = ({
   >
     <p>{text}</p>
     <button
-      className={`${sekundaerKnopfKlasse} mt-3`}
-      onClick={onWiederholen}
+      className={`${secondaryButtonClass} mt-3`}
+      onClick={onRetry}
       type="button"
     >
       Erneut versuchen
