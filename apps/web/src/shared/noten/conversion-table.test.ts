@@ -76,7 +76,7 @@ describe('conversionTable', () => {
     { notenpunkte: 15, tendenzLabel: '1+' },
     { notenpunkte: 13, tendenzLabel: '1-' },
     { notenpunkte: 12.5, tendenzLabel: '1-2' },
-  ])('macht den Übersichtswert für $notenpunkte Notenpunkte auffindbar', ({
+  ])('enthält den Rasterwert für $notenpunkte Notenpunkte direkt', ({
     notenpunkte,
     tendenzLabel,
   }) => {
@@ -87,5 +87,26 @@ describe('conversionTable', () => {
 
     expect(row?.noteLabel).toBe(overviewLabel);
     expect(row?.tendenzLabel).toBe(tendenzLabel);
+  });
+
+  it.each([
+    { notenpunkte: 11.5, noteLabel: '1,88' },
+    { notenpunkte: 11.25, noteLabel: '1,94' },
+    { notenpunkte: 10.8, noteLabel: '2,05' },
+    { notenpunkte: 7.3, noteLabel: '3,18' },
+  ])('ordnet den Übersichtswert $noteLabel zwischen zwei Rasterzeilen ein', ({
+    notenpunkte,
+    noteLabel,
+  }) => {
+    const note = toSechser(notenpunkte);
+    const worseRowIndex = conversionTable.findIndex((row) => row.note > note);
+    const betterRow = conversionTable.at(worseRowIndex - 1);
+    const worseRow = conversionTable.at(worseRowIndex);
+
+    expect(formatNote(note, 'sechser')).toBe(noteLabel);
+    expect(betterRow?.note).toBeLessThan(note);
+    expect(worseRow?.note).toBeGreaterThan(note);
+    expect(betterRow?.notenpunkte).toBeGreaterThan(notenpunkte);
+    expect(worseRow?.notenpunkte).toBeLessThan(notenpunkte);
   });
 });
