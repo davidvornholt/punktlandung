@@ -58,6 +58,15 @@ describe('zuPunkten / zuSechser', () => {
     expect(zuPunkten(16, 'punkte')).toBe(15);
     expect(zuPunkten(0.5, 'sechser')).toBe(15);
     expect(zuPunkten(6, 'sechser')).toBe(0);
+    expect(zuPunkten(6.5, 'sechser')).toBe(0);
+    expect(zuSechser(-1)).toBe(6);
+    expect(zuSechser(16)).toBe(0.75);
+  });
+
+  it('erhält NaN in allen Umrechnungspfaden', () => {
+    expect(zuPunkten(Number.NaN, 'punkte')).toBeNaN();
+    expect(zuPunkten(Number.NaN, 'sechser')).toBeNaN();
+    expect(zuSechser(Number.NaN)).toBeNaN();
   });
 
   it('Umrechnung ist auch zwischen den Ankern invertierbar', () => {

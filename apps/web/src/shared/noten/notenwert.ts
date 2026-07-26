@@ -70,6 +70,9 @@ const interpoliere = (
   value: number,
   anker: ReadonlyArray<Umrechnungsanker>,
 ): number => {
+  if (Number.isNaN(value)) {
+    return value;
+  }
   const [erster] = anker;
   const letzter = anker.at(-1);
   if (erster === undefined || letzter === undefined) {
