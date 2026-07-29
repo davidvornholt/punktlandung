@@ -6,7 +6,7 @@
       "name": "punktlandung",
       "devDependencies": {
         "@biomejs/biome": "2.5.2",
-        "@davidvornholt/standards": "0.19.0",
+        "@davidvornholt/standards": "0.20.0",
         "turbo": "^2.10.6",
         "typescript": "7.0.2",
       },
@@ -171,7 +171,7 @@
 
     "@davidvornholt/a11y-testing": ["@davidvornholt/a11y-testing@workspace:packages/a11y-testing"],
 
-    "@davidvornholt/standards": ["@davidvornholt/standards@0.19.0", "", { "dependencies": { "yaml": "^2.9.0" }, "bin": { "standards": "src/cli.ts" } }, "sha512-Jr7bLBKSbMvGQEQTxHe/uhlYGojjoWJYWn6Rj3MqGf0Wb3Kc7+C8HYYlrL1iyoWJ2eYJ5uPC4CoNIQh7Zqo94g=="],
+    "@davidvornholt/standards": ["@davidvornholt/standards@0.20.0", "", { "dependencies": { "yaml": "^2.9.0" }, "bin": { "standards": "src/cli.ts" } }, "sha512-OW93S/L4O8h13R4NVQSKINFhVlZSaqfd9vwgLOKUfnonSLT8CWRirMYrVYFReFbpCn9QdL7TghS7xVdnTZbelA=="],
 
     "@davidvornholt/typescript-config": ["@davidvornholt/typescript-config@workspace:packages/typescript-config"],
 
