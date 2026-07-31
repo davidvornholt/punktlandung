@@ -5,7 +5,9 @@ dist
 dist-ssr
 *.local
 .env
-!apps/web/.env
+.env.local.standards-*.tmp
+.env.local.standards-*.bak
+config/dev.local.yaml
 .nitro
 .tanstack
 .wrangler

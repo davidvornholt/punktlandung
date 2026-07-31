@@ -12,7 +12,7 @@ Reusable engineering standards live in one upstream repo, `davidvornholt/standar
 ## The three buckets
 
 - **Bucket 1 — synced (upstream-owned, read-only).** Mirrored on every `sync`, including deletions. Listed in `sync-standards.json` under `paths`.
-- **Bucket 2 — repo-owned (seeded once or created by the consumer, then diverges).** Seeded files are written from the template's seed dir during `init`; other designated seams can be created when needed. `sync` never touches either kind. Examples: `biome.jsonc`, `AGENTS.local.md`, `local.just`, `.github/dependabot.local.yml`, `.sops.yaml`, `secrets/*`, root `package.json`, `turbo.json`, `README.md`.
+- **Bucket 2 — repo-owned (seeded once or created by the consumer, then diverges).** Seeded files are written from the template's seed dir during `init`; other designated seams can be created when needed. `sync` never touches either kind. Examples: `biome.jsonc`, `AGENTS.local.md`, `local.just`, `.github/dependabot.local.yml`, `.sops.yaml`, `secrets/*`, `config/*`, root `package.json`, `turbo.json`, `README.md`.
 - **Bucket 3 — generated (engine-owned output).** Recomposed by every `init`/`sync` (and by `dependabot --write`) from a bucket-1 source plus a bucket-2 seam; hand edits are drift that `check` flags. Currently: `.github/dependabot.yml`, composed from `.github/dependabot.base.yml` + `.github/dependabot.local.yml`.
 
 ## Symlinks are first-class managed paths
@@ -41,7 +41,7 @@ Because bucket-1 files are byte-identical everywhere, every legitimate per-repo 
 
 If a task seems to require editing a canonical file for one repo's needs, stop — the change either belongs upstream (it's a real standard) or in the seam (it's repo-specific).
 
-The weekly workflow's writer identity is not a per-repo policy seam. It requires `ci.broker_app.app_id` and `ci.broker_app.private_key` in the SOPS-encrypted `secrets/ci.yaml`, provisioned with `bun standards creds add github --dest ci:ci.broker_app` after installing the broker App only on the selected repository. The workflow resolves those nested values before sync, mints a short-lived current-repository token with Contents read and Pull requests write, and fails closed without a durable-token or workflow-token fallback. The isolated settings gate holds no credential at all, so `ci.broker_app` is the only durable GitHub credential a consumer stores.
+The weekly workflow's writer identity is not a per-repo policy seam. It requires `ci.broker_app.app_id` and `ci.broker_app.private_key` in the SOPS-encrypted `secrets/ci.yaml`, provisioned with `bun standards creds add github --dest ci:ci.broker_app` after installing that repository owner's private broker App only on the selected repository. The command selects by repository owner and verifies the installation before writing. The workflow resolves those nested values before sync, mints a short-lived current-repository token with Contents read and Pull requests write, and fails closed without a durable-token or workflow-token fallback. The isolated settings gate holds no credential at all, so `ci.broker_app` is the only durable GitHub credential a consumer stores.
 
 ## Commands
 

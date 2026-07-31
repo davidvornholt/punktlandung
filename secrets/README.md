@@ -4,7 +4,7 @@ Secret values live only in the SOPS-encrypted `dev.yaml` and `ci.yaml` targets. 
 
 ## Development target
 
-`dev.yaml` contains workspace-scoped development credentials. `just dev-env-generate` decrypts it into ignored owner-only `.env.local` files. Public web configuration is versioned separately in `apps/web/.env`.
+`dev.yaml` contains workspace-scoped development credentials. `just dev-env-generate` composes it with the tracked root `config/dev.yaml` (public configuration) and the gitignored root `config/dev.local.yaml` (per-machine overrides, which win per key) into each workspace's ignored owner-only `.env.local`.
 
 ## CI target
 
