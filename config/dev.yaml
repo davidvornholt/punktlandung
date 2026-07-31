@@ -1,0 +1,9 @@
+# Shared non-secret dev configuration, composed into each workspace's
+# generated .env.local by `bun standards dev-env` together with the
+# SOPS-encrypted secrets/dev.yaml and the gitignored config/dev.local.yaml
+# (per-developer/per-machine overrides, which win per key).
+apps:
+  web:
+    BETTER_AUTH_URL: http://localhost:3000
+    GITHUB_CLIENT_ID: Ov23liYusIgRlseEB6iX
+    GITHUB_ALLOWED_ACCOUNT_ID: "157214705"
