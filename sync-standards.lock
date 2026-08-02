@@ -1,7 +1,8 @@
 {
   "upstream": "github:davidvornholt/standards",
-  "sha": "1b0e349b75bd5e2c034b12fa42faa7badddcbfd1",
+  "sha": "6f79eaaa352cd70883f4f0679463594dd7c9e162",
   "files": {
+    ".agents/skills/ci-pipelines/SKILL.md": "173500b1274bc8eae4cedbb1b10c5ad048cb75c6ac7a70d995e3cd6642074ca1",
     ".agents/skills/database/agents/openai.yaml": "4c9f47df24219d5b195c88eef374431f64b453ed1ba057f50d4c11e4549343c1",
     ".agents/skills/database/SKILL.md": "983f8b7b1520b427c4bddafddb0b0d63d4c002fe0aef44f421e6b5ea7398e48c",
     ".agents/skills/declarative-infra/agents/openai.yaml": "d8631747495397fa341d956c20d7b3155b68f8f5a86b9d8015e654cb61e3d649",
@@ -47,6 +48,6 @@
     "packages/typescript-config/README.md": "ffd46925c5c2145247f4fac72adc5c1153930b3bd33a6dbb9d1b2d3c22432f3b",
     "packages/typescript-config/tsconfig.json": "a7ad2417a335f31b5ce66273618ce64bf365a10a58cb06c598487a68ead7391c",
     "secrets.just": "c1d4d6557df5d96702179717839cee435b63df4f36fe38581a32a6359c6fd548",
-    "sync-standards.json": "5aa72b796681b12a81a3891f93e6db9d61bbc38510c6b3d590bc1553b194fb3b"
+    "sync-standards.json": "8506e33b9f6e22b68e8e0d91ff9501b827e795f72ca63bed1aef28f0d80c2b58"
   }
 }
