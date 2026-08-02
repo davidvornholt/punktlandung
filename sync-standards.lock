@@ -1,6 +1,6 @@
 {
   "upstream": "github:davidvornholt/standards",
-  "sha": "24ecb76230060a48fff8509ff6cb7fd9e02861b7",
+  "sha": "1b0e349b75bd5e2c034b12fa42faa7badddcbfd1",
   "files": {
     ".agents/skills/database/agents/openai.yaml": "4c9f47df24219d5b195c88eef374431f64b453ed1ba057f50d4c11e4549343c1",
     ".agents/skills/database/SKILL.md": "983f8b7b1520b427c4bddafddb0b0d63d4c002fe0aef44f421e6b5ea7398e48c",
@@ -28,7 +28,7 @@
     ".github/settings.json": "a06b6aa69b27bf1c3b8ebf25d90131a9653f54bc1ec08384a92581627527911c",
     ".github/workflows/notify-pause.yml": "5d466b23fc810c9b24aa4864dfb358328c3b69a7e8b5e8514e61cfe0916e9be8",
     ".github/workflows/standards-sync.yml": "c52a1e0835113e0f31235e4af17bb7178c231a8bd313b95de9316d40b775eb0b",
-    ".github/workflows/standards.yml": "1e65d551bccc6a92db721248398e03f1f584fc1c2a17e536d77eeacfe11b2acd",
+    ".github/workflows/standards.yml": "64815c83dba7484ab41f862d06f7e413ed3a52fc750ac92f5d9e0dbe422b0c18",
     "AGENTS.md": "8fa1b3ac2733288a229e35a7aeac289ec4a8905e7f807818eb2b97545708cd80",
     "biome.base.jsonc": "270624c3dfe3896e65af40b94d6cb51fd8502a1cd4628611fd857d7313a16a88",
     "CLAUDE.md": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
