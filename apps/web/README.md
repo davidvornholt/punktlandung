@@ -1,6 +1,6 @@
 # @punktlandung/web
 
-Die Punktlandung-Web-App: TanStack Start (React) auf Bun, Tailwind v4 mit den Refined-Heritage-Tokens aus `@punktlandung/ui`, Drizzle auf PostgreSQL, Effect für die Anwendungslogik und Better Auth (nur GitHub) für den privaten Zugang.
+Die Punktlandung-Web-App: TanStack Start (React) auf Bun, Tailwind v4 mit den Design-Tokens aus `@punktlandung/ui`, Drizzle auf PostgreSQL, Effect für die Anwendungslogik und Better Auth (nur GitHub) für den privaten Zugang.
 
 ## Konfiguration und Secrets
 

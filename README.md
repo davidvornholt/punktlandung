@@ -9,7 +9,7 @@ Persönlicher Notenüberblick für ein Gymnasium in Baden-Württemberg — ein Z
 - Bun + Turborepo-Monorepo, TypeScript strict, Biome maximal streng
 - TanStack Start (React, dateibasierte Routen) mit TanStack Query
 - Effect für Anwendungslogik und Validierung (effect/Schema), Drizzle auf PostgreSQL über `@effect/sql-drizzle`
-- Better Auth (GitHub-only, Allowlist), Tailwind v4 mit semantischen Tokens aus `packages/ui` (Designsystem „Refined Heritage", siehe `DESIGN.md`)
+- Better Auth (GitHub-only, Allowlist), Tailwind v4 mit semantischen Tokens aus `packages/ui` (Designsystem siehe `DESIGN.md`)
 - Playwright + Axe (WCAG 2.2 AA) über `@davidvornholt/a11y-testing`
 
 ## Monorepo-Layout

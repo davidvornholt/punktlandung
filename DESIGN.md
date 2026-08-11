@@ -1,14 +1,17 @@
 # DESIGN.md
 
-Punktlandung instantiates the **Refined Heritage** archetype: warm, valuable, and enduring — a well-made heirloom for school Noten. A noble serif meets disciplined, sharp-edged construction on warm cream ground; the app should feel like a trusted paper Zeugnisheft that grew up, not like a dashboard template. It is emphatically not minimalism: surfaces are warm rather than white, color is present rather than withheld, and screens are furnished, not emptied.
+Punktlandung is warm, valuable, and enduring — a well-made heirloom for school Noten. A noble serif meets disciplined, sharp-edged construction on warm cream ground; the app should feel like a trusted paper Zeugnisheft that grew up, not like a dashboard template. It is emphatically not minimalism: surfaces are warm rather than white, color is present rather than withheld, and screens are furnished, not emptied.
 
 All design values live in `packages/ui/src/theme.css`. It is the single source of truth; no raw color, radius, shadow, or easing literals anywhere else.
 
-## Deviations from the archetype
+## Language
 
 - UI language is German (sentence case per the writing standards); domain terms — Fach, Klausur, Halbjahr, Notenpunkte, GFS — are product vocabulary, never translated.
-- Dark mode follows the system preference; there is no manual toggle in v1.
-- Charts are first-class product surface, not illustration: they use the primary and accent tokens only, and judgement coloring (positive/critical) is reserved for Noten deltas and warnings.
+
+## Modes
+
+- Light is the primary mode. Punktlandung deliberately ships a dark mode alongside it: it follows the system preference, with no manual toggle in v1.
+- Dark carries the same warm character, not an inversion; depth in dark mode comes from surface lightness steps, not shadows or glow.
 
 ## Type
 
@@ -19,10 +22,10 @@ All design values live in `packages/ui/src/theme.css`. It is the single source o
 
 ## Surfaces and depth
 
-- Page ground is `background`; content sits on `surface` cards with hairline `border` and the card shadow token. Sunken wells (`surface-sunken`) hold secondary or empty-state content.
+- Grounds and inks are warm neutrals — never pure white, never pure black.
+- Page ground is `background`; content sits on `surface` cards with hairline `border` and the card shadow token. Sunken wells (`surface-sunken`) hold secondary or empty-state content. Depth stays restrained: hairline borders and subtle shadows that suggest material without gloss.
 - Corners are square everywhere. The radius scale deliberately does not exist; do not reintroduce it.
 - Reserve the featured shadow for one featured element per screen at most (e.g. the Zeugnis summary).
-- Depth in dark mode comes from surface lightness steps, not shadows or glow.
 
 ## Foreground rules
 
@@ -30,6 +33,7 @@ All design values live in `packages/ui/src/theme.css`. It is the single source o
 - On `primary`: only `on-primary`.
 - `accent` is for contrast moments — the current Halbjahr chip, a highlighted trend — never for large fills.
 - Judgement colors: `positive` and `critical` communicate Noten direction and Zeugnis warnings; never use them decoratively, and never communicate judgement by color alone (pair with text or symbol).
+- Charts are first-class product surface, not illustration: they use the primary and accent tokens only, and judgement coloring (positive/critical) is reserved for Noten deltas and warnings.
 
 ## Pattern vocabulary
 
@@ -54,3 +58,7 @@ All design values live in `packages/ui/src/theme.css`. It is the single source o
 - No pale minimalism, no gray-on-white austerity, no empty screens.
 - No gradients as decoration, no glassmorphism, no neon.
 - No default Tailwind palette classes; semantic token utilities only.
+
+---
+
+*Seeded from heirloom-product.*
