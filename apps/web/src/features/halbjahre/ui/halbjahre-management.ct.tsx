@@ -1,12 +1,12 @@
 import { expect, test as it } from '@playwright/experimental-ct-react';
-import type { Locator } from '@playwright/test';
+import type * as playwright from '@playwright/test';
 
 import { HalbjahreManagementStory } from './halbjahre-management.ct-story.tsx';
 
-const rowNamed = (component: Locator, name: string) =>
+const rowNamed = (component: playwright.Locator, name: string) =>
   component.getByRole('listitem').filter({ hasText: name });
 
-const confirmDeletion = async (row: Locator) => {
+const confirmDeletion = async (row: playwright.Locator) => {
   await row.getByRole('button', { name: 'Löschen' }).click();
   await expect(row).toContainText('Das leere Halbjahr wird entfernt.');
   await row.getByRole('button', { name: 'Wirklich löschen' }).click();
@@ -15,7 +15,7 @@ const confirmDeletion = async (row: Locator) => {
   ).toBeDisabled();
 };
 
-const completeDeletion = (component: Locator) =>
+const completeDeletion = (component: playwright.Locator) =>
   component.getByTestId('complete-deletion').dispatchEvent('click');
 
 it('confirms twice, disables natively, removes and reorders, then announces success', async ({

@@ -25,7 +25,9 @@ infra/
 .sops.yaml
 ```
 
-Host directories are named `<env>-<index>` (`prod-1`), even when the repo has a single server — never after the repo or product, which distinguishes nothing inside its own repo and is ambiguous in a dedicated infra repo. The index makes host replacement routine: build `prod-2` alongside, migrate, retire `prod-1`, with no mid-migration rename. The name is a repo-internal identifier that must line up across `nixosConfigurations.<name>`, `deploy.nodes.<name>`, and `hosts/<name>/`, and it doubles as the `just secrets` target for the host's `secrets.yaml`, so it must be a safe path segment (an ASCII letter or digit first; only letters, digits, dots, underscores, hyphens). The machine's real hostname and domain are set separately in `configuration.nix`.
+Host directories are named `<env>-<index>` (`prod-1`), even when the repo has a single server — never after the repo or product, which distinguishes nothing inside its own repo and is ambiguous in a dedicated infra repo. The index makes host replacement routine: build `prod-2` alongside, migrate, retire `prod-1`, with no mid-migration rename. The name is an identifier that must line up across `nixosConfigurations.<name>`, `deploy.nodes.<name>`, and `hosts/<name>/`, and it doubles as the `just secrets` target for the host's `secrets.yaml`, so it must be a safe path segment (an ASCII letter or digit first; only letters, digits, dots, underscores, hyphens).
+
+The machine carries the same identifier: `networking.hostName = "prod-1"`, with `networking.domain` set to the primary domain the host serves, a DNS record `prod-1.<domain>` pointing at the machine (managed in the tofu stack like any other record), and `deploy.nodes.<name>.hostname` set to that same `prod-1.<domain>`. Do not introduce a stable machine alias such as `server.<domain>`: the durable names are the product domains themselves, which repoint at cutover, while every per-machine name is created and retired with the machine — so during a migration the two live hosts stay unambiguous in shell prompts, logs, and SSH targets.
 
 ## Flake skeleton
 
@@ -66,7 +68,7 @@ Host directories are named `<env>-<index>` (`prod-1`), even when the repo has a 
       };
 
       deploy.nodes.prod-1 = {
-        hostname = "server.example.com";
+        hostname = "prod-1.example.com";
         profiles.system = {
           user = "root";
           path = deploy-rs.lib.${system}.activate.nixos
@@ -144,6 +146,26 @@ in {
     email = acmeEmail; # required: ACME registration contact
   };
 
+  systemd.services.podman-image-prune = {
+    description = "Remove unused container images older than seven days";
+    serviceConfig = {
+      Type = "oneshot";
+      Nice = 19;
+      IOSchedulingClass = "idle";
+    };
+    script = ''
+      ${pkgs.podman}/bin/podman image prune --all --force --filter until=168h
+    '';
+  };
+  systemd.timers.podman-image-prune = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+      RandomizedDelaySec = "30m";
+    };
+  };
+
   virtualisation.podman = {
     enable = true;
     defaultNetwork.settings.dns_enabled = true; # containers resolve each other by name
@@ -160,6 +182,9 @@ Beyond the module:
 
 - Only Caddy publishes services; nothing else opens 80/443, and every additional firewall port is a documented decision in the host repo.
 - Pin container images by digest.
+- Every Podman host needs image retention for production as well as previews. Daily image-only pruning of unused images created more than seven days ago is the default. Podman protects images referenced by any container, including stopped containers. Do not use `podman system prune`, volume pruning, or external-container removal as a substitute. Nix garbage collection and journal retention do not reclaim OCI images.
+- The age filter uses the image creation timestamp, not its pull or last-use time. Retired images may need to be pulled again for rollback; keep registry access available. Where a deployment or preview controller protects staged or rollback images beyond container references, coordinate cleanup with that controller or exclude its labels and retain its own collector. A preview-only collector does not replace production retention.
+- Verify the timer and a successful cleanup on each host after deployment. During a disk-full incident, check PostgreSQL recovery and every service sharing the filesystem after reclaiming unused images; never remove database files or volumes to make room.
 - A host running PostgreSQL also runs a local dump timer with retention (hourly `pg_dump --format=custom` into a `postgres`-owned directory is the norm); shape the unit however reads best.
 - A host running GitHub Actions jobs uses `services.github-runners.<name>` with a SOPS-provided token, `programs.nix-ld.enable = true` plus `NIX_LD`/`NIX_LD_LIBRARY_PATH` in the runner environment so downloaded tooling executes, and systemd resource caps (`CPUQuota`, `MemoryHigh`/`MemoryMax`) so jobs cannot starve the host's services.
 
@@ -200,7 +225,7 @@ in {
 
 ## Host essentials
 
-In `hosts/<name>/configuration.nix`: `networking.hostName`, `networking.domain`, `time.timeZone`, profile parameters (SSH keys, ACME email, databases), app options, SOPS wiring — and `system.stateVersion`, set once at install and never changed afterward.
+In `hosts/<name>/configuration.nix`: `networking.hostName` (the host identifier, per the naming rule above) and `networking.domain` (the primary domain the host serves), `time.timeZone`, profile parameters (SSH keys, ACME email, databases), app options, SOPS wiring — and `system.stateVersion`, set once at install and never changed afterward.
 
 ## App modules
 
@@ -260,6 +285,16 @@ A repo whose trusted CI builds and deploys NixOS system closures uses a private,
 - Deployment waits for validation of the exact main-branch commit and substitutes that closure instead of rebuilding.
 - The bucket must never be publicly readable — for R2, no `r2.dev` hostname and no custom domain. Verify through the provider API in PR validation and again before deployment.
 - Document the credentials, signing-key rotation, and retention policy with the repo's other infrastructure configuration.
+
+## Deploy downtime
+
+A deploy that changes an app's image restarts `podman-<app>.service` in place: the old container stops before the new one starts, and Caddy has no upstream for that app until the new container is up. That brief interruption is the accepted default for this profile. The health readback in `image-promotion.md` verifies that the deploy completed; it does not keep the old container serving through the switch.
+
+Keep the window to container startup, not registry pull: after the deploy job's identity and registry-access checks and immediately before `nix run .#deploy-rs`, the workflow pre-pulls every gated image reference on the target over the deploy SSH connection. Set `REGISTRY_AUTH_FILE` and pass `--authfile` on every Podman registry command. Public entries use the root-owned empty `/run/containers/auth/anonymous.json`; private entries use only `/run/containers/auth/ghcr-private.json`, atomically created by the host's SOPS-backed `podman-ghcr-login` unit. Give every container unit the matching `REGISTRY_AUTH_FILE` too, so implicit pulls cannot fall back to ambient Podman or Docker auth. A private pre-pull always contacts the registry even when the digest is cached, so missing or expired credentials fail before activation; a public cached digest may skip its network pull after the same deployment has independently proved anonymous access to that exact digest. Pulling by digest is idempotent and additive, and any failed pre-pull fails the deploy before activation touches the running system.
+
+Private-image migration and container units require and order after `podman-ghcr-login.service`. Public-image units must not depend on that service. The SOPS secret restarts the oneshot when its decrypted value changes. The unit reads `registry.github_token` through stdin, writes a same-directory `0600` temporary auth file, and atomically renames it to the private path only after `podman login` succeeds. The complete credential, two-stage adoption, auth-file, and rotation contract is in `image-promotion.md#private-ghcr-host-access`.
+
+Zero-downtime switchover — a second container instance behind a Caddy upstream flip, with draining — is not part of the profile. A host whose availability requirement justifies that complexity documents the decision and its wiring in the host repo, and that requirement is often the signal the app has outgrown the single-host profile.
 
 ## Install and convergence
 

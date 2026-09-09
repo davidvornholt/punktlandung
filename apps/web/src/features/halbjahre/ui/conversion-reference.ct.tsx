@@ -1,11 +1,11 @@
 import { expect, test as it } from '@playwright/experimental-ct-react';
-import type { Locator } from '@playwright/test';
+import type * as playwright from '@playwright/test';
 
 import { conversionTable } from '#/shared/noten/conversion-table.ts';
 
 import { ConversionReference } from './conversion-reference.tsx';
 
-const rowWithHeader = (component: Locator, header: string) =>
+const rowWithHeader = (component: playwright.Locator, header: string) =>
   component.getByRole('rowheader', { name: header, exact: true }).locator('..');
 
 it('distinguishes official and interpolated rows accessibly', async ({

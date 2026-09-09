@@ -133,11 +133,13 @@ export const NotenListStory = ({
       </main>
       <div hidden={true}>
         <button
+          aria-label="Complete save"
           data-testid="complete"
           onClick={() => settleRef.current?.('success')}
           type="button"
         />
         <button
+          aria-label="Fail save"
           data-testid="fail"
           onClick={() => settleRef.current?.('failure')}
           type="button"

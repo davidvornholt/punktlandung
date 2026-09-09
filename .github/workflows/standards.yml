@@ -1,9 +1,11 @@
 name: Standards
 
 on:
+  # Every pull request runs the gate regardless of its base branch: stacked
+  # pull requests need check runs on each layer's own commits, both as review
+  # signal before an atomic stack merge and because required-check rulesets
+  # refuse commits that carry no runs.
   pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
@@ -32,9 +34,19 @@ jobs:
   # Per-repo DB coordinates come from repository Actions VARIABLES (Settings →
   # Secrets and variables → Actions → Variables), not edits to this synced file:
   #   CI_POSTGRES_USER, CI_POSTGRES_PASSWORD, CI_POSTGRES_DB  (defaults below)
-  #   CI_RUNNER  — override only the unprivileged quality runner label
-  #                (default ubuntu-latest); every other canonical workflow job
-  #                always uses a fresh GitHub-hosted runner
+  #   CI_RUNNER  — override only the unprivileged quality runner label when
+  #                CI_CODEBUILD_PROJECT is absent
+  #   CI_CODEBUILD_PROJECT — in a sole-maintainer personal repository that
+  #                trusts workflow edits before merge, select an ephemeral AWS
+  #                CodeBuild runner for every compatible canonical consumer job;
+  #                this takes precedence over CI_RUNNER and adds the unique run
+  #                identity CodeBuild requires
+  #   CI_CODEBUILD_QUALITY_SIZE — override the CodeBuild quality job's instance
+  #                size when a measured gate cannot run reliably on `medium`;
+  #                compatible values are CodeBuild's runner size labels
+  # The canonical contract test is a merge-time ratchet against accidental
+  # routing changes, not runtime authorization for requests to CodeBuild.
+  # The Standards-only architecture matrix keeps its native runner mapping.
   # These are non-secret configuration; leaking them enables nothing.
   #
   # Playwright's Chromium, unlike the Postgres service, is installed only when the
@@ -44,10 +56,13 @@ jobs:
   # an `if:` whereas a service cannot. So gating it keeps one uniform file while
   # skipping a pointless download in repos with nothing to render.
   quality:
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ vars.CI_CODEBUILD_PROJECT != '' && format('codebuild-{0}-{1}-{2}-{3}', vars.CI_CODEBUILD_PROJECT, github.run_id, github.run_attempt, vars.CI_CODEBUILD_QUALITY_SIZE || 'medium') || vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     services:
       postgres:
-        image: postgres:18-alpine
+        # CodeBuild runners share an outbound address, so anonymous Docker Hub
+        # pulls can exhaust the shared limit before the job reaches checkout.
+        image: public.ecr.aws/docker/library/postgres:18-alpine
         env:
           POSTGRES_USER: ${{ vars.CI_POSTGRES_USER || 'app' }}
           POSTGRES_PASSWORD: ${{ vars.CI_POSTGRES_PASSWORD || 'app' }}
@@ -59,8 +74,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
-    env:
-      DATABASE_URL: postgresql://${{ vars.CI_POSTGRES_USER || 'app' }}:${{ vars.CI_POSTGRES_PASSWORD || 'app' }}@127.0.0.1:5432/${{ vars.CI_POSTGRES_DB || 'app' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -86,6 +99,52 @@ jobs:
           tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
           "$RUNNER_TEMP/actionlint" -color
 
+      # A fixed 127.0.0.1 database URL only works where the job shares the
+      # service's published loopback — true on GitHub-hosted runners, false on
+      # CodeBuild, whose runner is itself an unprivileged container beside the
+      # service, so the published port lands on the build host instead. The
+      # service stays reachable there on its container address or the docker
+      # network gateway. Resolving the endpoint at runtime keeps one uniform
+      # file for both topologies and fails closed with a named error here
+      # instead of letting the first database consumer time out mid-gate.
+      - name: Resolve the database endpoint
+        env:
+          CI_POSTGRES_USER: ${{ vars.CI_POSTGRES_USER || 'app' }}
+          CI_POSTGRES_PASSWORD: ${{ vars.CI_POSTGRES_PASSWORD || 'app' }}
+          CI_POSTGRES_DB: ${{ vars.CI_POSTGRES_DB || 'app' }}
+        run: |
+          set -euo pipefail
+          reachable() {
+            timeout 2 bash -c "exec 3<>/dev/tcp/$1/5432" 2>/dev/null
+          }
+          candidates=()
+          if [ -n "${CODEBUILD_BUILD_ID:-}" ]; then
+            service_container=$(docker ps --filter ancestor=public.ecr.aws/docker/library/postgres:18-alpine --format '{{.ID}}' | head -n 1)
+            if [ -n "$service_container" ]; then
+              service_networks=$(docker inspect "$service_container" \
+                --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{.Gateway}} {{end}}')
+              read -r -a service_addresses <<<"$service_networks"
+              candidates+=("${service_addresses[@]}")
+            fi
+            candidates+=("$(docker network inspect bridge \
+              --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)")
+            candidates+=("$(ip route show default 2>/dev/null \
+              | awk '{ for (i = 1; i < NF; i++) if ($i == "via") print $(i + 1) }' | head -n 1)")
+          else
+            candidates=(127.0.0.1)
+          fi
+          for candidate in "${candidates[@]}"; do
+            if [ -n "$candidate" ] && reachable "$candidate"; then
+              echo "Database endpoint: $candidate:5432"
+              printf 'DATABASE_URL=postgresql://%s:%s@%s:5432/%s\n' \
+                "$CI_POSTGRES_USER" "$CI_POSTGRES_PASSWORD" "$candidate" "$CI_POSTGRES_DB" \
+                >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          echo "::error::No candidate endpoint reached the Postgres service (tried: ${candidates[*]})"
+          exit 1
+
       # The canonical justfile and secrets.just are gate-tested: the source
       # repository's CLI suite spawns `just` against them, and one uniform file
       # serves every repo (see the Postgres note above).
@@ -104,10 +163,39 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Read Bun version
+        id: bun
+        run: |
+          set -euo pipefail
+          if ! package_manager="$(jq -er '.packageManager | select(type == "string" and test("^bun@(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))' package.json)"; then
+            echo '::error::package.json packageManager must pin an exact bun@x.y.z version'
+            exit 1
+          fi
+          echo "version=${package_manager#bun@}" >> "$GITHUB_OUTPUT"
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: ${{ steps.bun.outputs.version }}
+
+      - name: Verify Bun version
+        env:
+          EXPECTED_BUN_VERSION: ${{ steps.bun.outputs.version }}
+        run: |
+          set -euo pipefail
+          actual="$(bun --version)"
+          if [[ "$actual" != "$EXPECTED_BUN_VERSION" ]]; then
+            echo "::error::Expected Bun $EXPECTED_BUN_VERSION from package.json, received $actual"
+            exit 1
+          fi
+
+      # Bun is the package manager and default runtime. Some quality tools and
+      # cross-runtime tests intentionally invoke Node, so honor the version the
+      # canonical package manifest declares instead of the runner's ambient one.
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "26"
 
       # PRs may restore the latest default-branch Turbo snapshot but never
       # publish cache state. A successful default-branch run saves at most one
@@ -115,7 +203,7 @@ jobs:
       # revisions cannot consume repository cache quota.
       - name: Restore the Turbo cache
         id: turbo-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .turbo/cache
           key: turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
@@ -148,7 +236,7 @@ jobs:
       # fallbacks because they consume trusted snapshots but never publish.
       - name: Restore the Bun package cache
         id: bun-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.bun/install/cache
           key: bun-packages-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
@@ -166,7 +254,7 @@ jobs:
       - name: Restore the Playwright browser cache
         if: steps.a11y.outputs.present == 'true'
         id: playwright-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
@@ -181,11 +269,14 @@ jobs:
             echo "::error::Found a browser a11y suite but no installed playwright binary. Declare @playwright/test in the workspace that owns the suite."
             exit 1
           fi
+          # Playwright downloads its own Chromium. The runner's unused Chrome APT
+          # repository can break dependency installation with inconsistent metadata.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
           "$playwright" install --with-deps chromium
 
       - name: Check
         env:
-          # The fixed GitHub-hosted `check` aggregator job owns this live check
+          # The isolated `check` aggregator job owns this live check
           # in CI. This workflow-only seam keeps local `bun run check`
           # fail-closed.
           STANDARDS_SKIP_GITHUB_CHECK: "true"
@@ -193,14 +284,14 @@ jobs:
 
       - name: Save the Bun package cache
         if: success() && github.ref == 'refs/heads/main' && steps.bun-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.bun/install/cache
           key: bun-packages-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
 
       - name: Save the Playwright browser cache
         if: success() && github.ref == 'refs/heads/main' && steps.a11y.outputs.present == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
@@ -222,14 +313,15 @@ jobs:
 
       - name: Save the Turbo cache
         if: success() && github.ref == 'refs/heads/main' && steps.turbo-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .turbo/cache
           key: turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
 
   nix-discovery:
     if: github.repository == 'davidvornholt/standards'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_CODEBUILD_PROJECT != '' && format('codebuild-{0}-{1}-{2}-small', vars.CI_CODEBUILD_PROJECT, github.run_id, github.run_attempt) || 'ubuntu-latest' }}
+    timeout-minutes: 30
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -287,7 +379,7 @@ jobs:
   # RUNNER_TEMP from direct, checksum-pinned release URLs, so a pull request
   # cannot substitute the code that performs the comparison. The comparison
   # shares this aggregator job instead of owning one because both run on the
-  # fixed GitHub-hosted runner with only the workflow token and no repository
+  # same permissionless runner with only the workflow token and no repository
   # executable code, and a per-run job below sixty seconds of work still bills
   # a full runner minute in every consumer.
   check:
@@ -296,7 +388,8 @@ jobs:
       - quality
       - nix-discovery
       - nix
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_CODEBUILD_PROJECT != '' && format('codebuild-{0}-{1}-{2}-small', vars.CI_CODEBUILD_PROJECT, github.run_id, github.run_attempt) || 'ubuntu-latest' }}
+    timeout-minutes: 30
     permissions:
       contents: read
       issues: read
@@ -313,10 +406,10 @@ jobs:
       - name: Install pinned settings checker
         run: |
           set -euo pipefail
-          bun_version=1.3.14
+          bun_version=1.4.2
           case "$(uname -m)" in
-            x86_64) bun_arch=x64; bun_sha=951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f ;;
-            aarch64) bun_arch=aarch64; bun_sha=a27ffb63a8310375836e0d6f668ae17fa8d8d18b88c37c821c65331973a19a3b ;;
+            x86_64) bun_arch=x64; bun_sha=36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913 ;;
+            aarch64) bun_arch=aarch64; bun_sha=54328bbc2d9c8e0c9f892c544d66c57a83b84139e34909e5ee81758f1ac8fda7 ;;
             *)
               echo "::error::No pinned Bun binary for runner architecture $(uname -m)"
               exit 1
