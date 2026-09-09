@@ -127,7 +127,7 @@ describe('TrendChart', () => {
       '7 P.',
       '9 P.',
     ]);
-    const chartTag = markup.match(chartTagPattern)?.[0];
+    const chartTag = chartTagPattern.exec(markup)?.[0];
     expect(chartTag).toContain('aria-hidden="true"');
     expect(chartTag).toContain('data-accessibility-layer="false"');
     expect(chartTag).not.toContain('role=');

@@ -128,11 +128,13 @@ export const HalbjahreManagementStory = ({
       </main>
       <div hidden={true}>
         <button
+          aria-label="Complete deletion"
           data-testid="complete-deletion"
           onClick={() => settleDeletionRef.current?.('success')}
           type="button"
         />
         <button
+          aria-label="Reject stale deletion"
           data-testid="reject-stale-deletion"
           onClick={() => settleDeletionRef.current?.('stale')}
           type="button"

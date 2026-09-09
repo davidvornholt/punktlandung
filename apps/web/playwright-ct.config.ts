@@ -1,4 +1,6 @@
-import { defineConfig, devices } from '@playwright/experimental-ct-react';
+const { defineConfig, devices } = await import(
+  '@playwright/experimental-ct-react'
+);
 
 const appSource = new URL('./src', import.meta.url).pathname;
 

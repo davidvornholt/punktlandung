@@ -63,8 +63,11 @@ describe('HalbjahrList deletion interaction', () => {
       initialDecisionChange,
     );
     const [, initialDelete] = collectElements(initialRow, 'button');
+    if (initialDelete === undefined) {
+      throw new Error('Expected the initialDelete button');
+    }
     const initialChange = (
-      initialDelete?.props as {
+      initialDelete.props as {
         readonly onClick: (event: {
           readonly currentTarget: HTMLButtonElement;
         }) => void;
@@ -87,8 +90,11 @@ describe('HalbjahrList deletion interaction', () => {
     );
     const buttons = collectElements(confirmedRow, 'button');
     const cancel = buttons.find((button) => textOf(button) === 'Abbrechen');
+    if (cancel === undefined) {
+      throw new Error('Expected the cancel button');
+    }
     (
-      cancel?.props as {
+      cancel.props as {
         readonly onClick: () => void;
       }
     ).onClick();
@@ -108,8 +114,11 @@ describe('HalbjahrList deletion interaction', () => {
     const confirmedDelete = buttons.find(
       (button) => textOf(button) === 'Wirklich löschen',
     );
+    if (confirmedDelete === undefined) {
+      throw new Error('Expected the confirmedDelete button');
+    }
     (
-      confirmedDelete?.props as {
+      confirmedDelete.props as {
         readonly onClick: (event: {
           readonly currentTarget: HTMLButtonElement;
         }) => void;

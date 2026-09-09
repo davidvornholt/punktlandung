@@ -14,15 +14,12 @@ describe('parsePort', () => {
     expect(parsePort(String(validPort))).toBe(validPort);
   });
 
-  it.each([
-    'abc',
-    '1.5',
-    '0',
-    '-1',
-    '65536',
-  ])('rejects invalid PORT=%s', (value) => {
-    expect(() => parsePort(value)).toThrow(
-      'erwartet wird eine ganze Zahl zwischen 1 und 65535',
-    );
-  });
+  it.each(['abc', '1.5', '0', '-1', '65536'])(
+    'rejects invalid PORT=%s',
+    (value) => {
+      expect(() => parsePort(value)).toThrow(
+        'erwartet wird eine ganze Zahl zwischen 1 und 65535',
+      );
+    },
+  );
 });
