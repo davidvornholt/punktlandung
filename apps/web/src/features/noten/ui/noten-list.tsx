@@ -6,7 +6,6 @@ import { useState } from 'react';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { notenKey } from '#/shared/query/query-keys.ts';
-import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { iconButtonClass, iconSize, iconStroke } from '#/shared/ui/icon.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
