@@ -1,6 +1,9 @@
 import { Schema } from 'effect';
 
-import { leistungsarten } from '#/shared/noten/notenwert.ts';
+import {
+  leistungsarten,
+  planbareLeistungsarten,
+} from '#/shared/noten/notenwert.ts';
 
 export const notenLimits = {
   maxGewichtung: 10,
@@ -54,3 +57,29 @@ export const NoteId = Schema.Struct({
 export const NotenQuery = Schema.Struct({
   termId: Schema.String,
 });
+
+export const preparationLimits = {
+  /** Großzügig für eine Themenliste, eng genug gegen versehentliche Dateien. */
+  maxLength: 20_000,
+} as const;
+
+const PreparationText = Schema.String.pipe(
+  Schema.maxLength(preparationLimits.maxLength),
+);
+
+export const PreparationUpdate = Schema.Struct({
+  id: Schema.String,
+  /** null löscht die Vorbereitung. */
+  preparation: Schema.NullOr(PreparationText),
+});
+
+export type PreparationUpdate = typeof PreparationUpdate.Type;
+
+const PlanbareLeistungsart = Schema.Literal(...planbareLeistungsarten);
+
+export const PreparationTemplateInput = Schema.Struct({
+  kind: PlanbareLeistungsart,
+  content: PreparationText,
+});
+
+export type PreparationTemplateInput = typeof PreparationTemplateInput.Type;

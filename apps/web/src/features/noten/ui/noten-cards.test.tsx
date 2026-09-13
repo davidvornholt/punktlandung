@@ -18,6 +18,7 @@ const note = (id: string, datum = '2026-01-01'): Leistung => ({
   id,
   kind: 'klausur',
   notiz: `Notiz ${id}`,
+  preparation: null,
   status: 'graded',
   wert: 2,
 });
@@ -47,6 +48,7 @@ const cards = (
       noten={list}
       onDelete={() => undefined}
       onEdit={() => undefined}
+      preparationLink={() => null}
       system="sechser"
       updateErrors={updateErrors}
     />,
@@ -84,6 +86,7 @@ const editButton = (editNoteId: string | null, onEdit: unknown) =>
         note: Leistung | null,
         trigger: HTMLButtonElement,
       ) => void,
+      preparationLink: () => null,
       system: 'sechser',
       updateErrors: noUpdateErrors,
     }),

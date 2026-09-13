@@ -27,6 +27,7 @@ const leistung = (
   fachName: 'Mathematik',
   fachKuerzel: 'M',
   fachschnitt: 9,
+  topics: null,
   system: 'punkte',
   termId: 'hj-1',
   halbjahrLabel: 'J1.1',
@@ -40,7 +41,7 @@ const tageSeitPhysik = -10;
 
 const upcoming: Upcoming = {
   upcoming: [
-    leistung('mathe-klausur', {}),
+    leistung('mathe-klausur', { topics: { total: 7, checked: 2 } }),
     leistung('englisch-test', {
       kind: 'test',
       datum: '2026-09-16',

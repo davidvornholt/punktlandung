@@ -1,0 +1,150 @@
+import type { ComponentProps } from 'react';
+import { createContext, useContext } from 'react';
+import type { Components } from 'react-markdown';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+type Node = {
+  readonly position?: { readonly start?: { readonly line?: number } };
+  readonly children?: ReadonlyArray<{
+    readonly tagName?: string;
+    readonly properties?: { readonly checked?: unknown };
+  }>;
+};
+
+/**
+ * Die Quelltextzeile, aus der remark ein Element gebaut hat. Sie ist der
+ * Schlüssel zum Umschalten: `toggleTaskLine` schreibt genau diese Zeile um.
+ * Das Kästchen selbst trägt keine Position — remark erzeugt es aus dem
+ * Listenpunkt —, deshalb reicht der Listenpunkt seine Zeile per Kontext
+ * hinunter.
+ */
+const sourceLine = (node: unknown): number | null => {
+  const line = (node as Node | undefined)?.position?.start?.line;
+  return typeof line === 'number' ? line : null;
+};
+
+const TaskLineContext = createContext<number | null>(null);
+
+/** Ob ein Listenpunkt ein abgehaktes Thema ist — sein erstes Kind ist das Kästchen. */
+const isCheckedTopic = (node: unknown): boolean => {
+  const first = (node as Node | undefined)?.children?.find(
+    (child) => child.tagName !== undefined,
+  );
+  return first?.tagName === 'input' && first.properties?.checked === true;
+};
+
+type WithNode<Tag extends keyof React.JSX.IntrinsicElements> =
+  ComponentProps<Tag> & { readonly node?: unknown };
+
+const headingClass = 'mt-6 mb-2 font-display text-ink tracking-tight';
+
+/**
+ * Gerenderte Vorbereitung ohne eigenes Stylesheet: die von remark erzeugten
+ * Elemente bekommen ihre Utilities hier, weil sie sonst nirgends Klassen
+ * tragen könnten.
+ */
+const typography = ({
+  onToggle,
+  pending,
+}: {
+  readonly onToggle: (line: number) => void;
+  readonly pending: boolean;
+}): Components => ({
+  h1: ({ node: _node, ...rest }: WithNode<'h1'>) => (
+    <h2 {...rest} className={`${headingClass} text-2xl`} />
+  ),
+  h2: ({ node: _node, ...rest }: WithNode<'h2'>) => (
+    <h3 {...rest} className={`${headingClass} text-xl`} />
+  ),
+  h3: ({ node: _node, ...rest }: WithNode<'h3'>) => (
+    <h4 {...rest} className={`${headingClass} text-lg`} />
+  ),
+  p: ({ node: _node, ...rest }: WithNode<'p'>) => (
+    <p {...rest} className="my-2 text-ink" />
+  ),
+  ul: ({ node: _node, className, ...rest }: WithNode<'ul'>) => (
+    <ul
+      {...rest}
+      className={`my-2 ${className?.includes('contains-task-list') ? '' : 'list-disc pl-6'}`}
+    />
+  ),
+  ol: ({ node: _node, ...rest }: WithNode<'ol'>) => (
+    <ol {...rest} className="my-2 list-decimal pl-6" />
+  ),
+  li: ({ node, className, children, ...rest }: WithNode<'li'>) =>
+    className?.includes('task-list-item') ? (
+      <li
+        {...rest}
+        className={`mt-1 flex items-baseline gap-2 ${isCheckedTopic(node) ? 'text-ink-muted' : 'text-ink'}`}
+      >
+        <TaskLineContext.Provider value={sourceLine(node)}>
+          {children}
+        </TaskLineContext.Provider>
+      </li>
+    ) : (
+      <li {...rest} className="mt-1 text-ink">
+        {children}
+      </li>
+    ),
+  a: ({ node: _node, ...rest }: WithNode<'a'>) => (
+    <a
+      {...rest}
+      className="underline underline-offset-4"
+      rel="noreferrer"
+      target="_blank"
+    />
+  ),
+  code: ({ node: _node, ...rest }: WithNode<'code'>) => (
+    <code {...rest} className="bg-surface-sunken px-1 text-[0.9em]" />
+  ),
+  pre: ({ node: _node, ...rest }: WithNode<'pre'>) => (
+    <pre {...rest} className="my-2 overflow-x-auto bg-surface-sunken p-3" />
+  ),
+  blockquote: ({ node: _node, ...rest }: WithNode<'blockquote'>) => (
+    <blockquote
+      {...rest}
+      className="my-2 border-border-strong border-l-2 pl-3 text-ink-muted"
+    />
+  ),
+  input: ({ node: _node, checked, type, ...rest }: WithNode<'input'>) => {
+    const line = useContext(TaskLineContext);
+    if (type !== 'checkbox' || line === null) {
+      return <input {...rest} checked={checked} type={type} />;
+    }
+    return (
+      <input
+        aria-label={checked ? 'Thema sicher' : 'Thema offen'}
+        checked={checked === true}
+        className="size-4 shrink-0 translate-y-0.5 accent-primary"
+        disabled={pending}
+        onChange={() => onToggle(line)}
+        type="checkbox"
+      />
+    );
+  },
+});
+
+/**
+ * Rendert die Vorbereitung. Rohes HTML rendert react-markdown nicht; die
+ * Aufgabenkästchen werden bedienbar: ein Klick schaltet die Quelltextzeile
+ * um, statt ein Formular zu öffnen. Überschriften rücken eine Stufe nach
+ * unten, weil die Seite selbst schon h1 und h2 vergibt.
+ */
+export const ThemenMarkdown = ({
+  markdown,
+  onToggle,
+  pending,
+}: {
+  readonly markdown: string;
+  /** Schaltet die Aufgabenzeile mit dieser 1-basierten Zeilennummer um. */
+  readonly onToggle: (line: number) => void;
+  readonly pending: boolean;
+}) => (
+  <Markdown
+    components={typography({ onToggle, pending })}
+    remarkPlugins={[remarkGfm]}
+  >
+    {markdown}
+  </Markdown>
+);

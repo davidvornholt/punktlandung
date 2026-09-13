@@ -17,6 +17,7 @@ const note: Leistung = {
   id: 'A',
   kind: 'klausur',
   notiz: null,
+  preparation: null,
   status: 'graded',
   wert: 2,
 };
@@ -45,6 +46,7 @@ const baseProps: RowProps = {
   note,
   onDelete: () => undefined,
   onEdit: () => undefined,
+  preparationLink: () => null,
   position: 1,
   savedError: null,
   system: 'sechser',

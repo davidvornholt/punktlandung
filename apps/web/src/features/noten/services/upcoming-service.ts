@@ -39,6 +39,7 @@ export const loadUpcoming = Effect.gen(function* () {
       wert: note.value === null ? null : Number(note.value),
       gewicht: Number(note.weight),
       datum: note.takenOn,
+      preparation: note.preparation,
     })),
     halbjahre,
     faecherBySchoolYear,

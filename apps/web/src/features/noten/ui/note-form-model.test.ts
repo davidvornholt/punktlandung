@@ -21,6 +21,7 @@ const blankValues: NoteFormValues = {
 const note: Leistung = {
   id: 'note-1',
   kind: 'gfs',
+  preparation: null,
   status: 'graded',
   wert: 2.5,
   gewicht: 1.5,

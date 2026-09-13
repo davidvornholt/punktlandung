@@ -50,6 +50,13 @@
       "when": 1789306734590,
       "tag": "0006_geplante_leistungen",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789307969283,
+      "tag": "0007_vorbereitung",
+      "breakpoints": true
     }
   ]
 }

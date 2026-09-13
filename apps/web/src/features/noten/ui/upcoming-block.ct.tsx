@@ -16,9 +16,14 @@ it('zeigt die Leistungen in der gelieferten Reihenfolge mit Termin und Schnitt',
   await expect(rows.nth(0)).toContainText('Mathematik');
   await expect(rows.nth(0)).toContainText('Klausur · 19.09.2026 · in 6 Tagen');
   await expect(rows.nth(0)).toContainText('Schnitt 9 P.');
+  await expect(rows.nth(0)).toContainText('2 von 7 Themen sicher');
   await expect(rows.nth(1)).toContainText('Test · 16.09.2026 · in 3 Tagen');
+  await expect(rows.nth(1)).toContainText('keine Themen');
   await expect(rows.nth(2)).toContainText('GFS · 13.09.2026 · heute');
   await expect(rows.nth(2)).toContainText('noch kein Schnitt');
+  await expect(
+    rows.nth(0).getByRole('link', { name: 'Klausur Mathematik am 19.09.2026' }),
+  ).toHaveAttribute('href', '/noten/mathe-klausur');
   await expect(block.getByText('fehlt noch')).toHaveCount(0);
 });
 
@@ -36,7 +41,7 @@ it('fragt nach der fehlenden Note einer verstrichenen Leistung', async ({
     nag.getByRole('link', {
       name: 'Note eintragen: Klausur Physik am 03.09.2026',
     }),
-  ).toHaveAttribute('href', '/noten');
+  ).toHaveAttribute('href', '/noten/physik-klausur');
 });
 
 it('erklärt ohne Termine, wie eine Leistung hierher kommt', async ({

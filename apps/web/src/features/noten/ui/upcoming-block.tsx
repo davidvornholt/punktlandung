@@ -8,6 +8,7 @@ import type {
   Upcoming,
   UpcomingLeistung,
 } from '../services/upcoming-calculation.ts';
+import { topicsText } from './preparation-text.ts';
 import {
   fachschnittText,
   overdueHeading,
@@ -15,14 +16,24 @@ import {
   upcomingLabel,
 } from './upcoming-text.ts';
 
+/**
+ * Eine bevorstehende Leistung. Der Fachname führt zur Leistung — dort liegt
+ * die Themenliste, deren Stand hier steht.
+ */
 const UpcomingRow = ({ leistung }: { readonly leistung: UpcomingLeistung }) => (
   <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
-    <span className="font-display text-ink text-xl tracking-tight">
+    <Link
+      aria-label={upcomingLabel(leistung)}
+      className="font-display text-ink text-xl tracking-tight underline decoration-border-strong underline-offset-4 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+      params={{ id: leistung.id }}
+      to="/noten/$id"
+    >
       {leistung.fachName}
-    </span>
+    </Link>
     <span className="text-ink-muted text-sm">{terminText(leistung)}</span>
-    <span className="ml-auto text-ink-faint text-sm">
-      {fachschnittText(leistung)}
+    <span className="ml-auto flex flex-wrap gap-x-3 text-ink-faint text-sm">
+      <span>{topicsText(leistung.topics)}</span>
+      <span>{fachschnittText(leistung)}</span>
     </span>
   </li>
 );
@@ -39,7 +50,8 @@ const OverdueRow = ({ leistung }: { readonly leistung: UpcomingLeistung }) => (
     <Link
       aria-label={`Note eintragen: ${upcomingLabel(leistung)}`}
       className="ml-auto text-ink text-sm underline underline-offset-4"
-      to="/noten"
+      params={{ id: leistung.id }}
+      to="/noten/$id"
     >
       Note eintragen
     </Link>
@@ -57,8 +69,8 @@ const UpcomingContent = ({ upcoming }: { readonly upcoming: Upcoming }) => {
           <Link className="underline underline-offset-4" to="/noten">
             Noten
           </Link>{' '}
-          ohne Note ein. Sie erscheint dann hier, nach Gewicht und Nähe
-          geordnet.
+          ohne Note ein. Sie erscheint dann hier, nach Gewicht, Nähe und offenen
+          Themen geordnet.
         </p>
       </div>
     );

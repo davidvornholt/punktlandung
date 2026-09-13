@@ -10,13 +10,21 @@ import {
   NoteInput,
   NotenQuery,
   NoteUpdate,
+  PreparationTemplateInput,
+  PreparationUpdate,
 } from '../schemas/note-schema.ts';
 import {
   createNote,
   deleteNote,
   listNoten,
+  loadLeistung,
   updateNote,
+  updatePreparation,
 } from '../services/noten-service.ts';
+import {
+  loadPreparationTemplates,
+  savePreparationTemplate,
+} from '../services/preparation-template-service.ts';
 import { loadTrend } from '../services/trend-service.ts';
 import { loadUpcoming } from '../services/upcoming-service.ts';
 
@@ -52,3 +60,22 @@ export const trendQueryOptions = queryOptions({
 export const upcomingFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
   .handler(() => runtime.runPromise(loadUpcoming));
+
+export const leistungFn = createServerFn({ method: 'GET' })
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(NoteId))
+  .handler(({ data }) => runtime.runPromise(loadLeistung(data.id)));
+
+export const updatePreparationFn = createServerFn({ method: 'POST' })
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(PreparationUpdate))
+  .handler(({ data }) => runtime.runPromise(updatePreparation(data)));
+
+export const preparationTemplatesFn = createServerFn({ method: 'GET' })
+  .middleware([sessionRequired])
+  .handler(() => runtime.runPromise(loadPreparationTemplates));
+
+export const savePreparationTemplateFn = createServerFn({ method: 'POST' })
+  .middleware([sessionRequired])
+  .inputValidator(Schema.standardSchemaV1(PreparationTemplateInput))
+  .handler(({ data }) => runtime.runPromise(savePreparationTemplate(data)));

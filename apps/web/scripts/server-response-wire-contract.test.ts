@@ -120,6 +120,7 @@ describe('server response wire contract', () => {
         'id',
         'kind',
         'notiz',
+        'preparation',
         'status',
         'wert',
       ]);
