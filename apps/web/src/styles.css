@@ -1,25 +1,33 @@
+/* biome-ignore lint/nursery/useLayeredStyles: The imported stylesheet declares its own cascade layers. */
 @import "tailwindcss";
+/* biome-ignore lint/nursery/useLayeredStyles: The imported stylesheet declares its own cascade layers. */
 @import "@punktlandung/ui/theme.css";
 
-@import "@fontsource/spectral/400.css";
-@import "@fontsource/spectral/500.css";
-@import "@fontsource/spectral/600.css";
-@import "@fontsource/spectral/700.css";
-@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource/spectral/400.css" layer(base);
+@import "@fontsource/spectral/500.css" layer(base);
+@import "@fontsource/spectral/600.css" layer(base);
+@import "@fontsource/spectral/700.css" layer(base);
+@import "@fontsource-variable/hanken-grotesk" layer(base);
 
-* {
-  box-sizing: border-box;
+@layer overrides {
+  * {
+    box-sizing: border-box;
+  }
 }
 
-html,
-body,
-#app {
-  min-height: 100%;
+@layer overrides {
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
 }
 
-body {
-  margin: 0;
-  background-color: var(--pl-background);
-  color: var(--pl-ink);
-  font-family: var(--font-sans);
+@layer overrides {
+  body {
+    margin: 0;
+    background-color: var(--pl-background);
+    color: var(--pl-ink);
+    font-family: var(--font-sans);
+  }
 }

@@ -1,12 +1,14 @@
+import type { MountResult } from '@playwright/experimental-ct-react';
 import { expect, test as it } from '@playwright/experimental-ct-react';
-import type * as playwright from '@playwright/test';
 
 import { HalbjahreManagementStory } from './halbjahre-management.ct-story.tsx';
 
-const rowNamed = (component: playwright.Locator, name: string) =>
+type ComponentLocator = ReturnType<MountResult['getByRole']>;
+
+const rowNamed = (component: ComponentLocator, name: string) =>
   component.getByRole('listitem').filter({ hasText: name });
 
-const startDeletion = async (row: playwright.Locator) => {
+const startDeletion = async (row: ComponentLocator) => {
   await row.getByRole('button', { name: 'Löschen' }).click();
   await row.getByRole('button', { name: 'Wirklich löschen' }).click();
   await expect(
@@ -14,7 +16,7 @@ const startDeletion = async (row: playwright.Locator) => {
   ).toBeDisabled();
 };
 
-const completeDeletion = (component: playwright.Locator) =>
+const completeDeletion = (component: ComponentLocator) =>
   component.getByTestId('complete-deletion').dispatchEvent('click');
 
 it('closes a same-row editor before restoring deletion focus', async ({

@@ -1,12 +1,14 @@
+import type { MountResult } from '@playwright/experimental-ct-react';
 import { expect, test as it } from '@playwright/experimental-ct-react';
-import type * as playwright from '@playwright/test';
 
 import { HalbjahreManagementStory } from './halbjahre-management.ct-story.tsx';
 
-const rowNamed = (component: playwright.Locator, name: string) =>
+type ComponentLocator = ReturnType<MountResult['getByRole']>;
+
+const rowNamed = (component: ComponentLocator, name: string) =>
   component.getByRole('listitem').filter({ hasText: name });
 
-const confirmDeletion = async (row: playwright.Locator) => {
+const confirmDeletion = async (row: ComponentLocator) => {
   await row.getByRole('button', { name: 'Löschen' }).click();
   await expect(row).toContainText('Das leere Halbjahr wird entfernt.');
   await row.getByRole('button', { name: 'Wirklich löschen' }).click();
@@ -15,7 +17,7 @@ const confirmDeletion = async (row: playwright.Locator) => {
   ).toBeDisabled();
 };
 
-const completeDeletion = (component: playwright.Locator) =>
+const completeDeletion = (component: ComponentLocator) =>
   component.getByTestId('complete-deletion').dispatchEvent('click');
 
 it('confirms twice, disables natively, removes and reorders, then announces success', async ({

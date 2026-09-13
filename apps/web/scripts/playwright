@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Both Playwright packages expose the same binary name; a11y uses @playwright/test.
+workspace_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+exec bun "$workspace_dir/node_modules/@playwright/test/cli.js" "$@"

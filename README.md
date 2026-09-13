@@ -1,35 +1,25 @@
 # Punktlandung
 
-> Built on [davidvornholt/standards](https://github.com/davidvornholt/standards).
+Persönlicher Notenüberblick für ein Gymnasium in Baden-Württemberg. Zugang erhält ein freigeschaltetes GitHub-Konto.
 
-Persönlicher Notenüberblick für ein Gymnasium in Baden-Württemberg — ein Zeugnisheft, das erwachsen geworden ist. Noten je Halbjahr erfassen (Sechsersystem 1–6 oder Kursstufen-Notenpunkte 0–15), gewichtete Fachschnitte und die Verlaufslinie verfolgen, die Zeugnisvorschau samt nicht bindender Jahresvorschau und Grenzfällen im Blick behalten, Lerntage zählen. Bewusst Single-User: Anmeldung nur über ein freigeschaltetes GitHub-Konto.
+## Entwicklung
 
-## Stack
-
-- Bun + Turborepo-Monorepo, TypeScript strict, Biome maximal streng
-- TanStack Start (React, dateibasierte Routen) mit TanStack Query
-- Effect für Anwendungslogik und Validierung (effect/Schema), Drizzle auf PostgreSQL über `@effect/sql-drizzle`
-- Better Auth (GitHub-only, Allowlist), Tailwind v4 mit semantischen Tokens aus `packages/ui` (Designsystem siehe `DESIGN.md`)
-- Playwright + Axe (WCAG 2.2 AA) über `@davidvornholt/a11y-testing`
-
-## Monorepo-Layout
-
-| Pfad | Inhalt |
-| --- | --- |
-| `apps/web` | Die App: Routen (Entrypoints), Features (`faecher`, `halbjahre`, `noten`, `zeugnis`, `lernen`), geteilte Infrastruktur unter `src/shared` |
-| `packages/ui` | Theme-Tokens (`theme.css`) — einzige Quelle aller Designwerte |
-| `packages/a11y-testing` | Kanonisches Axe/Playwright-Werkzeug (synced, nicht lokal ändern) |
-| `packages/typescript-config` | Kanonische tsconfig-Basis (synced, nicht lokal ändern) |
-
-## Qualitäts-Gates
+Die Bun-Version steht in `package.json`. Von der Repo-Wurzel aus:
 
 ```sh
-bun run check       # standards check + turbo lint, check-types, test, build, test:a11y
-bun run check:fix   # dito, mit Auto-Fixes
+bun install
+bun run --filter @punktlandung/web db:up
+just dev-env-generate
+bun run --filter @punktlandung/web db:migrate
+bun run dev
 ```
 
-Details und Umgebungswerte: `apps/web/README.md`. Entwicklungs-Datenbank: `bun run --filter @punktlandung/web db:up` aus der Repo-Wurzel.
+Öffentliche Entwicklungswerte stehen in `config/dev.yaml`, Secrets in `secrets/dev.yaml` mit Beispielen in `secrets/dev.example.yaml`. Maschinenlokale Überschreibungen gehören in `config/dev.local.yaml`; `just dev-env-generate` erzeugt daraus die `.env.local`-Dateien.
+
+Die GitHub-OAuth-App benötigt den Callback `http://localhost:3000/api/auth/callback/github`. Der erlaubte Account wird über seine numerische ID konfiguriert.
+
+`bun run check:fix` führt die Qualitätsprüfungen aus. Die Datenbanktests benötigen PostgreSQL und einen Benutzer mit `CREATE DATABASE`; sie erstellen und entfernen temporäre Datenbanken. Die Browserprüfungen decken derzeit die nicht angemeldete Oberfläche ab.
 
 ## Deployment
 
-Das Root-`Dockerfile` baut ein Bun-Alpine-Image (Multi-Stage, Non-Root, Healthcheck gegen `/api/healthz`), das nur den Build-Output und Produktionsabhängigkeiten enthält. Das Image läuft auf `prod-1` hinter Caddy; öffentlicher Host ist `punktlandung.vornholt.online` (Caddy terminiert TLS und proxied auf Port 3000). Produktions-Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `GITHUB_CLIENT_SECRET`) und öffentliche Laufzeitkonfiguration (`BETTER_AUTH_URL`, `GITHUB_CLIENT_ID`, `GITHUB_ALLOWED_ACCOUNT_ID`) kommen aus der Host-Konfiguration im Repository `personal-infra`.
+[personal-infra](https://github.com/davidvornholt/personal-infra) betreibt `https://punktlandung.vornholt.online` und verwaltet Produktionskonfiguration und Secrets.
