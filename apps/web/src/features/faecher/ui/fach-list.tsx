@@ -1,6 +1,8 @@
+import { Archive, Pencil } from 'lucide-react';
+
 import { gewichtungsZeile } from '#/shared/noten/gewichtung-text.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
-import { quietButtonClass } from '#/shared/ui/form-classes.ts';
+import { IconButton } from '#/shared/ui/icon-button.tsx';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { Fach } from '../services/fach-service.ts';
@@ -32,22 +34,23 @@ const FachRow = ({
     <p className="mt-1 text-ink-muted text-sm">
       {gewichtungsZeile(fach.gewichtung)}
     </p>
-    <div className="mt-2 flex gap-3">
-      <button
-        className={quietButtonClass}
+    <div className="mt-2 flex gap-1">
+      <IconButton
+        icon={Pencil}
+        label={`Bearbeiten: ${fach.name}`}
         onClick={(event) => onEdit(event.currentTarget)}
-        type="button"
-      >
-        Bearbeiten
-      </button>
-      <button
-        className={quietButtonClass}
+      />
+      <IconButton
         disabled={isArchiveRunning}
+        icon={Archive}
+        label={
+          isArchiving
+            ? `${fach.name} wird archiviert …`
+            : `Archivieren: ${fach.name}`
+        }
         onClick={onArchive}
-        type="button"
-      >
-        {isArchiving ? 'Wird archiviert …' : 'Archivieren'}
-      </button>
+        pending={isArchiving}
+      />
     </div>
     {archiveError === null ? null : (
       <p

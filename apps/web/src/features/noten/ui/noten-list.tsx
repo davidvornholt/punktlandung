@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { ListChecks } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { notenKey } from '#/shared/query/query-keys.ts';
-import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
+import { iconButtonClass, iconSize, iconStroke } from '#/shared/ui/icon.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import type { Leistung } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
@@ -39,11 +40,12 @@ type FachList = ReadonlyArray<{
 const preparationLink: PreparationLinkRenderer = (note, label) => (
   <Link
     aria-label={`Vorbereitung: ${label}`}
-    className={`${quietButtonClass} ml-auto`}
+    className={iconButtonClass}
     params={{ id: note.id }}
+    title={`Vorbereitung: ${label}`}
     to="/noten/$id"
   >
-    Vorbereitung
+    <ListChecks aria-hidden={true} size={iconSize} strokeWidth={iconStroke} />
   </Link>
 );
 

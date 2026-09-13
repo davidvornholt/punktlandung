@@ -15,8 +15,8 @@ export type StudyRecency = {
 };
 
 /**
- * „noch nicht dafür gelernt", „heute gelernt · 3 von 7 Tagen",
- * „zuletzt vor 4 Tagen gelernt · 1 von 7 Tagen". Nur Tage, nie Zeit — die
+ * „noch nicht dafür gelernt", „heute gelernt · an 3 der letzten 7 Tage",
+ * „zuletzt vor 4 Tagen · an 1 der letzten 7 Tage". Nur Tage, nie Zeit — die
  * Zeit misst das Zeiterfassungswerkzeug. Hier, weil Übersicht und
  * Leistungsseite denselben Satz zeigen.
  */
@@ -24,13 +24,13 @@ export const studyRecencyText = (lernen: StudyRecency): string => {
   if (lernen.daysAgo === null) {
     return 'noch nicht dafür gelernt';
   }
-  const week = `${lernen.inLastWeek} von ${weekLength} Tagen`;
+  const week = `an ${lernen.inLastWeek} der letzten ${weekLength} Tage`;
   if (lernen.daysAgo === 0) {
     return `heute gelernt · ${week}`;
   }
   return lernen.daysAgo === 1
-    ? `zuletzt gestern gelernt · ${week}`
-    : `zuletzt vor ${lernen.daysAgo} Tagen gelernt · ${week}`;
+    ? `zuletzt gestern · ${week}`
+    : `zuletzt vor ${lernen.daysAgo} Tagen · ${week}`;
 };
 
 export const studyRecency = (

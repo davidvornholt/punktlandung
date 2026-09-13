@@ -23,7 +23,7 @@ it('lässt den Knopf ruhen, wenn heute schon dafür gelernt wurde', async ({
   const component = await mount(<LearnedForLeistungStory scenario="heute" />);
 
   await expect(
-    component.getByText('heute gelernt · 3 von 7 Tagen'),
+    component.getByText('heute gelernt · an 3 der letzten 7 Tage'),
   ).toBeVisible();
   await expect(
     component.getByRole('button', { name: 'Heute dafür gelernt' }),

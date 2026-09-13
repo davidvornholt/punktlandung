@@ -73,7 +73,8 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     );
 
     expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(2);
-    expect(pendingMarkup.match(/Wird archiviert …/gu)).toHaveLength(1);
+    expect(pendingMarkup.match(/aria-busy="true"/gu)).toHaveLength(1);
+    expect(pendingMarkup).toContain('A wird archiviert …');
 
     delay.reject(new Error('A ist fehlgeschlagen'));
     const error = await runFromA;
@@ -119,7 +120,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
     expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(
       lockedNoteButtons,
     );
-    expect(pendingMarkup.match(/>Wird gelöscht …</gu)).toHaveLength(1);
+    expect(pendingMarkup.match(/aria-busy="true"/gu)).toHaveLength(1);
 
     delay.reject(new Error('A ist fehlgeschlagen'));
     const error = await runFromA;

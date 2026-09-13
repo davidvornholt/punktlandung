@@ -28,13 +28,13 @@ describe('studyRecencyText', () => {
       'noch nicht dafür gelernt',
     );
     expect(studyRecencyText({ daysAgo: 0, inLastWeek: 3 })).toBe(
-      'heute gelernt · 3 von 7 Tagen',
+      'heute gelernt · an 3 der letzten 7 Tage',
     );
     expect(studyRecencyText({ daysAgo: 1, inLastWeek: 1 })).toBe(
-      'zuletzt gestern gelernt · 1 von 7 Tagen',
+      'zuletzt gestern · an 1 der letzten 7 Tage',
     );
     expect(studyRecencyText({ daysAgo: 4, inLastWeek: 1 })).toBe(
-      'zuletzt vor 4 Tagen gelernt · 1 von 7 Tagen',
+      'zuletzt vor 4 Tagen · an 1 der letzten 7 Tage',
     );
   });
 });

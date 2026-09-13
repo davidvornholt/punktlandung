@@ -18,7 +18,7 @@ it('zeigt die Leistungen in der gelieferten Reihenfolge mit Termin und Schnitt',
   await expect(rows.nth(0)).toContainText('Schnitt 9 P.');
   await expect(rows.nth(0)).toContainText('2 von 7 Themen sicher');
   await expect(rows.nth(0)).toContainText(
-    'zuletzt vor 4 Tagen gelernt · 1 von 7 Tagen',
+    'zuletzt vor 4 Tagen · an 1 der letzten 7 Tage',
   );
   await expect(rows.nth(1)).toContainText('noch nicht dafür gelernt');
   await expect(rows.nth(1)).toContainText('Test · 16.09.2026 · in 3 Tagen');

@@ -1,3 +1,4 @@
+import { Pencil, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import {
@@ -8,7 +9,7 @@ import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { bereichDerLeistungsart, isPlanbar } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
-import { quietButtonClass } from '#/shared/ui/form-classes.ts';
+import { IconButton } from '#/shared/ui/icon-button.tsx';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { Leistung } from '../services/noten-service.ts';
@@ -128,7 +129,6 @@ export const NoteRow = ({
   const updateError = isEditing ? null : savedError;
   const label = noteLabel(note, system, position);
   const formId = `notenformular-${note.id}`;
-  const deleteText = rowState.pending ? 'Wird gelöscht …' : 'Löschen';
   /*
    * Der laufende Vorgang gehört in einen ganzen Satz: „Wird gelöscht …“ vor
    * einem Doppelpunkt und der Notenbeschreibung ergibt kein Deutsch.
@@ -143,37 +143,34 @@ export const NoteRow = ({
        * Nur Leistungen mit Termin haben eine Vorbereitung; der Verweis führt
        * auf ihre Seite, wo Themenliste und Notenformular zusammenstehen.
        */}
-      {isPlanbar(note.kind) ? preparationLink(note, label) : null}
-      <button
-        aria-controls={isEditing ? formId : undefined}
-        aria-expanded={isEditing}
-        aria-label={`Bearbeiten: ${label}`}
-        className={`${quietButtonClass} ${isPlanbar(note.kind) ? '' : 'ml-auto'}`}
-        /*
-         * Während ein Vorgang der Zeile läuft, führt der Knopf ins Leere: das
-         * Schließen bräche das laufende Speichern nicht ab, die Änderung landete
-         * trotzdem, und das Öffnen einer gerade gelöschten Zeile führte in ein
-         * Formular für eine Note, die es gleich nicht mehr gibt.
-         */
-        disabled={rowState.disabled || (isEditing && editPending)}
-        onClick={(event) =>
-          onEdit(isEditing ? null : note, event.currentTarget)
-        }
-        type="button"
-      >
-        Bearbeiten
-      </button>
-      {isEditing ? null : (
-        <button
-          aria-label={deleteLabel}
-          className={quietButtonClass}
-          disabled={rowState.disabled}
-          onClick={() => onDelete(note.id)}
-          type="button"
-        >
-          {deleteText}
-        </button>
-      )}
+      <span className="ml-auto flex items-center gap-1 self-center">
+        {isPlanbar(note.kind) ? preparationLink(note, label) : null}
+        <IconButton
+          aria-controls={isEditing ? formId : undefined}
+          aria-expanded={isEditing}
+          /*
+           * Während ein Vorgang der Zeile läuft, führt der Knopf ins Leere: das
+           * Schließen bräche das laufende Speichern nicht ab, die Änderung
+           * landete trotzdem, und das Öffnen einer gerade gelöschten Zeile
+           * führte in ein Formular für eine Note, die es gleich nicht mehr gibt.
+           */
+          disabled={rowState.disabled || (isEditing && editPending)}
+          icon={Pencil}
+          label={`Bearbeiten: ${label}`}
+          onClick={(event) =>
+            onEdit(isEditing ? null : note, event.currentTarget)
+          }
+        />
+        {isEditing ? null : (
+          <IconButton
+            disabled={rowState.disabled}
+            icon={Trash2}
+            label={deleteLabel}
+            onClick={() => onDelete(note.id)}
+            pending={rowState.pending}
+          />
+        )}
+      </span>
       {isEditing ? (
         <div className="mt-2 basis-full" id={formId}>
           {form}
