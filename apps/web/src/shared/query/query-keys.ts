@@ -16,6 +16,9 @@ export const notenKey = (halbjahrId: string) =>
 
 export const trendKey = ['trend'] as const;
 
+/** Die ausstehenden Leistungen der Übersicht, über alle Halbjahre. */
+export const upcomingKey = ['upcoming'] as const;
+
 /**
  * Die Zeugnisvorschau eines Halbjahrs enthält die Jahresvorschau, die aus den
  * Noten beider Halbjahre des Schuljahrs entsteht. Eine geänderte Note veraltet

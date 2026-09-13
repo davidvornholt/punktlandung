@@ -2,10 +2,10 @@ import { describe, expect, it } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
 
-const note: NoteWithFach = {
+const note: Leistung = {
   datum: '2026-02-11',
   fachId: 'latein',
   fachKuerzel: 'L',
@@ -15,6 +15,7 @@ const note: NoteWithFach = {
   id: 'note-1',
   kind: 'klausur',
   notiz: null,
+  status: 'graded',
   wert: 2,
 };
 
@@ -30,11 +31,7 @@ type FachList = ReadonlyArray<{
 }>;
 
 /** Die Bearbeitungsrolle: das Datum stammt aus der Note, nicht aus einer Vorgabe. */
-const editMarkup = (
-  faecher: FachList,
-  own: NoteWithFach = note,
-  pending = false,
-) =>
+const editMarkup = (faecher: FachList, own: Leistung = note, pending = false) =>
   renderToStaticMarkup(
     <NoteForm
       error={null}
@@ -158,6 +155,24 @@ describe('NoteForm', () => {
 
     expect(rendered).toContain('value="2026-03-05"');
     expect(rendered).toContain('value="1.5"');
+  });
+
+  it('verlangt den Wert nur für Arten ohne Termin', () => {
+    const wertField = (rendered: string) => {
+      const end = rendered.indexOf('name="wert"');
+      return rendered.slice(rendered.lastIndexOf('<input', end), end);
+    };
+    const klausur = editMarkup([{ id: 'latein', name: 'Latein' }]);
+    const muendlich = editMarkup([{ id: 'latein', name: 'Latein' }], {
+      ...note,
+      kind: 'muendlich',
+    });
+
+    expect(wertField(klausur)).not.toContain('required');
+    expect(wertField(klausur)).toContain('placeholder="offen"');
+    expect(klausur).toContain('als ausstehend eingetragen');
+    expect(wertField(muendlich)).toContain('required');
+    expect(muendlich).not.toContain('als ausstehend eingetragen');
   });
 
   it('lässt Speichern und Abbrechen beim Bearbeiten nebeneinander stehen', () => {

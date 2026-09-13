@@ -1,5 +1,5 @@
 import type { NotenFields } from '../schemas/note-schema.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 
 /** Rohe Formulareingaben, so wie sie aus den Feldern kommen. */
 export type NoteFormValues = Readonly<Record<keyof NotenFields, string>>;
@@ -16,11 +16,11 @@ export const emptyNoteFormValues = (defaultDate: string): NoteFormValues => ({
   notiz: '',
 });
 
-/** Vorbelegung beim Bearbeiten: die gespeicherten Werte der Note. */
-export const noteFormValues = (note: NoteWithFach): NoteFormValues => ({
+/** Vorbelegung beim Bearbeiten: die gespeicherten Werte der Leistung. */
+export const noteFormValues = (note: Leistung): NoteFormValues => ({
   subjectId: note.fachId,
   kind: note.kind,
-  wert: `${note.wert}`,
+  wert: note.status === 'graded' ? `${note.wert}` : '',
   gewicht: `${note.gewicht}`,
   datum: note.datum,
   notiz: note.notiz ?? '',
@@ -28,12 +28,13 @@ export const noteFormValues = (note: NoteWithFach): NoteFormValues => ({
 
 /**
  * Übersetzt die Formulareingaben in Notenfelder: Dezimalkomma zählt wie Punkt,
- * ein leeres Gewicht bedeutet einfache Wertung.
+ * ein leeres Gewicht bedeutet einfache Wertung, ein leerer Wert eine noch
+ * ausstehende Leistung.
  */
 export const noteFieldsFromValues = (values: NoteFormValues): NotenFields => ({
   subjectId: values.subjectId.trim(),
   kind: values.kind.trim() as NotenFields['kind'],
-  wert: toNumber(values.wert.trim()),
+  wert: values.wert.trim() === '' ? null : toNumber(values.wert.trim()),
   gewicht: values.gewicht.trim() === '' ? 1 : toNumber(values.gewicht.trim()),
   datum: values.datum.trim(),
   notiz: values.notiz.trim() === '' ? null : values.notiz.trim(),

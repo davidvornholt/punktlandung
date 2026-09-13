@@ -4,10 +4,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import { NoteRow } from './note-row.tsx';
 
-const note: NoteWithFach = {
+const note: Leistung = {
   datum: '2026-01-01',
   fachId: 'mathematik',
   fachKuerzel: 'M',
@@ -17,6 +17,7 @@ const note: NoteWithFach = {
   id: 'A',
   kind: 'klausur',
   notiz: null,
+  status: 'graded',
   wert: 2,
 };
 
@@ -94,6 +95,20 @@ describe('NoteRow', () => {
     expect(row({ editPending: false, isEditing: true })).not.toContain(
       'disabled=""',
     );
+  });
+
+  it('zeigt eine ausstehende Leistung ohne Wert und benennt sie nach ihrem Termin', () => {
+    const { wert: _wert, ...rest } = note;
+    const markup = row({
+      note: { ...rest, status: 'planned', datum: '2026-10-01' },
+      position: 3,
+    });
+
+    expect(markup).toContain('>ausstehend<');
+    expect(markup).toContain(
+      'aria-label="Bearbeiten: Ausstehende Klausur am 01.10.2026, Eintrag 3"',
+    );
+    expect(markup).not.toContain('Note 2');
   });
 
   it('meldet einen Änderungsfehler nur in der wieder geschlossenen Zeile', () => {

@@ -11,7 +11,7 @@ import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 
 const formatDisplayDate = (iso: string): string => {
   const [year, month, day] = iso.split('-');
@@ -19,18 +19,20 @@ const formatDisplayDate = (iso: string): string => {
 };
 
 /**
- * Benennt die Note, auf die eine Zeilenaktion wirkt. Eine Fachkarte trägt
+ * Benennt die Leistung, auf die eine Zeilenaktion wirkt. Eine Fachkarte trägt
  * viele Zeilen, deren Knöpfe sonst alle gleich heißen — und einer davon
  * löscht. Wert, Art und Datum allein reichen dafür nicht: zwei Klausuren
  * desselben Tages mit derselben Note sind darin nicht zu unterscheiden, also
  * benennt die Zeilennummer der Fachkarte jede Zeile eindeutig.
  */
 const noteLabel = (
-  note: NoteWithFach,
+  note: Leistung,
   system: Notensystem,
   position: number,
 ): string =>
-  `Note ${formatNote(note.wert, system)}, ${leistungsartLabel[note.kind]} vom ${formatDisplayDate(note.datum)}, Eintrag ${position}`;
+  note.status === 'graded'
+    ? `Note ${formatNote(note.wert, system)}, ${leistungsartLabel[note.kind]} vom ${formatDisplayDate(note.datum)}, Eintrag ${position}`
+    : `Ausstehende ${leistungsartLabel[note.kind]} am ${formatDisplayDate(note.datum)}, Eintrag ${position}`;
 
 /** Ein Fehler, der genau zu dieser Zeile gehört. */
 const RowError = ({
@@ -65,12 +67,9 @@ export const NoteRow = ({
   readonly editPending: boolean;
   readonly form: ReactNode;
   readonly isEditing: boolean;
-  readonly note: NoteWithFach;
+  readonly note: Leistung;
   readonly onDelete: (id: string) => void;
-  readonly onEdit: (
-    note: NoteWithFach | null,
-    trigger: HTMLButtonElement,
-  ) => void;
+  readonly onEdit: (note: Leistung | null, trigger: HTMLButtonElement) => void;
   readonly position: number;
   readonly savedError: unknown;
   readonly system: Notensystem;
@@ -95,9 +94,13 @@ export const NoteRow = ({
     : `Löschen: ${label}`;
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
-      <span className="font-display text-ink text-lg">
-        {formatNote(note.wert, system)}
-      </span>
+      {note.status === 'graded' ? (
+        <span className="font-display text-ink text-lg">
+          {formatNote(note.wert, system)}
+        </span>
+      ) : (
+        <span className="font-display text-ink-faint text-lg">ausstehend</span>
+      )}
       <span className="text-ink-muted text-sm">
         {leistungsartLabel[note.kind]}
         {note.gewichtung.verhaeltnis === null

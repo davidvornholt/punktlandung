@@ -120,6 +120,7 @@ describe('server response wire contract', () => {
         'id',
         'kind',
         'notiz',
+        'status',
         'wert',
       ]);
       expect(keys(note.gewichtung)).toEqual(['arten', 'verhaeltnis']);

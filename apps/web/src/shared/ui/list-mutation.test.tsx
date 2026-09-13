@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Fach } from '#/features/faecher/services/fach-service.ts';
 import { FachList } from '#/features/faecher/ui/fach-list.tsx';
-import type { NoteWithFach } from '#/features/noten/services/noten-service.ts';
+import type { Leistung } from '#/features/noten/services/noten-service.ts';
 import { NotenCards } from '#/features/noten/ui/noten-cards.tsx';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { ListMutation } from './list-mutation.ts';
@@ -23,7 +23,7 @@ const fach = (id: string): Fach => ({
   sortOrder: id === 'A' ? 0 : 1,
 });
 
-const note = (id: string): NoteWithFach => ({
+const note = (id: string): Leistung => ({
   datum: id === 'A' ? '2026-01-01' : '2026-01-02',
   fachId: 'mathematik',
   fachKuerzel: 'M',
@@ -33,6 +33,7 @@ const note = (id: string): NoteWithFach => ({
   id,
   kind: 'klausur',
   notiz: `Ziel ${id}`,
+  status: 'graded',
   wert: 2,
 });
 

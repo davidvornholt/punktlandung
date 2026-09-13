@@ -1,7 +1,9 @@
 import type { RefObject } from 'react';
+import { useState } from 'react';
 
 import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
-import type { Notensystem } from '#/shared/noten/notenwert.ts';
+import type { Leistungsart, Notensystem } from '#/shared/noten/notenwert.ts';
+import { isPlanbar } from '#/shared/noten/notenwert.ts';
 import {
   inputClass,
   labelClass,
@@ -10,7 +12,7 @@ import {
 } from '#/shared/ui/form-classes.ts';
 import type { NotenFields } from '../schemas/note-schema.ts';
 import { notenLimits } from '../schemas/note-schema.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import type { NoteFormValues } from './note-form-model.ts';
 import {
   emptyNoteFormValues,
@@ -42,7 +44,7 @@ type FachOptions = ReadonlyArray<{
  * Auswahlfeld auf das erste Fach zurück und das Speichern verschöbe die Note
  * stillschweigend in ein fremdes Fach.
  */
-const fachOptions = (faecher: FachOptions, note: NoteWithFach | null) =>
+const fachOptions = (faecher: FachOptions, note: Leistung | null) =>
   note === null || faecher.some((fach) => fach.id === note.fachId)
     ? faecher
     : [...faecher, { id: note.fachId, name: `${note.fachName} (archiviert)` }];
@@ -54,7 +56,7 @@ const FachField = ({
   selected,
 }: {
   readonly faecher: FachOptions;
-  readonly note: NoteWithFach | null;
+  readonly note: Leistung | null;
   readonly selected: string;
 }) => (
   <label className={labelClass}>
@@ -79,6 +81,52 @@ const FachField = ({
       ))}
     </select>
   </label>
+);
+
+/**
+ * Das Wertfeld. Bei planbaren Arten darf es leer bleiben — dann steht die
+ * Leistung aus und der Platzhalter sagt das.
+ */
+const WertField = ({
+  planbar,
+  usesNotenpunkte,
+  value,
+}: {
+  readonly planbar: boolean;
+  readonly usesNotenpunkte: boolean;
+  readonly value: string;
+}) => (
+  <label className={labelClass}>
+    {usesNotenpunkte ? 'Punkte' : 'Note'}
+    <input
+      className={inputClass}
+      defaultValue={value}
+      inputMode="decimal"
+      max={
+        usesNotenpunkte ? notenLimits.maxNotenpunkte : notenLimits.sechserMax
+      }
+      min={usesNotenpunkte ? 0 : notenLimits.sechserMin}
+      name="wert"
+      placeholder={planbar ? 'offen' : undefined}
+      required={!planbar}
+      step={usesNotenpunkte ? 1 : notenLimits.gewichtungStep}
+      type="number"
+    />
+  </label>
+);
+
+const AusstehendHint = ({
+  kind,
+  usesNotenpunkte,
+}: {
+  readonly kind: Leistungsart;
+  readonly usesNotenpunkte: boolean;
+}) => (
+  <p className="mt-2 text-ink-muted text-sm">
+    Ohne {usesNotenpunkte ? 'Punkte' : 'Note'} wird die{' '}
+    {leistungsartLabel[kind]} als ausstehend eingetragen — mit dem angekündigten
+    Termin als Datum.
+  </p>
 );
 
 type NoteFormShared = {
@@ -106,7 +154,7 @@ type NoteFormProps =
       readonly defaultDate: string;
     })
   | (NoteFormShared & {
-      readonly note: NoteWithFach;
+      readonly note: Leistung;
       readonly onCancel: () => void;
     });
 
@@ -124,6 +172,14 @@ export const NoteForm = (props: NoteFormProps) => {
       : noteFormValues(props.note);
   const isEdit = note !== null;
   const usesNotenpunkte = halbjahr.system === 'punkte';
+  /*
+   * Die Art bestimmt, ob der Wert fehlen darf: nur Klausur, Test und GFS
+   * haben einen Termin und können ausstehen. Das Feld bleibt sonst
+   * unkontrolliert; `onReset` holt die Art nach dem Zurücksetzen des
+   * Schnelleintrags wieder auf die Vorbelegung.
+   */
+  const [kind, setKind] = useState<Leistungsart>(values.kind as Leistungsart);
+  const planbar = isPlanbar(kind);
   const buttonText = pending
     ? `Note wird ${isEdit ? 'gespeichert' : 'eingetragen'} …`
     : `Note ${isEdit ? 'speichern' : 'eintragen'}`;
@@ -132,6 +188,7 @@ export const NoteForm = (props: NoteFormProps) => {
     <form
       aria-label={isEdit ? 'Note bearbeiten' : 'Note eintragen'}
       className="border border-border bg-surface p-4 shadow-card"
+      onReset={() => setKind(values.kind as Leistungsart)}
       onSubmit={(event) => {
         event.preventDefault();
         onSave(readValues(event.currentTarget));
@@ -143,7 +200,12 @@ export const NoteForm = (props: NoteFormProps) => {
         <FachField faecher={faecher} note={note} selected={values.subjectId} />
         <label className={labelClass}>
           Art
-          <select className={inputClass} defaultValue={values.kind} name="kind">
+          <select
+            className={inputClass}
+            name="kind"
+            onChange={(event) => setKind(event.target.value as Leistungsart)}
+            value={kind}
+          >
             {Object.entries(leistungsartLabel).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -151,24 +213,11 @@ export const NoteForm = (props: NoteFormProps) => {
             ))}
           </select>
         </label>
-        <label className={labelClass}>
-          {usesNotenpunkte ? 'Punkte' : 'Note'}
-          <input
-            className={inputClass}
-            defaultValue={values.wert}
-            inputMode="decimal"
-            max={
-              usesNotenpunkte
-                ? notenLimits.maxNotenpunkte
-                : notenLimits.sechserMax
-            }
-            min={usesNotenpunkte ? 0 : notenLimits.sechserMin}
-            name="wert"
-            required={true}
-            step={usesNotenpunkte ? 1 : notenLimits.gewichtungStep}
-            type="number"
-          />
-        </label>
+        <WertField
+          planbar={planbar}
+          usesNotenpunkte={usesNotenpunkte}
+          value={values.wert}
+        />
         <label className={labelClass}>
           Datum
           <input
@@ -206,6 +255,9 @@ export const NoteForm = (props: NoteFormProps) => {
           )}
         </div>
       </div>
+      {planbar ? (
+        <AusstehendHint kind={kind} usesNotenpunkte={usesNotenpunkte} />
+      ) : null}
       <details className="mt-3" open={isEdit}>
         <summary className="cursor-pointer text-ink-muted text-sm">
           Gewicht und Notiz

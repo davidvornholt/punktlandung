@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'bun:test';
 
-import { berlinCalendarDate, formatIsoDate } from './calendar-date.ts';
+import {
+  berlinCalendarDate,
+  daysBetween,
+  formatIsoDate,
+} from './calendar-date.ts';
+
+describe('daysBetween', () => {
+  it('zählt Kalendertage vorwärts und rückwärts', () => {
+    expect(daysBetween('2026-09-13', '2026-09-19')).toBe(6);
+    expect(daysBetween('2026-09-13', '2026-09-13')).toBe(0);
+    expect(daysBetween('2026-09-13', '2026-09-03')).toBe(-10);
+  });
+
+  it('lässt sich vom Sommerzeitwechsel nicht um einen Tag verschieben', () => {
+    expect(daysBetween('2026-03-28', '2026-03-30')).toBe(2);
+    expect(daysBetween('2026-10-24', '2026-10-26')).toBe(2);
+  });
+});
 
 describe('berlinCalendarDate', () => {
   it('wechselt den Tag an der Berliner Mitternacht statt an UTC', () => {

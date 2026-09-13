@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import { NotenList } from './noten-list.tsx';
 import type { NotenOperations } from './noten-operations.ts';
 
@@ -32,7 +32,7 @@ const faecher = [
  * Führte die Attrappe das nicht nach, bliebe eine Note beim Fachwechsel
  * scheinbar stehen, wo sie war.
  */
-const mitFach = (entry: NoteWithFach, subjectId: string): NoteWithFach => {
+const mitFach = (entry: Leistung, subjectId: string): Leistung => {
   const fach = faecher.find((candidate) => candidate.id === subjectId);
   return fach === undefined
     ? entry
@@ -44,7 +44,7 @@ const mitFach = (entry: NoteWithFach, subjectId: string): NoteWithFach => {
       };
 };
 
-const note = (id: string, wert: number, datum: string): NoteWithFach => ({
+const note = (id: string, wert: number, datum: string): Leistung => ({
   datum,
   fachId: 'latein',
   fachKuerzel: 'L',
@@ -54,6 +54,7 @@ const note = (id: string, wert: number, datum: string): NoteWithFach => ({
   id,
   kind: 'klausur',
   notiz: null,
+  status: 'graded',
   wert,
 });
 
@@ -83,7 +84,7 @@ export const NotenListStory = ({
 }: {
   readonly scenario?: Scenario;
 }) => {
-  const notenRef = useRef<ReadonlyArray<NoteWithFach>>(initialNoten(scenario));
+  const notenRef = useRef<ReadonlyArray<Leistung>>(initialNoten(scenario));
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
   const [queryClient] = useState(
     () =>
@@ -113,9 +114,15 @@ export const NotenListStory = ({
         if ((await awaitOutcome()) === 'failure') {
           throw new Error('Verbindung weg');
         }
+        const { wert, ...fields } = values;
         notenRef.current = notenRef.current.map((entry) =>
           entry.id === values.id
-            ? mitFach({ ...entry, ...values }, values.subjectId)
+            ? mitFach(
+                wert === null
+                  ? { ...entry, ...fields, status: 'planned' }
+                  : { ...entry, ...fields, status: 'graded', wert },
+                values.subjectId,
+              )
             : entry,
         );
       },

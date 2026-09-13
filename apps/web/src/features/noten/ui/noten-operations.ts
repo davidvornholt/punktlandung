@@ -5,7 +5,7 @@ import {
   listNotenFn,
   updateNoteFn,
 } from '../server/noten-fns.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 
 /**
  * Die Serveraufrufe der Notenliste hinter einer Naht. Liste und Mutationen
@@ -15,7 +15,7 @@ import type { NoteWithFach } from '../services/noten-service.ts';
 export type NotenOperations = {
   readonly create: (values: NoteInput) => Promise<unknown>;
   readonly delete: (id: string) => Promise<unknown>;
-  readonly list: (halbjahrId: string) => Promise<ReadonlyArray<NoteWithFach>>;
+  readonly list: (halbjahrId: string) => Promise<ReadonlyArray<Leistung>>;
   readonly update: (values: NoteUpdate) => Promise<unknown>;
 };
 

@@ -17,8 +17,12 @@ const Leistungsart = Schema.Literal(...leistungsarten);
 export const NotenFields = Schema.Struct({
   subjectId: Schema.String,
   kind: Leistungsart,
-  /** Nativer Wert; die Systemprüfung übernimmt der Service anhand des Halbjahrs. */
-  wert: Schema.Number,
+  /**
+   * Nativer Wert; die Systemprüfung übernimmt der Service anhand des
+   * Halbjahrs. null legt die Leistung als ausstehend an — der Service lässt
+   * das nur für planbare Leistungsarten zu.
+   */
+  wert: Schema.NullOr(Schema.Number),
   gewicht: Schema.Number.pipe(
     Schema.positive(),
     Schema.lessThanOrEqualTo(notenLimits.maxGewichtung),
