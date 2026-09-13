@@ -13,12 +13,26 @@ import type {
   Leistung,
 } from '../services/noten-service.ts';
 import { defaultPreparationTemplate } from '../services/preparation-template-service.ts';
-import { themen } from './leistung-detail.ct-fixtures.ts';
+import { gleichartigeThemen, themen } from './leistung-detail.ct-fixtures.ts';
 import { LeistungDetail } from './leistung-detail.tsx';
 import type { LeistungOperations } from './leistung-operations.ts';
 import type { NotenOperations } from './noten-operations.ts';
 
-type Scenario = 'ohne-vorbereitung' | 'mit-themen' | 'benotet';
+type Scenario =
+  | 'ohne-vorbereitung'
+  | 'mit-themen'
+  | 'gleichartige-themen'
+  | 'benotet';
+
+const preparationForScenario = (scenario: Scenario): string | null => {
+  if (scenario === 'ohne-vorbereitung') {
+    return null;
+  }
+  if (scenario === 'gleichartige-themen') {
+    return gleichartigeThemen;
+  }
+  return themen;
+};
 
 const halbjahr = {
   endsOn: '2027-01-31',
@@ -45,7 +59,7 @@ const initialLeistung = (scenario: Scenario): Leistung => {
     id: 'k-1',
     kind: 'klausur' as const,
     notiz: null,
-    preparation: scenario === 'ohne-vorbereitung' ? null : themen,
+    preparation: preparationForScenario(scenario),
   };
   return scenario === 'benotet'
     ? { ...base, status: 'graded', wert: 11 }

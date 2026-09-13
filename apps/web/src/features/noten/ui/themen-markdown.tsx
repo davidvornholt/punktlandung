@@ -6,10 +6,10 @@ import remarkGfm from 'remark-gfm';
 
 type Node = {
   readonly position?: { readonly start?: { readonly line?: number } };
-  readonly children?: ReadonlyArray<{
-    readonly tagName?: string;
-    readonly properties?: { readonly checked?: unknown };
-  }>;
+  readonly tagName?: string;
+  readonly value?: unknown;
+  readonly children?: ReadonlyArray<Node>;
+  readonly properties?: { readonly checked?: unknown };
 };
 
 /**
@@ -24,7 +24,27 @@ const sourceLine = (node: unknown): number | null => {
   return typeof line === 'number' ? line : null;
 };
 
-const TaskLineContext = createContext<number | null>(null);
+const taskText = (node: Node): string => {
+  if (typeof node.value === 'string') {
+    return node.value;
+  }
+  return node.children?.map(taskText).join('') ?? '';
+};
+
+const taskLabel = (node: unknown): string => {
+  const children = (node as Node | undefined)?.children ?? [];
+  return children
+    .filter((child) => child.tagName !== 'ul' && child.tagName !== 'ol')
+    .map(taskText)
+    .join('')
+    .replace(/\s+/gu, ' ')
+    .trim();
+};
+
+const TaskLineContext = createContext<{
+  readonly line: number | null;
+  readonly label: string;
+} | null>(null);
 
 /** Ob ein Listenpunkt ein abgehaktes Thema ist — sein erstes Kind ist das Kästchen. */
 const isCheckedTopic = (node: unknown): boolean => {
@@ -78,7 +98,9 @@ const typography = ({
         {...rest}
         className={`mt-1 flex items-baseline gap-2 ${isCheckedTopic(node) ? 'text-ink-muted' : 'text-ink'}`}
       >
-        <TaskLineContext.Provider value={sourceLine(node)}>
+        <TaskLineContext.Provider
+          value={{ line: sourceLine(node), label: taskLabel(node) }}
+        >
           {children}
         </TaskLineContext.Provider>
       </li>
@@ -108,13 +130,14 @@ const typography = ({
     />
   ),
   input: ({ node: _node, checked, type, ...rest }: WithNode<'input'>) => {
-    const line = useContext(TaskLineContext);
-    if (type !== 'checkbox' || line === null) {
+    const task = useContext(TaskLineContext);
+    if (type !== 'checkbox' || task === null || task.line === null) {
       return <input {...rest} checked={checked} type={type} />;
     }
+    const { line } = task;
     return (
       <input
-        aria-label={checked ? 'Thema sicher' : 'Thema offen'}
+        aria-label={`${checked ? 'Thema sicher' : 'Thema offen'}: ${task.label}`}
         checked={checked === true}
         className="size-4 shrink-0 translate-y-0.5 accent-primary"
         disabled={pending}

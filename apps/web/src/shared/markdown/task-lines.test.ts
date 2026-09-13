@@ -51,3 +51,61 @@ describe('toggleTaskLine', () => {
     expect(toggleTaskLine(vorbereitung, 99)).toBe(vorbereitung);
   });
 });
+
+describe('GFM task parsing', () => {
+  it('follows GFM code fences, indentation, and blockquotes', () => {
+    const cases = [
+      {
+        markdown: '    - [ ] code',
+        expected: { total: 0, checked: 0 },
+        toggled: '    - [ ] code',
+        line: 1,
+      },
+      {
+        markdown: '> - [ ] quoted',
+        expected: { total: 1, checked: 0 },
+        toggled: '> - [x] quoted',
+        line: 1,
+      },
+      {
+        markdown: [
+          '````',
+          '- [ ] code',
+          '```',
+          '- [ ] still code',
+          '````',
+          '',
+          '~~~',
+          '- [ ] tilde code',
+          '```',
+          '- [ ] still tilde code',
+          '~~~',
+          '',
+          '- [ ] outside',
+        ].join('\n'),
+        expected: { total: 1, checked: 0 },
+        toggled: [
+          '````',
+          '- [ ] code',
+          '```',
+          '- [ ] still code',
+          '````',
+          '',
+          '~~~',
+          '- [ ] tilde code',
+          '```',
+          '- [ ] still tilde code',
+          '~~~',
+          '',
+          '- [x] outside',
+        ].join('\n'),
+        line: 13,
+      },
+    ] as const;
+
+    for (const { markdown, expected, toggled, line } of cases) {
+      expect(topicProgress(markdown)).toEqual(expected);
+      expect(toggleTaskLine(markdown, line)).toBe(toggled);
+    }
+  });
+});
