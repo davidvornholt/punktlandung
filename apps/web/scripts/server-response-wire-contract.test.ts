@@ -104,7 +104,7 @@ describe('server response wire contract', () => {
       expect(keys(studyDay)).toEqual([
         'createdAt',
         'day',
-        'gradeId',
+        'gradeIds',
         'id',
         'minutes',
         'note',

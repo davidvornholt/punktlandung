@@ -2,7 +2,12 @@ import { SqlClient } from '@effect/sql/SqlClient';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { halbjahrTable, noteTable, studyDayTable } from '#/shared/db/schema.ts';
+import {
+  halbjahrTable,
+  noteTable,
+  studyDayGradeTable,
+  studyDayTable,
+} from '#/shared/db/schema.ts';
 import type { StudyRecency } from '#/shared/lernen/study-recency.ts';
 import { studyRecency } from '#/shared/lernen/study-recency.ts';
 import { isGraded } from '#/shared/noten/graded-rows.ts';
@@ -143,7 +148,11 @@ export const loadLeistung = (id: string, today: string) =>
     const studyDays = yield* db
       .select({ day: studyDayTable.day })
       .from(studyDayTable)
-      .where(eq(studyDayTable.gradeId, id));
+      .innerJoin(
+        studyDayGradeTable,
+        eq(studyDayGradeTable.studyDayId, studyDayTable.id),
+      )
+      .where(eq(studyDayGradeTable.gradeId, id));
     return {
       leistung: toLeistung(row.note, fach),
       halbjahr: {

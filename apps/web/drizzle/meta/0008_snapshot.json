@@ -1,5 +1,5 @@
 {
-  "id": "a84f5247-6758-4210-8c71-051feaab8462",
+  "id": "a67547b4-c754-46e0-b274-5de00a30aa1c",
   "prevId": "5bd5dbd6-9dde-411c-963f-080766550dd1",
   "version": "7",
   "dialect": "postgresql",
@@ -387,6 +387,67 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.study_day_grade": {
+      "name": "study_day_grade",
+      "schema": "",
+      "columns": {
+        "study_day_id": {
+          "name": "study_day_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade_id": {
+          "name": "grade_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "study_day_grade_study_day_id_study_day_id_fk": {
+          "name": "study_day_grade_study_day_id_study_day_id_fk",
+          "tableFrom": "study_day_grade",
+          "tableTo": "study_day",
+          "columnsFrom": [
+            "study_day_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "study_day_grade_grade_id_grade_id_fk": {
+          "name": "study_day_grade_grade_id_grade_id_fk",
+          "tableFrom": "study_day_grade",
+          "tableTo": "grade",
+          "columnsFrom": [
+            "grade_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "study_day_grade_unique": {
+          "name": "study_day_grade_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "study_day_id",
+            "grade_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.study_day": {
       "name": "study_day",
       "schema": "",
@@ -405,12 +466,6 @@
         },
         "subject_id": {
           "name": "subject_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "grade_id": {
-          "name": "grade_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -443,19 +498,6 @@
           "tableTo": "subject",
           "columnsFrom": [
             "subject_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "study_day_grade_id_grade_id_fk": {
-          "name": "study_day_grade_id_grade_id_fk",
-          "tableFrom": "study_day",
-          "tableTo": "grade",
-          "columnsFrom": [
-            "grade_id"
           ],
           "columnsTo": [
             "id"

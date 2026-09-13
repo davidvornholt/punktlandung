@@ -1,9 +1,14 @@
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
-import { eq, isNotNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
-import { halbjahrTable, noteTable, studyDayTable } from '#/shared/db/schema.ts';
+import {
+  halbjahrTable,
+  noteTable,
+  studyDayGradeTable,
+  studyDayTable,
+} from '#/shared/db/schema.ts';
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import type { UpcomingHalbjahr } from './upcoming-calculation.ts';
@@ -20,9 +25,12 @@ export const loadUpcoming = Effect.gen(function* () {
     .from(noteTable)
     .innerJoin(halbjahrTable, eq(noteTable.termId, halbjahrTable.id));
   const studyDays = yield* db
-    .select({ day: studyDayTable.day, gradeId: studyDayTable.gradeId })
-    .from(studyDayTable)
-    .where(isNotNull(studyDayTable.gradeId));
+    .select({ day: studyDayTable.day, gradeId: studyDayGradeTable.gradeId })
+    .from(studyDayGradeTable)
+    .innerJoin(
+      studyDayTable,
+      eq(studyDayTable.id, studyDayGradeTable.studyDayId),
+    );
   const studyDaysByLeistung = new Map<string, Array<string>>();
   for (const { day, gradeId } of studyDays) {
     if (gradeId !== null) {

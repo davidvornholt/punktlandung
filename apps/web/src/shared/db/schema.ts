@@ -148,8 +148,8 @@ export const preparationTemplateTable = pgTable('preparation_template', {
  * Lerntage: ein Eintrag pro Tag und (optional) Fach. Der Eintrag kann einer
  * Leistung gelten — dann heißt er „heute dafür gelernt" und zählt nur den
  * Tag, nie die Zeit; die bleibt im Zeiterfassungswerkzeug. Zwei Leistungen
- * desselben Fachs am selben Tag teilen sich eine Zeile; die zuletzt
- * eingetragene gewinnt.
+ * desselben Fachs am selben Tag teilen sich eine Zeile; ihre Zuordnung bleibt
+ * in `study_day_grade` für jede Leistung erhalten.
  */
 export const studyDayTable = pgTable(
   'study_day',
@@ -157,9 +157,6 @@ export const studyDayTable = pgTable(
     id: text('id').primaryKey(),
     day: date('day').notNull(),
     subjectId: text('subject_id').references(() => fachTable.id, {
-      onDelete: 'set null',
-    }),
-    gradeId: text('grade_id').references(() => noteTable.id, {
       onDelete: 'set null',
     }),
     minutes: integer('minutes'),
@@ -170,5 +167,21 @@ export const studyDayTable = pgTable(
     unique('study_day_day_subject_unique')
       .on(table.day, table.subjectId)
       .nullsNotDistinct(),
+  ],
+);
+
+/** Leistungen, für die an einem Lerntag gelernt wurde. */
+export const studyDayGradeTable = pgTable(
+  'study_day_grade',
+  {
+    studyDayId: text('study_day_id')
+      .notNull()
+      .references(() => studyDayTable.id, { onDelete: 'cascade' }),
+    gradeId: text('grade_id')
+      .notNull()
+      .references(() => noteTable.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    unique('study_day_grade_unique').on(table.studyDayId, table.gradeId),
   ],
 );
