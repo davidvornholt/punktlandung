@@ -3,14 +3,16 @@ import { invalidateAll } from '#/shared/query/query-invalidation.ts';
 import {
   notenKey,
   trendKey,
+  upcomingKey,
   zeugnisKeyPrefix,
 } from '#/shared/query/query-keys.ts';
 
 /**
  * Was eine geschriebene Note veralten lässt: die Notenliste des Halbjahrs, der
- * Verlauf über alle Halbjahre und jede Zeugnisvorschau. Jede Notenmutation —
- * eintragen, ändern, löschen — nutzt dieselbe Liste, damit keine Ansicht mit
- * einem Stand von vor der Änderung zurückbleibt.
+ * Verlauf über alle Halbjahre, die ausstehenden Leistungen der Übersicht und
+ * jede Zeugnisvorschau. Jede Notenmutation — eintragen, ändern, löschen —
+ * nutzt dieselbe Liste, damit keine Ansicht mit einem Stand von vor der
+ * Änderung zurückbleibt.
  *
  * Das Zeugnis trifft der Präfixschlüssel und nicht der des bearbeiteten
  * Halbjahrs: die Zeugnisvorschau jedes Halbjahrs enthält die Jahresvorschau,
@@ -23,6 +25,7 @@ export const notenQueries = (
 ): ReadonlyArray<ReadonlyArray<string>> => [
   notenKey(halbjahrId),
   trendKey,
+  upcomingKey,
   zeugnisKeyPrefix,
 ];
 

@@ -16,6 +16,22 @@ export const leistungsarten = [
 
 export type Leistungsart = (typeof leistungsarten)[number];
 
+/**
+ * Leistungsarten mit angekündigtem Termin: nur sie lassen sich vor der Note
+ * anlegen. Mündliche und sonstige Noten entstehen ohne Termin und stehen
+ * deshalb nie aus.
+ */
+export const planbareLeistungsarten = ['klausur', 'test', 'gfs'] as const;
+
+export type PlanbareLeistungsart = (typeof planbareLeistungsarten)[number];
+
+export const isPlanbar = (
+  leistungsart: Leistungsart,
+): leistungsart is PlanbareLeistungsart =>
+  (planbareLeistungsarten as ReadonlyArray<Leistungsart>).includes(
+    leistungsart,
+  );
+
 export const wertungsbereiche = ['schriftlich', 'muendlich'] as const;
 
 export type Wertungsbereich = (typeof wertungsbereiche)[number];

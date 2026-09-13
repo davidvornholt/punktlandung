@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import type { NoteFormValues } from './note-form-model.ts';
 import {
   emptyNoteFormValues,
@@ -18,9 +18,10 @@ const blankValues: NoteFormValues = {
   notiz: '',
 };
 
-const note: NoteWithFach = {
+const note: Leistung = {
   id: 'note-1',
   kind: 'gfs',
+  status: 'graded',
   wert: 2.5,
   gewicht: 1.5,
   datum: '2026-02-11',
@@ -52,6 +53,10 @@ describe('noteFieldsFromValues', () => {
       null,
     );
   });
+
+  it('liest einen leeren Wert als ausstehende Leistung', () => {
+    expect(noteFieldsFromValues({ ...blankValues, wert: ' ' }).wert).toBeNull();
+  });
 });
 
 describe('noteFormValues', () => {
@@ -64,6 +69,11 @@ describe('noteFormValues', () => {
       datum: '2026-02-11',
       notiz: 'Referat Photosynthese',
     });
+  });
+
+  it('lässt das Wertfeld einer ausstehenden Leistung leer', () => {
+    const { wert: _wert, ...rest } = note;
+    expect(noteFormValues({ ...rest, status: 'planned' }).wert).toBe('');
   });
 
   it('liefert jedes Feld als Text, wie das Formular es erwartet', () => {

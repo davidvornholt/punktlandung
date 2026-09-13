@@ -18,6 +18,7 @@ import {
   updateNote,
 } from '../services/noten-service.ts';
 import { loadTrend } from '../services/trend-service.ts';
+import { loadUpcoming } from '../services/upcoming-service.ts';
 
 export const listNotenFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
@@ -47,3 +48,7 @@ export const trendQueryOptions = queryOptions({
   queryKey: trendKey,
   queryFn: () => verlaufFn(),
 });
+
+export const upcomingFn = createServerFn({ method: 'GET' })
+  .middleware([sessionRequired])
+  .handler(() => runtime.runPromise(loadUpcoming));

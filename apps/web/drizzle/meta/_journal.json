@@ -43,6 +43,13 @@
       "when": 1784991747939,
       "tag": "0005_bereich_aus_gewichtung",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789306734590,
+      "tag": "0006_geplante_leistungen",
+      "breakpoints": true
     }
   ]
 }

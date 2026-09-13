@@ -1,5 +1,5 @@
 import { actionErrorText } from '#/shared/ui/action-error.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 
 /**
  * Gescheiterte Änderungen, je Note festgehalten. Die Notenliste teilt sich
@@ -46,7 +46,7 @@ export const emptyNotenHint = (hasWaehlbaresFach: boolean) =>
  */
 export const closeIfSaved =
   (id: string) =>
-  (open: NoteWithFach | null): NoteWithFach | null =>
+  (open: Leistung | null): Leistung | null =>
     open?.id === id ? null : open;
 
 /** Läuft gerade das Speichern der offenen Bearbeitung? */
@@ -55,7 +55,7 @@ export const isEditPending = (
     readonly isPending: boolean;
     readonly variables?: { readonly id: string } | undefined;
   },
-  editTarget: NoteWithFach | null,
+  editTarget: Leistung | null,
 ) =>
   update.isPending &&
   editTarget !== null &&

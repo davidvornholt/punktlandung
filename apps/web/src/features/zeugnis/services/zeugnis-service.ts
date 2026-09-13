@@ -4,7 +4,9 @@ import { Effect } from 'effect';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
 import { fachAverage } from '#/shared/noten/fach-aggregation.ts';
-import type { Assessment, Notensystem } from '#/shared/noten/notenwert.ts';
+import type { GradedRow } from '#/shared/noten/graded-rows.ts';
+import { isGraded, toAssessment } from '#/shared/noten/graded-rows.ts';
+import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
@@ -40,16 +42,10 @@ export type Zeugnis = {
   readonly jahresvorschau: ReadonlyArray<JahresvorschauRow> | null;
 };
 
-type NoteRow = Pick<
-  typeof noteTable.$inferSelect,
-  'subjectId' | 'value' | 'weight' | 'kind'
+/** Nur benotete Zeilen: das Zeugnis kennt keine ausstehende Leistung. */
+type NoteRow = GradedRow<
+  Pick<typeof noteTable.$inferSelect, 'subjectId' | 'value' | 'weight' | 'kind'>
 >;
-
-const toAssessment = (note: NoteRow): Assessment => ({
-  notenwert: Number(note.value),
-  individualGewichtung: Number(note.weight),
-  leistungsart: note.kind,
-});
 
 const groupNotenByFach = (noten: ReadonlyArray<NoteRow>) => {
   const groups = new Map<string, Array<NoteRow>>();
@@ -113,11 +109,11 @@ export const loadZeugnis = (termId: string) =>
     }
     const fachSnapshot = yield* loadSchoolYearFachSnapshot(halbjahr.schoolYear);
     const faecher = fachSnapshot.filter((fach) => !fach.archived);
-    const noten = yield* db
+    const rows = yield* db
       .select()
       .from(noteTable)
       .where(eq(noteTable.termId, termId));
-    const groups = groupNotenByFach(noten);
+    const groups = groupNotenByFach(rows.filter(isGraded));
 
     const halbnoten: Array<number> = [];
     const zeilen = faecher.map((fach): ZeugnisRow => {
@@ -165,7 +161,7 @@ export const loadZeugnis = (termId: string) =>
           )
       : [];
     const jahresvorschau = completeYear
-      ? calculateJahresvorschau(jahresnoten, faecher)
+      ? calculateJahresvorschau(jahresnoten.filter(isGraded), faecher)
       : null;
 
     const gesamtschnitt =

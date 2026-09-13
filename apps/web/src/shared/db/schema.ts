@@ -94,23 +94,40 @@ export const halbjahrTable = pgTable(
   ],
 );
 
-export const noteTable = pgTable('grade', {
-  id: text('id').primaryKey(),
-  subjectId: text('subject_id')
-    .notNull()
-    .references(() => fachTable.id, { onDelete: 'cascade' }),
-  termId: text('term_id')
-    .notNull()
-    .references(() => halbjahrTable.id, { onDelete: 'cascade' }),
-  kind: leistungsartEnum('kind').notNull(),
-  /** Nativer Wert im System des Halbjahrs (1,00–6,00 bzw. 0–15). */
-  value: numeric('value', { precision: 4, scale: 2 }).notNull(),
-  /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */
-  weight: numeric('weight', { precision: 4, scale: 2 }).notNull().default('1'),
-  takenOn: date('taken_on').notNull(),
-  note: text('note'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+/**
+ * Eine Leistung: Klausur, Test, GFS, mündliche oder sonstige Note. Sie kann
+ * vor ihrer Note angelegt werden — dann ist `value` null und `taken_on` der
+ * angekündigte Termin. Nur `planbareLeistungsarten` dürfen ausstehen.
+ */
+export const noteTable = pgTable(
+  'grade',
+  {
+    id: text('id').primaryKey(),
+    subjectId: text('subject_id')
+      .notNull()
+      .references(() => fachTable.id, { onDelete: 'cascade' }),
+    termId: text('term_id')
+      .notNull()
+      .references(() => halbjahrTable.id, { onDelete: 'cascade' }),
+    kind: leistungsartEnum('kind').notNull(),
+    /** Nativer Wert im System des Halbjahrs (1,00–6,00 bzw. 0–15); null = ausstehend. */
+    value: numeric('value', { precision: 4, scale: 2 }),
+    /** Individuelles Zusatzgewicht innerhalb der Leistungsart. */
+    weight: numeric('weight', { precision: 4, scale: 2 })
+      .notNull()
+      .default('1'),
+    /** Termin der Leistung: angekündigt, solange sie aussteht, sonst der Tag der Arbeit. */
+    takenOn: date('taken_on').notNull(),
+    note: text('note'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'grade_value_required_unless_planbar',
+      sql`${table.value} is not null or ${table.kind} in ('klausur', 'test', 'gfs')`,
+    ),
+  ],
+);
 
 /** Lerntage: ein Eintrag pro Tag und (optional) Fach. */
 export const studyDayTable = pgTable(

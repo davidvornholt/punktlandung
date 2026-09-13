@@ -2,8 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 
 import { LearnedToday } from '#/features/lernen/ui/learned-today.tsx';
-import { trendQueryOptions } from '#/features/noten/server/noten-fns.ts';
+import {
+  trendQueryOptions,
+  upcomingFn,
+} from '#/features/noten/server/noten-fns.ts';
 import { TrendChart } from '#/features/noten/ui/trend-chart.tsx';
+import { UpcomingBlock } from '#/features/noten/ui/upcoming-block.tsx';
 import { toSechser } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
@@ -60,6 +64,7 @@ const Overview = () => {
         <StatCard label="Anzahl Noten" value={`${trend.length}`} />
         <LearnedToday />
       </div>
+      <UpcomingBlock load={() => upcomingFn()} />
       <section className="mt-8">
         <h2 className="font-display text-2xl text-ink tracking-tight">
           Verlaufslinie

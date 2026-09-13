@@ -6,7 +6,7 @@ import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { notenKey } from '#/shared/query/query-keys.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
 import { NotenCards } from './noten-cards.tsx';
 import {
@@ -47,7 +47,7 @@ export const NotenList = ({
     queryFn: () => operations.list(halbjahr.id),
     queryKey: notenKey(halbjahr.id),
   });
-  const [editTarget, setEditTarget] = useState<NoteWithFach | null>(null);
+  const [editTarget, setEditTarget] = useState<Leistung | null>(null);
   const [updateErrors, setUpdateErrors] = useState(noUpdateErrors);
   const focus = useFormFocus<HTMLElement>(editTarget?.id ?? null);
 

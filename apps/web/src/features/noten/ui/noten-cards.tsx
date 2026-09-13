@@ -4,22 +4,22 @@ import { fachAverage } from '#/shared/noten/fach-aggregation.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import { NoteRow } from './note-row.tsx';
 
 type FachGroup = {
   readonly fachId: string;
   readonly fachName: string;
-  readonly noten: ReadonlyArray<NoteWithFach>;
+  readonly noten: ReadonlyArray<Leistung>;
   readonly average: number | null;
 };
 
 const groupByFach = (
-  noten: ReadonlyArray<NoteWithFach>,
+  noten: ReadonlyArray<Leistung>,
 ): ReadonlyArray<FachGroup> => {
   const groups = new Map<
     string,
-    { readonly first: NoteWithFach; readonly noten: Array<NoteWithFach> }
+    { readonly first: Leistung; readonly noten: Array<Leistung> }
   >();
   for (const note of noten) {
     const group = groups.get(note.fachId);
@@ -34,11 +34,17 @@ const groupByFach = (
     fachName: first.fachName,
     noten: list,
     average: fachAverage(
-      list.map((note) => ({
-        notenwert: note.wert,
-        individualGewichtung: note.gewicht,
-        leistungsart: note.kind,
-      })),
+      list.flatMap((note) =>
+        note.status === 'graded'
+          ? [
+              {
+                notenwert: note.wert,
+                individualGewichtung: note.gewicht,
+                leistungsart: note.kind,
+              },
+            ]
+          : [],
+      ),
       first.gewichtung,
     ),
   }));
@@ -62,13 +68,10 @@ export const NotenCards = ({
   readonly editPending: boolean;
   /** Das Bearbeitungsformular; erscheint unter der bearbeiteten Note. */
   readonly form: ReactNode;
-  readonly noten: ReadonlyArray<NoteWithFach>;
+  readonly noten: ReadonlyArray<Leistung>;
   readonly onDelete: (id: string) => void;
   /** Öffnet das Formular für die Note; `null` schließt die offene Zeile. */
-  readonly onEdit: (
-    note: NoteWithFach | null,
-    trigger: HTMLButtonElement,
-  ) => void;
+  readonly onEdit: (note: Leistung | null, trigger: HTMLButtonElement) => void;
   readonly system: Notensystem;
   /**
    * Gescheiterte Änderungen je Note. Eine geteilte Mutation trüge nur ihren

@@ -1,6 +1,7 @@
 import { Data } from 'effect';
 
-import type { Notensystem } from '#/shared/noten/notenwert.ts';
+import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
+import type { Leistungsart, Notensystem } from '#/shared/noten/notenwert.ts';
 
 export class HalbjahrNotFound extends Data.TaggedError(
   'HalbjahrNichtGefunden',
@@ -28,6 +29,16 @@ export class InvalidNotenwert extends Data.TaggedError('UngueltigerNotenwert')<{
     return this.system === 'punkte'
       ? `${this.wert} ist kein gültiger Wert: Notenpunkte sind ganze Zahlen von 0 bis 15.`
       : `${this.wert} ist kein gültiger Wert: Noten liegen zwischen 1,00 und 6,00.`;
+  }
+}
+
+export class NotenwertRequired extends Data.TaggedError(
+  'NotenwertErforderlich',
+)<{
+  readonly kind: Leistungsart;
+}> {
+  override get message(): string {
+    return `${leistungsartLabel[this.kind]} hat keinen Termin und kann nicht ausstehen. Trage die Note ein oder wähle Klausur, Test oder GFS.`;
   }
 }
 

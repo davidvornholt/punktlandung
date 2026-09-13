@@ -4,12 +4,14 @@ import { Effect } from 'effect';
 
 import { isIsoDateInRange } from '#/shared/date/date-range.ts';
 import { halbjahrTable } from '#/shared/db/schema.ts';
-import type { Notensystem } from '#/shared/noten/notenwert.ts';
+import type { Leistungsart, Notensystem } from '#/shared/noten/notenwert.ts';
+import { isPlanbar } from '#/shared/noten/notenwert.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import {
   FachNotInSchoolYear,
   HalbjahrNotFound,
   InvalidNotenwert,
+  NotenwertRequired,
   NoteOutsideHalbjahr,
 } from '../errors/noten-errors.ts';
 import { isFachSelectable, isValueValid } from './noten-validation.ts';
@@ -20,10 +22,21 @@ import { isFachSelectable, isValueValid } from './noten-validation.ts';
  * Fachwechsel sie nicht unterlaufen kann.
  */
 
-export const validateValue = (value: number, system: Notensystem) =>
-  isValueValid(value, system)
+/** Ohne Wert steht die Leistung aus — das geht nur bei planbaren Arten. */
+export const validateValue = (
+  value: number | null,
+  system: Notensystem,
+  kind: Leistungsart,
+) => {
+  if (value === null) {
+    return isPlanbar(kind)
+      ? Effect.void
+      : Effect.fail(new NotenwertRequired({ kind }));
+  }
+  return isValueValid(value, system)
     ? Effect.void
     : Effect.fail(new InvalidNotenwert({ wert: value, system }));
+};
 
 export const validateDate = (
   date: string,

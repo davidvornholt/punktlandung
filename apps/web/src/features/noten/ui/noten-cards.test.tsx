@@ -5,10 +5,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import { NotenCards } from './noten-cards.tsx';
 
-const note = (id: string, datum = '2026-01-01'): NoteWithFach => ({
+const note = (id: string, datum = '2026-01-01'): Leistung => ({
   datum,
   fachId: 'mathematik',
   fachKuerzel: 'M',
@@ -18,6 +18,7 @@ const note = (id: string, datum = '2026-01-01'): NoteWithFach => ({
   id,
   kind: 'klausur',
   notiz: `Notiz ${id}`,
+  status: 'graded',
   wert: 2,
 });
 
@@ -35,7 +36,7 @@ const noten = [note('A'), note('B', '2026-02-02')] as const;
 const cards = (
   editNoteId: string | null,
   updateErrors: ReadonlyMap<string, unknown> = noUpdateErrors,
-  list: ReadonlyArray<NoteWithFach> = noten,
+  list: ReadonlyArray<Leistung> = noten,
 ) =>
   renderToStaticMarkup(
     <NotenCards
@@ -80,7 +81,7 @@ const editButton = (editNoteId: string | null, onEdit: unknown) =>
       noten: [note('A')],
       onDelete: () => undefined,
       onEdit: onEdit as (
-        note: NoteWithFach | null,
+        note: Leistung | null,
         trigger: HTMLButtonElement,
       ) => void,
       system: 'sechser',
@@ -143,7 +144,7 @@ describe('NotenCards', () => {
   it('öffnet mit dem Auslöser die geschlossene Zeile', () => {
     const trigger = {} as HTMLButtonElement;
     const onEdit = mock(
-      (_note: NoteWithFach | null, _trigger: HTMLButtonElement) => undefined,
+      (_note: Leistung | null, _trigger: HTMLButtonElement) => undefined,
     );
 
     editButton(null, onEdit).onClick({ currentTarget: trigger });
@@ -154,7 +155,7 @@ describe('NotenCards', () => {
   it('schließt die offene Zeile, statt sie wirkungslos erneut zu öffnen', () => {
     const trigger = {} as HTMLButtonElement;
     const onEdit = mock(
-      (_note: NoteWithFach | null, _trigger: HTMLButtonElement) => undefined,
+      (_note: Leistung | null, _trigger: HTMLButtonElement) => undefined,
     );
 
     editButton('A', onEdit).onClick({ currentTarget: trigger });

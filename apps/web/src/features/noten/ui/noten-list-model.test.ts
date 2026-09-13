@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import type { NoteWithFach } from '../services/noten-service.ts';
+import type { Leistung } from '../services/noten-service.ts';
 import {
   closeIfSaved,
   isEditPending,
@@ -10,8 +10,8 @@ import {
   withoutNote,
 } from './noten-list-model.ts';
 
-const noteA = { id: 'note-a' } as NoteWithFach;
-const noteB = { id: 'note-b' } as NoteWithFach;
+const noteA = { id: 'note-a' } as Leistung;
+const noteB = { id: 'note-b' } as Leistung;
 
 const failure = {
   _tag: 'HalbjahrGesperrt',

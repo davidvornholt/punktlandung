@@ -3,22 +3,27 @@ import { asc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
+import { isGraded } from '#/shared/noten/graded-rows.ts';
 import { toNotenpunkte } from '#/shared/noten/notenwert.ts';
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { calculateTrend } from './trend-calculation.ts';
 
 /**
- * Alle Noten über alle Halbjahre, mit toNotenpunkte normalisiert und mit
- * laufendem gewichtetem Gesamtschnitt — die Datenreihe der Verlaufslinie.
+ * Alle benoteten Leistungen über alle Halbjahre, mit toNotenpunkte
+ * normalisiert und mit laufendem gewichtetem Gesamtschnitt — die Datenreihe
+ * der Verlaufslinie. Ausstehende Leistungen haben noch keinen Punkt.
  */
 export const loadTrend = Effect.gen(function* () {
   const db = yield* PgDrizzle;
-  const rows = yield* db
+  const allRows = yield* db
     .select({ note: noteTable, halbjahr: halbjahrTable })
     .from(noteTable)
     .innerJoin(halbjahrTable, eq(noteTable.termId, halbjahrTable.id))
     .orderBy(asc(noteTable.takenOn), asc(noteTable.createdAt));
+  const rows = allRows.flatMap(({ note, halbjahr }) =>
+    isGraded(note) ? [{ note, halbjahr }] : [],
+  );
   const fachSnapshots = new Map<string, ReadonlyArray<SchoolYearFach>>();
   for (const { halbjahr } of rows) {
     if (!fachSnapshots.has(halbjahr.schoolYear)) {

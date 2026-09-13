@@ -1,0 +1,2 @@
+ALTER TABLE "grade" ALTER COLUMN "value" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "grade" ADD CONSTRAINT "grade_value_required_unless_planbar" CHECK ("grade"."value" is not null or "grade"."kind" in ('klausur', 'test', 'gfs'));

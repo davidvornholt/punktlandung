@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'bun:test';
-import { evaluateFach, fachAverage } from './fach-aggregation.ts';
+import type { GewichteteLeistung } from './fach-aggregation.ts';
+import {
+  evaluateFach,
+  fachAverage,
+  leistungsanteile,
+} from './fach-aggregation.ts';
 import { standardgewichtung } from './fach-gewichtung.ts';
-import type { Artgewichtung, Assessment, Fachgewichtung } from './notenwert.ts';
+import type {
+  Artgewichtung,
+  Assessment,
+  Fachgewichtung,
+  Leistungsart,
+} from './notenwert.ts';
 
 const withLeistungsart = (
   fachGewichtung: Fachgewichtung,
@@ -151,5 +161,85 @@ describe('fachAverage mit Bereichsverhältnis', () => {
     expect(evaluation.schriftlichAverage).toBeCloseTo(2);
     expect(evaluation.muendlichAverage).toBeCloseTo(4);
     expect(evaluation.average).toBeCloseTo(2 * 0.6 + 4 * 0.4);
+  });
+});
+
+describe('leistungsanteile', () => {
+  const leistung = (
+    id: string,
+    leistungsart: Leistungsart,
+    individualGewichtung = 1,
+  ): GewichteteLeistung => ({ id, leistungsart, individualGewichtung });
+
+  const anteil = (
+    leistungen: ReadonlyArray<GewichteteLeistung>,
+    id: string,
+    fachGewichtung: Fachgewichtung = standardgewichtung,
+  ) => leistungsanteile(leistungen, fachGewichtung).get(id) ?? Number.NaN;
+
+  it('teilt eine gemeinsame Liste nach Art- und Einzelgewicht auf', () => {
+    const leistungen = [
+      leistung('k1', 'klausur'),
+      leistung('k2', 'klausur', 2),
+      leistung('m1', 'muendlich'),
+    ];
+    expect(anteil(leistungen, 'k1')).toBeCloseTo(1 / 4);
+    expect(anteil(leistungen, 'k2')).toBeCloseTo(2 / 4);
+    expect(anteil(leistungen, 'm1')).toBeCloseTo(1 / 4);
+  });
+
+  it('gesammelte Tests teilen sich den Anteil einer Klausur', () => {
+    const leistungen = [
+      leistung('k1', 'klausur'),
+      leistung('t1', 'test'),
+      leistung('t2', 'test'),
+      leistung('t3', 'test'),
+    ];
+    // Die Klausur und die Sammelnote der Tests zählen je zur Hälfte.
+    expect(anteil(leistungen, 'k1')).toBeCloseTo(1 / 2);
+    expect(anteil(leistungen, 't1')).toBeCloseTo(1 / 6);
+  });
+
+  it('eine ausstehende Klausur zählt schon mit und senkt die Anteile der anderen', () => {
+    const eine = [leistung('k1', 'klausur')];
+    const zwei = [...eine, leistung('k2', 'klausur')];
+    expect(anteil(eine, 'k1')).toBeCloseTo(1);
+    expect(anteil(zwei, 'k1')).toBeCloseTo(1 / 2);
+  });
+
+  it('mit Verhältnis gilt der Bereichsanteil, und ein leerer Bereich fällt weg', () => {
+    const withRatio: Fachgewichtung = {
+      ...standardgewichtung,
+      verhaeltnis: { schriftlich: 3, muendlich: 1 },
+    };
+    const both = [
+      leistung('k1', 'klausur'),
+      leistung('k2', 'klausur'),
+      leistung('m1', 'muendlich'),
+    ];
+    expect(anteil(both, 'k1', withRatio)).toBeCloseTo(0.75 / 2);
+    expect(anteil(both, 'm1', withRatio)).toBeCloseTo(0.25);
+
+    const onlyWritten = [leistung('k1', 'klausur'), leistung('k2', 'klausur')];
+    expect(anteil(onlyWritten, 'k1', withRatio)).toBeCloseTo(1 / 2);
+  });
+
+  it('die Anteile summieren sich zu eins', () => {
+    const leistungen = [
+      leistung('k1', 'klausur'),
+      leistung('g1', 'gfs'),
+      leistung('t1', 'test', 2),
+      leistung('t2', 'test'),
+      leistung('m1', 'muendlich', 0.5),
+      leistung('s1', 'sonstige'),
+    ];
+    const withRatio: Fachgewichtung = {
+      ...standardgewichtung,
+      verhaeltnis: { schriftlich: 60, muendlich: 40 },
+    };
+    for (const fachGewichtung of [standardgewichtung, withRatio]) {
+      const total = [...leistungsanteile(leistungen, fachGewichtung).values()];
+      expect(total.reduce((sum, value) => sum + value, 0)).toBeCloseTo(1);
+    }
   });
 });

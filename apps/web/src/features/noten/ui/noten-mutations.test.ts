@@ -70,7 +70,7 @@ const setup = () => {
   return { held, onDeleted, onUpdated, onUpdateFailed, operations, options };
 };
 
-const expectedKeys = [['noten', 'hj-1'], ['trend'], ['zeugnis']];
+const expectedKeys = [['noten', 'hj-1'], ['trend'], ['upcoming'], ['zeugnis']];
 
 describe('notenMutationOptions', () => {
   it('schickt Änderung und Löschung an die Serveraufrufe', async () => {
