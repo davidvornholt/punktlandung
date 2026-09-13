@@ -19,4 +19,3 @@ Punktlandung is a single-user Noten tracker for a Baden-Württemberg Gymnasium (
 ## Known gaps (do not silently "fix")
 
 - Playwright a11y covers only the unauthenticated surface (`/anmelden`, redirect of `/`); authenticated pages need a test session strategy first — propose one before wiring it.
-- `standards github` stays red until the GitHub repository exists and `bun standards github --apply` has run.

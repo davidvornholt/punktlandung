@@ -1,11 +1,13 @@
+import type { MountResult } from '@playwright/experimental-ct-react';
 import { expect, test as it } from '@playwright/experimental-ct-react';
-import type * as playwright from '@playwright/test';
 
 import { conversionTable } from '#/shared/noten/conversion-table.ts';
 
 import { ConversionReference } from './conversion-reference.tsx';
 
-const rowWithHeader = (component: playwright.Locator, header: string) =>
+type ComponentLocator = ReturnType<MountResult['getByRole']>;
+
+const rowWithHeader = (component: ComponentLocator, header: string) =>
   component.getByRole('rowheader', { name: header, exact: true }).locator('..');
 
 it('distinguishes official and interpolated rows accessibly', async ({
