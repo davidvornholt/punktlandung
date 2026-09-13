@@ -73,6 +73,7 @@ const cases: ReadonlyArray<
     {
       day: '2026-10-01',
       subjectId: 'mathematik',
+      gradeId: null,
       minutes: 30,
       notiz: 'Analysis',
     },

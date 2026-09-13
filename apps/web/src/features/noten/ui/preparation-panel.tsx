@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Pencil } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import { toggleTaskLine, topicProgress } from '#/shared/markdown/task-lines.ts';
@@ -14,11 +15,12 @@ import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
   inputClass,
   primaryButtonClass,
-  quietButtonClass,
   secondaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
+import { IconButton } from '#/shared/ui/icon-button.tsx';
 import { LoadingHint } from '#/shared/ui/query-state.tsx';
 import { preparationLimits } from '../schemas/note-schema.ts';
+import type { LeistungDetail } from '../services/noten-service.ts';
 import type { PreparationTemplates } from '../services/preparation-template-service.ts';
 import type { LeistungOperations } from './leistung-operations.ts';
 import { topicsText } from './preparation-text.ts';
@@ -104,24 +106,22 @@ const RenderedPreparation = ({
   markdown,
   onEdit,
   onToggle,
-  pending,
 }: {
   readonly markdown: string;
   readonly onEdit: () => void;
   readonly onToggle: (line: number) => void;
-  readonly pending: boolean;
 }) => (
   <>
-    <ThemenMarkdown markdown={markdown} onToggle={onToggle} pending={pending} />
-    <div className="mt-4 flex justify-end">
-      <button
-        className={quietButtonClass}
-        disabled={pending}
+    <div className="flex items-start gap-3">
+      <div className="min-w-0 flex-1">
+        <ThemenMarkdown markdown={markdown} onToggle={onToggle} />
+      </div>
+      <IconButton
+        className="-mt-1 -mr-1"
+        icon={Pencil}
+        label="Text bearbeiten"
         onClick={onEdit}
-        type="button"
-      >
-        Text bearbeiten
-      </button>
+      />
     </div>
   </>
 );
@@ -152,9 +152,32 @@ export const PreparationPanel = ({
     queryFn: () => operations.loadTemplates(),
     queryKey: preparationTemplatesKey,
   });
+  /*
+   * Ein Haken schreibt die Seite sofort um und schickt erst dann. Ohne das
+   * blinkte die ganze Liste: sie wartete auf die Antwort, holte neu und baute
+   * sich auf. Scheitert der Aufruf, kehrt der alte Stand zurück und der Fehler
+   * steht darunter.
+   */
   const saveMutation = useMutation({
     mutationFn: (markdown: string | null) =>
       operations.updatePreparation({ id: leistungId, preparation: markdown }),
+    onMutate: async (markdown) => {
+      const key = leistungKey(leistungId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<LeistungDetail>(key);
+      if (previous !== undefined) {
+        queryClient.setQueryData<LeistungDetail>(key, {
+          ...previous,
+          leistung: { ...previous.leistung, preparation: markdown },
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _markdown, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(leistungKey(leistungId), context.previous);
+      }
+    },
     onSuccess: async () => {
       await invalidateAll(queryClient, [
         leistungKey(leistungId),
@@ -184,7 +207,6 @@ export const PreparationPanel = ({
             saveMutation.reset();
             saveMutation.mutate(toggleTaskLine(preparation, line));
           }}
-          pending={saveMutation.isPending}
         />
       );
     }

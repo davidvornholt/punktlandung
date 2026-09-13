@@ -1,14 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { Pencil } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 
-import { formatIsoDate } from '#/shared/date/calendar-date.ts';
+import {
+  berlinCalendarDate,
+  daysBetween,
+  formatIsoDate,
+} from '#/shared/date/calendar-date.ts';
 import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
 import { isPlanbar } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { leistungKey } from '#/shared/query/query-keys.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
-import { quietButtonClass } from '#/shared/ui/form-classes.ts';
+import { secondaryButtonClass } from '#/shared/ui/form-classes.ts';
+import { IconButton } from '#/shared/ui/icon-button.tsx';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import type { NotenFields } from '../schemas/note-schema.ts';
 import type { LeistungDetail as Detail } from '../services/noten-service.ts';
@@ -17,6 +24,7 @@ import { NoteForm } from './note-form.tsx';
 import { invalidateNotenQueries } from './noten-invalidation.ts';
 import type { NotenOperations } from './noten-operations.ts';
 import { PreparationPanel } from './preparation-panel.tsx';
+import { tageBisText } from './upcoming-text.ts';
 
 type FachList = ReadonlyArray<{
   readonly id: string;
@@ -27,28 +35,52 @@ const Heading = ({ text }: { readonly text: string }) => (
   <h1 className="font-display text-3xl text-ink tracking-tight">{text}</h1>
 );
 
-/** Die Kopfzeile: Wert oder „ausstehend", Art, Termin, Halbjahr. */
+/**
+ * Die Kopfzeile. Die Note ist die Schlagzeile und steht groß; eine
+ * ausstehende Leistung hat keine, also trägt der Termin die Zeile und
+ * „ausstehend" bleibt ein leises Wort daneben.
+ */
 const Facts = ({ detail }: { readonly detail: Detail }) => {
   const { halbjahr, leistung } = detail;
+  const termin = `${leistungsartLabel[leistung.kind]} · ${formatIsoDate(leistung.datum)}`;
+  const gewicht =
+    leistung.gewicht === 1 ? '' : ` · Gewicht ${leistung.gewicht}`;
   return (
     <dl className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-      <div>
-        <dt className="sr-only">
-          {leistung.status === 'graded' ? 'Note' : 'Stand'}
-        </dt>
-        <dd className="font-display text-4xl text-ink tracking-tight">
-          {leistung.status === 'graded'
-            ? formatNote(leistung.wert, halbjahr.system)
-            : 'ausstehend'}
-        </dd>
-      </div>
-      <div>
-        <dt className="sr-only">Termin</dt>
-        <dd className="text-ink-muted">
-          {leistungsartLabel[leistung.kind]} · {formatIsoDate(leistung.datum)}
-          {leistung.gewicht === 1 ? '' : ` · Gewicht ${leistung.gewicht}`}
-        </dd>
-      </div>
+      {leistung.status === 'graded' ? (
+        <>
+          <div>
+            <dt className="sr-only">Note</dt>
+            <dd className="font-display text-4xl text-ink tracking-tight">
+              {formatNote(leistung.wert, halbjahr.system)}
+            </dd>
+          </div>
+          <div>
+            <dt className="sr-only">Termin</dt>
+            <dd className="text-ink-muted">
+              {termin}
+              {gewicht}
+            </dd>
+          </div>
+        </>
+      ) : (
+        <>
+          <div>
+            <dt className="sr-only">Termin</dt>
+            <dd className="font-display text-2xl text-ink tracking-tight">
+              {termin} ·{' '}
+              {tageBisText(daysBetween(berlinCalendarDate(), leistung.datum))}
+            </dd>
+          </div>
+          <div>
+            <dt className="sr-only">Stand</dt>
+            <dd className="text-ink-muted">
+              ausstehend
+              {gewicht}
+            </dd>
+          </div>
+        </>
+      )}
       <div>
         <dt className="sr-only">Halbjahr</dt>
         <dd className="text-ink-faint">
@@ -66,19 +98,44 @@ const Facts = ({ detail }: { readonly detail: Detail }) => {
 };
 
 /**
+ * Eine benotete Leistung wird bearbeitet — ein Stift genügt. Eine
+ * ausstehende wartet auf ihre Note; das ist die Handlung der Seite und
+ * steht in Worten.
+ */
+const HeaderAction = ({
+  graded,
+  onEdit,
+}: {
+  readonly graded: boolean;
+  readonly onEdit: () => void;
+}) =>
+  graded ? (
+    <IconButton icon={Pencil} label="Bearbeiten" onClick={onEdit} />
+  ) : (
+    <button className={secondaryButtonClass} onClick={onEdit} type="button">
+      Note eintragen
+    </button>
+  );
+
+/**
  * Die Seite einer Leistung: die Fakten, auf Wunsch das Notenformular — hier
- * wird eine ausstehende Klausur zur Note — und darunter die Vorbereitung.
+ * wird eine ausstehende Klausur zur Note —, der Lerntag und darunter die
+ * Vorbereitung. Der Lerntag kommt als Baustein von außen: er gehört zum
+ * Lernen-Feature, und Features importieren einander nicht.
  */
 export const LeistungDetail = ({
   faecher,
   leistungId,
   leistungOperations,
+  lerntag,
   notenOperations,
 }: {
   /** Der wählbare Fachstand des Schuljahrs; null, solange er lädt. */
   readonly faecher: FachList | null;
   readonly leistungId: string;
   readonly leistungOperations: LeistungOperations;
+  /** Der Lerntag-Baustein für eine planbare Leistung. */
+  readonly lerntag: (detail: Detail) => ReactNode;
   readonly notenOperations: NotenOperations;
 }) => {
   const queryClient = useQueryClient();
@@ -142,13 +199,10 @@ export const LeistungDetail = ({
           text={`${leistungsartLabel[leistung.kind]} ${leistung.fachName}`}
         />
         {editing ? null : (
-          <button
-            className={quietButtonClass}
-            onClick={() => setEditing(true)}
-            type="button"
-          >
-            {leistung.status === 'graded' ? 'Bearbeiten' : 'Note eintragen'}
-          </button>
+          <HeaderAction
+            graded={leistung.status === 'graded'}
+            onEdit={() => setEditing(true)}
+          />
         )}
       </div>
       {editing ? (
@@ -185,13 +239,16 @@ export const LeistungDetail = ({
         <Facts detail={detail} />
       )}
       {isPlanbar(leistung.kind) ? (
-        <PreparationPanel
-          halbjahrId={halbjahr.id}
-          kind={leistung.kind}
-          leistungId={leistung.id}
-          operations={leistungOperations}
-          preparation={leistung.preparation}
-        />
+        <>
+          {lerntag(detail)}
+          <PreparationPanel
+            halbjahrId={halbjahr.id}
+            kind={leistung.kind}
+            leistungId={leistung.id}
+            operations={leistungOperations}
+            preparation={leistung.preparation}
+          />
+        </>
       ) : null}
     </>
   );

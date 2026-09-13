@@ -80,7 +80,7 @@ describe('NoteRow', () => {
     expect(markup).toContain(
       'aria-label="Note 2, Klausur vom 01.01.2026, Eintrag 1 wird gelöscht …"',
     );
-    expect(markup).toContain('>Wird gelöscht …<');
+    expect(markup).toContain('aria-busy="true"');
     expect(markup).not.toContain('gelöscht …:');
   });
 

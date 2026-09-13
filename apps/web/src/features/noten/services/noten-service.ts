@@ -2,7 +2,14 @@ import { SqlClient } from '@effect/sql/SqlClient';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
+import {
+  halbjahrTable,
+  noteTable,
+  studyDayGradeTable,
+  studyDayTable,
+} from '#/shared/db/schema.ts';
+import type { StudyRecency } from '#/shared/lernen/study-recency.ts';
+import { studyRecency } from '#/shared/lernen/study-recency.ts';
 import { isGraded } from '#/shared/noten/graded-rows.ts';
 import type {
   Fachgewichtung,
@@ -111,10 +118,15 @@ export type LeistungDetail = {
     readonly schoolYear: string;
     readonly label: string;
   };
+  /** Wann zuletzt für diese Leistung gelernt wurde. */
+  readonly lernen: StudyRecency;
 };
 
-/** Eine Leistung samt ihrem Halbjahr — die Datenbasis der Detailseite. */
-export const loadLeistung = (id: string) =>
+/**
+ * Eine Leistung samt ihrem Halbjahr und ihren Lerntagen — die Datenbasis der
+ * Detailseite. `today` kommt von außen, damit der Abstand prüfbar bleibt.
+ */
+export const loadLeistung = (id: string, today: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
     const rows = yield* db
@@ -133,6 +145,14 @@ export const loadLeistung = (id: string) =>
     if (fach === undefined) {
       return yield* Effect.fail(new NoteNotFound({ noteId: id }));
     }
+    const studyDays = yield* db
+      .select({ day: studyDayTable.day })
+      .from(studyDayTable)
+      .innerJoin(
+        studyDayGradeTable,
+        eq(studyDayGradeTable.studyDayId, studyDayTable.id),
+      )
+      .where(eq(studyDayGradeTable.gradeId, id));
     return {
       leistung: toLeistung(row.note, fach),
       halbjahr: {
@@ -143,6 +163,10 @@ export const loadLeistung = (id: string) =>
         schoolYear: row.halbjahr.schoolYear,
         label: formatHalbjahrLabel(row.halbjahr),
       },
+      lernen: studyRecency(
+        studyDays.map((entry) => entry.day),
+        today,
+      ),
     } satisfies LeistungDetail;
   });
 

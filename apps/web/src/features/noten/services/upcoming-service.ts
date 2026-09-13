@@ -3,7 +3,12 @@ import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
-import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
+import {
+  halbjahrTable,
+  noteTable,
+  studyDayGradeTable,
+  studyDayTable,
+} from '#/shared/db/schema.ts';
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import type { UpcomingHalbjahr } from './upcoming-calculation.ts';
@@ -19,6 +24,22 @@ export const loadUpcoming = Effect.gen(function* () {
     .select({ note: noteTable, halbjahr: halbjahrTable })
     .from(noteTable)
     .innerJoin(halbjahrTable, eq(noteTable.termId, halbjahrTable.id));
+  const studyDays = yield* db
+    .select({ day: studyDayTable.day, gradeId: studyDayGradeTable.gradeId })
+    .from(studyDayGradeTable)
+    .innerJoin(
+      studyDayTable,
+      eq(studyDayTable.id, studyDayGradeTable.studyDayId),
+    );
+  const studyDaysByLeistung = new Map<string, Array<string>>();
+  for (const { day, gradeId } of studyDays) {
+    if (gradeId !== null) {
+      studyDaysByLeistung.set(gradeId, [
+        ...(studyDaysByLeistung.get(gradeId) ?? []),
+        day,
+      ]);
+    }
+  }
   const halbjahre = new Map<string, UpcomingHalbjahr>();
   const faecherBySchoolYear = new Map<string, ReadonlyArray<SchoolYearFach>>();
   for (const { halbjahr } of rows) {
@@ -30,8 +51,8 @@ export const loadUpcoming = Effect.gen(function* () {
       );
     }
   }
-  return calculateUpcoming(
-    rows.map(({ note }) => ({
+  return calculateUpcoming({
+    rows: rows.map(({ note }) => ({
       id: note.id,
       termId: note.termId,
       fachId: note.subjectId,
@@ -43,6 +64,7 @@ export const loadUpcoming = Effect.gen(function* () {
     })),
     halbjahre,
     faecherBySchoolYear,
-    berlinCalendarDate(),
-  );
+    studyDaysByLeistung,
+    today: berlinCalendarDate(),
+  });
 });

@@ -108,12 +108,12 @@ describe('NotenCards', () => {
   });
 
   it('blendet Löschen nur für die Note aus, die gerade bearbeitet wird', () => {
-    expect(cards('A').match(/>Löschen</gu)).toHaveLength(1);
-    expect(cards(null).match(/>Löschen</gu)).toHaveLength(2);
+    expect(cards('A').match(/aria-label="Löschen: /gu)).toHaveLength(1);
+    expect(cards(null).match(/aria-label="Löschen: /gu)).toHaveLength(2);
   });
 
   it('bietet jede Note zum Bearbeiten an', () => {
-    expect(cards(null).match(/>Bearbeiten</gu)).toHaveLength(2);
+    expect(cards(null).match(/aria-label="Bearbeiten: /gu)).toHaveLength(2);
   });
 
   it('benennt zwei ununterscheidbare Noten derselben Karte verschieden', () => {

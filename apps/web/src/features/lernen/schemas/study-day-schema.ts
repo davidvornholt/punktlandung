@@ -10,6 +10,8 @@ export const StudyDayInput = Schema.Struct({
   day: Schema.String.pipe(Schema.pattern(isoDatePattern)),
   /** Optional einem Fach zugeordnet; null = allgemeiner Lerntag. */
   subjectId: Schema.NullOr(Schema.String),
+  /** Optional einer Leistung dieses Fachs gewidmet: „heute dafür gelernt". */
+  gradeId: Schema.NullOr(Schema.String),
   minutes: Schema.NullOr(
     Schema.Int.pipe(
       Schema.positive(),

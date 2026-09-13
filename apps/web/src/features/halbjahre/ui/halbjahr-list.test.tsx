@@ -169,7 +169,7 @@ describe('HalbjahrList deletion rendering', () => {
     );
 
     expect(markup.match(/disabled=""/gu)).toHaveLength(2);
-    expect(markup.match(/Wird gelöscht …/gu)).toHaveLength(1);
+    expect(markup.match(/aria-busy="true"/gu)).toHaveLength(1);
   });
 
   it('retains the row error after stale eligibility refreshes to occupied', () => {
@@ -193,9 +193,9 @@ describe('HalbjahrList deletion rendering', () => {
         />,
       );
 
-    expect(render(0)).toContain('>Löschen</button>');
+    expect(render(0)).toContain('aria-label="Löschen"');
     const refreshed = render(2);
-    expect(refreshed).not.toContain('>Löschen</button>');
+    expect(refreshed).not.toContain('aria-label="Löschen"');
     expect(refreshed).toContain('Enthält 2 Noten');
     expect(refreshed).toContain('role="alert"');
   });

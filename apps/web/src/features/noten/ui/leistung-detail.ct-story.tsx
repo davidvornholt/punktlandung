@@ -93,6 +93,7 @@ export const LeistungDetailStory = ({
         Promise.resolve({
           halbjahr,
           leistung: leistungRef.current,
+          lernen: { daysAgo: 4, inLastWeek: 1 },
         } satisfies Detail),
       loadTemplates: () =>
         Promise.resolve({
@@ -139,6 +140,7 @@ export const LeistungDetailStory = ({
                 faecher={faecher}
                 leistungId="k-1"
                 leistungOperations={leistungOperations}
+                lerntag={() => <p>Lerntag-Baustein</p>}
                 notenOperations={notenOperations}
               />
             </main>

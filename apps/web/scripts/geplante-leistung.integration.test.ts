@@ -4,6 +4,7 @@ import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
 import type { Pool } from 'pg';
 
+import { logStudyDay } from '#/features/lernen/services/learning-service.ts';
 import {
   createNote,
   listNoten,
@@ -164,7 +165,7 @@ describe('Vorbereitung einer Leistung', () => {
       await provided(
         updatePreparation({ id: planned.id, preparation: markdown }),
       );
-      const detail = await provided(loadLeistung(planned.id));
+      const detail = await provided(loadLeistung(planned.id, '2026-10-01'));
       expect(detail.leistung.preparation).toBe(markdown);
       expect(detail.halbjahr.label).toBe('10.1');
 
@@ -174,7 +175,8 @@ describe('Vorbereitung einer Leistung', () => {
 
       await provided(updateNote({ ...fields, id: planned.id, wert: 2 }));
       expect(
-        (await provided(loadLeistung(planned.id))).leistung.preparation,
+        (await provided(loadLeistung(planned.id, '2026-10-01'))).leistung
+          .preparation,
       ).toBe(markdown);
 
       const missing = await provided(
@@ -184,7 +186,112 @@ describe('Vorbereitung einer Leistung', () => {
       );
       expect(missing._tag).toBe('NoteNichtGefunden');
     }));
+});
 
+describe('Lerntage einer Leistung', () => {
+  it('widmet einen Lerntag der Leistung, ohne ihn einem allgemeinen Lerntag zu opfern', () =>
+    withSeededDatabase(async (provided, pool) => {
+      await provided(createNote(fields));
+      const firstPlanned = (await provided(listNoten(termId))).find(
+        (note) => note.status === 'planned',
+      );
+      if (firstPlanned === undefined) {
+        throw new Error('Die erste ausstehende Klausur fehlt.');
+      }
+
+      await provided(createNote(fields));
+      const planned = (await provided(listNoten(termId))).filter(
+        (note) => note.status === 'planned',
+      );
+      const secondPlanned = planned.find((note) => note.id !== firstPlanned.id);
+      if (secondPlanned === undefined) {
+        throw new Error('Die zweite ausstehende Klausur fehlt.');
+      }
+
+      const lerntag = {
+        subjectId: 'mathe',
+        minutes: null,
+        notiz: null,
+      };
+
+      await provided(
+        logStudyDay({
+          ...lerntag,
+          gradeId: firstPlanned.id,
+          day: '2026-09-25',
+        }),
+      );
+      await Promise.all([
+        provided(
+          logStudyDay({
+            ...lerntag,
+            gradeId: firstPlanned.id,
+            day: '2026-09-28',
+          }),
+        ),
+        provided(
+          logStudyDay({
+            ...lerntag,
+            gradeId: secondPlanned.id,
+            day: '2026-09-28',
+          }),
+        ),
+      ]);
+      // Ein wiederholter Eintrag bleibt idempotent.
+      await provided(
+        logStudyDay({
+          ...lerntag,
+          gradeId: firstPlanned.id,
+          day: '2026-09-28',
+        }),
+      );
+      // Ein allgemeiner Lerntag für Mathe am selben Tag nimmt der Klausur den Tag nicht.
+      await provided(
+        logStudyDay({ ...lerntag, day: '2026-09-28', gradeId: null }),
+      );
+
+      const firstDetail = await provided(
+        loadLeistung(firstPlanned.id, '2026-09-30'),
+      );
+      expect(firstDetail.lernen).toEqual({ daysAgo: 2, inLastWeek: 2 });
+      const secondDetail = await provided(
+        loadLeistung(secondPlanned.id, '2026-09-30'),
+      );
+      expect(secondDetail.lernen).toEqual({ daysAgo: 2, inLastWeek: 1 });
+      expect(
+        (await pool.query('SELECT count(*)::int AS count FROM study_day')).rows,
+      ).toEqual([{ count: 2 }]);
+
+      const upcoming = await provided(loadUpcoming);
+      const [entry] = [...upcoming.upcoming, ...upcoming.overdue];
+      expect(entry?.lernen.inLastWeek).toBeGreaterThanOrEqual(0);
+
+      await pool.query('DELETE FROM grade WHERE id = $1', [firstPlanned.id]);
+      expect(
+        (
+          await pool.query(
+            `SELECT sd.day, sdg.grade_id AS "gradeId"
+               FROM study_day_grade sdg
+               JOIN study_day sd ON sd.id = sdg.study_day_id
+              ORDER BY sd.day, sdg.grade_id`,
+          )
+        ).rows,
+      ).toEqual([{ day: '2026-09-28', gradeId: secondPlanned.id }]);
+      expect(
+        (await pool.query('SELECT count(*)::int AS count FROM study_day')).rows,
+      ).toEqual([{ count: 2 }]);
+      await pool.query('DELETE FROM grade WHERE id = $1', [secondPlanned.id]);
+      expect(
+        (await pool.query('SELECT count(*)::int AS count FROM study_day_grade'))
+          .rows,
+      ).toEqual([{ count: 0 }]);
+      expect(
+        (await pool.query('SELECT count(*)::int AS count FROM study_day')).rows,
+      ).toEqual([{ count: 2 }]);
+    }));
+});
+
+describe('Vorbereitungsvorlagen einer Leistung', () => {
   it('liefert für jede planbare Art eine Vorlage und merkt sich eine geänderte', () =>
     withSeededDatabase(async (provided) => {
       const defaults = await provided(loadPreparationTemplates);

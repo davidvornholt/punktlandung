@@ -4,6 +4,8 @@ import type { Components } from 'react-markdown';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { Checkbox } from '#/shared/ui/checkbox.tsx';
+
 type Node = {
   readonly position?: { readonly start?: { readonly line?: number } };
   readonly tagName?: string;
@@ -46,6 +48,13 @@ const TaskLineContext = createContext<{
   readonly label: string;
 } | null>(null);
 
+/**
+ * Der Umschalter kommt per Kontext statt als Argument: so bleibt die
+ * Komponententabelle eine Konstante, und React baut die gerenderte Liste bei
+ * jedem Haken nur um, statt sie neu aufzusetzen.
+ */
+const ToggleContext = createContext<(line: number) => void>(() => undefined);
+
 /** Ob ein Listenpunkt ein abgehaktes Thema ist — sein erstes Kind ist das Kästchen. */
 const isCheckedTopic = (node: unknown): boolean => {
   const first = (node as Node | undefined)?.children?.find(
@@ -64,13 +73,7 @@ const headingClass = 'mt-6 mb-2 font-display text-ink tracking-tight';
  * Elemente bekommen ihre Utilities hier, weil sie sonst nirgends Klassen
  * tragen könnten.
  */
-const typography = ({
-  onToggle,
-  pending,
-}: {
-  readonly onToggle: (line: number) => void;
-  readonly pending: boolean;
-}): Components => ({
+const typography: Components = {
   h1: ({ node: _node, ...rest }: WithNode<'h1'>) => (
     <h2 {...rest} className={`${headingClass} text-2xl`} />
   ),
@@ -131,22 +134,21 @@ const typography = ({
   ),
   input: ({ node: _node, checked, type, ...rest }: WithNode<'input'>) => {
     const task = useContext(TaskLineContext);
+    const onToggle = useContext(ToggleContext);
     if (type !== 'checkbox' || task === null || task.line === null) {
       return <input {...rest} checked={checked} type={type} />;
     }
     const { line } = task;
     return (
-      <input
+      <Checkbox
         aria-label={`${checked ? 'Thema sicher' : 'Thema offen'}: ${task.label}`}
         checked={checked === true}
-        className="size-4 shrink-0 translate-y-0.5 accent-primary"
-        disabled={pending}
+        className="translate-y-0.5"
         onChange={() => onToggle(line)}
-        type="checkbox"
       />
     );
   },
-});
+};
 
 /**
  * Rendert die Vorbereitung. Rohes HTML rendert react-markdown nicht; die
@@ -157,17 +159,14 @@ const typography = ({
 export const ThemenMarkdown = ({
   markdown,
   onToggle,
-  pending,
 }: {
   readonly markdown: string;
   /** Schaltet die Aufgabenzeile mit dieser 1-basierten Zeilennummer um. */
   readonly onToggle: (line: number) => void;
-  readonly pending: boolean;
 }) => (
-  <Markdown
-    components={typography({ onToggle, pending })}
-    remarkPlugins={[remarkGfm]}
-  >
-    {markdown}
-  </Markdown>
+  <ToggleContext.Provider value={onToggle}>
+    <Markdown components={typography} remarkPlugins={[remarkGfm]}>
+      {markdown}
+    </Markdown>
+  </ToggleContext.Provider>
 );

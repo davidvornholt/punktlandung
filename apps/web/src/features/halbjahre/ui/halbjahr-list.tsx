@@ -1,3 +1,4 @@
+import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { formatIsoDate } from '#/shared/date/calendar-date.ts';
@@ -6,6 +7,7 @@ import { notensystemText } from '#/shared/noten/notensystem-text.ts';
 import { formatHalbjahrLabel } from '#/shared/school/klassenstufe.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
+import { IconButton } from '#/shared/ui/icon-button.tsx';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import { listMutationState } from '#/shared/ui/list-mutation.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
@@ -30,6 +32,41 @@ const deletionLabel = (
   }
   return decision._tag === 'confirmation' ? 'Wirklich löschen' : 'Löschen';
 };
+
+/**
+ * Der Löschknopf: als Symbol, solange nichts entschieden ist; als Text,
+ * sobald die Nachfrage steht — ein zerstörender zweiter Klick soll lesbar
+ * sein, nicht nur erkennbar.
+ */
+const DeleteButton = ({
+  decision,
+  disabled,
+  isDeleting,
+  onClick,
+}: {
+  readonly decision: HalbjahrDeletionDecision;
+  readonly disabled: boolean;
+  readonly isDeleting: boolean;
+  readonly onClick: (event: { currentTarget: HTMLButtonElement }) => void;
+}) =>
+  decision._tag === 'confirmation' ? (
+    <button
+      className={quietButtonClass}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      {deletionLabel(isDeleting, decision)}
+    </button>
+  ) : (
+    <IconButton
+      disabled={disabled}
+      icon={Trash2}
+      label={deletionLabel(isDeleting, decision)}
+      onClick={onClick}
+      pending={isDeleting}
+    />
+  );
 
 export const HalbjahrRow = ({
   decision,
@@ -70,20 +107,19 @@ export const HalbjahrRow = ({
       {formatIsoDate(halbjahr.startsOn)} bis {formatIsoDate(halbjahr.endsOn)} ·{' '}
       {notensystemText(halbjahr.system)}
     </p>
-    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-2">
-      <button
-        className={quietButtonClass}
+    <div className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-2">
+      <IconButton
         data-halbjahr-edit-trigger={true}
+        icon={Pencil}
+        label={`Bearbeiten: ${formatHalbjahrLabel(halbjahr)}`}
         onClick={(event) => onEdit(event.currentTarget)}
-        type="button"
-      >
-        Bearbeiten
-      </button>
+      />
       {halbjahr.notenCount === 0 ? (
         <>
-          <button
-            className={quietButtonClass}
+          <DeleteButton
+            decision={decision}
             disabled={isDeletionInProgress}
+            isDeleting={isDeleting}
             onClick={(event) => {
               const result = advanceHalbjahrDeletion(
                 decision,
@@ -100,10 +136,7 @@ export const HalbjahrRow = ({
                 });
               }
             }}
-            type="button"
-          >
-            {deletionLabel(isDeleting, decision)}
-          </button>
+          />
           {decision._tag === 'confirmation' ? (
             <button
               className={quietButtonClass}
