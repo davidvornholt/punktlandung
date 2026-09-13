@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { faecherQueryOptions } from '#/features/faecher/server/fach-fns.ts';
+import { logLerntagFn } from '#/features/lernen/server/lernen-fns.ts';
+import { LearnedForLeistung } from '#/features/lernen/ui/learned-for-leistung.tsx';
 import { LeistungDetail } from '#/features/noten/ui/leistung-detail.tsx';
 import { liveLeistungOperations } from '#/features/noten/ui/leistung-operations.ts';
 import { liveNotenOperations } from '#/features/noten/ui/noten-operations.ts';
@@ -29,6 +31,14 @@ const LeistungPage = () => {
       faecher={faecherQuery.data ?? null}
       leistungId={id}
       leistungOperations={liveLeistungOperations}
+      lerntag={(detail) => (
+        <LearnedForLeistung
+          fachId={detail.leistung.fachId}
+          leistungId={detail.leistung.id}
+          lernen={detail.lernen}
+          log={(input) => logLerntagFn({ data: input })}
+        />
+      )}
       notenOperations={liveNotenOperations}
     />
   );

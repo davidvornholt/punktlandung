@@ -4,6 +4,7 @@ import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
 import type { Pool } from 'pg';
 
+import { logStudyDay } from '#/features/lernen/services/learning-service.ts';
 import {
   createNote,
   listNoten,
@@ -164,7 +165,7 @@ describe('Vorbereitung einer Leistung', () => {
       await provided(
         updatePreparation({ id: planned.id, preparation: markdown }),
       );
-      const detail = await provided(loadLeistung(planned.id));
+      const detail = await provided(loadLeistung(planned.id, '2026-10-01'));
       expect(detail.leistung.preparation).toBe(markdown);
       expect(detail.halbjahr.label).toBe('10.1');
 
@@ -174,7 +175,8 @@ describe('Vorbereitung einer Leistung', () => {
 
       await provided(updateNote({ ...fields, id: planned.id, wert: 2 }));
       expect(
-        (await provided(loadLeistung(planned.id))).leistung.preparation,
+        (await provided(loadLeistung(planned.id, '2026-10-01'))).leistung
+          .preparation,
       ).toBe(markdown);
 
       const missing = await provided(
@@ -183,6 +185,49 @@ describe('Vorbereitung einer Leistung', () => {
         ),
       );
       expect(missing._tag).toBe('NoteNichtGefunden');
+    }));
+
+  it('widmet einen Lerntag der Leistung, ohne ihn einem allgemeinen Lerntag zu opfern', () =>
+    withSeededDatabase(async (provided, pool) => {
+      await provided(createNote(fields));
+      const planned = (await provided(listNoten(termId))).find(
+        (note) => note.status === 'planned',
+      );
+      if (planned === undefined) {
+        throw new Error('Die ausstehende Klausur fehlt.');
+      }
+      const lerntag = {
+        subjectId: 'mathe',
+        gradeId: planned.id,
+        minutes: null,
+        notiz: null,
+      };
+
+      await provided(logStudyDay({ ...lerntag, day: '2026-09-25' }));
+      await provided(logStudyDay({ ...lerntag, day: '2026-09-28' }));
+      // Ein allgemeiner Lerntag für Mathe am selben Tag nimmt der Klausur den Tag nicht.
+      await provided(
+        logStudyDay({ ...lerntag, day: '2026-09-28', gradeId: null }),
+      );
+
+      const detail = await provided(loadLeistung(planned.id, '2026-09-30'));
+      expect(detail.lernen).toEqual({ daysAgo: 2, inLastWeek: 2 });
+      expect(
+        (await pool.query('SELECT count(*)::int AS count FROM study_day')).rows,
+      ).toEqual([{ count: 2 }]);
+
+      const upcoming = await provided(loadUpcoming);
+      const [entry] = [...upcoming.upcoming, ...upcoming.overdue];
+      expect(entry?.lernen.inLastWeek).toBeGreaterThanOrEqual(0);
+
+      await pool.query('DELETE FROM grade WHERE id = $1', [planned.id]);
+      expect(
+        (
+          await pool.query(
+            'SELECT grade_id AS "gradeId" FROM study_day ORDER BY day',
+          )
+        ).rows,
+      ).toEqual([{ gradeId: null }, { gradeId: null }]);
     }));
 
   it('liefert für jede planbare Art eine Vorlage und merkt sich eine geänderte', () =>

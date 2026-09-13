@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useId } from 'react';
 
+import { studyRecencyText } from '#/shared/lernen/study-recency.ts';
 import { upcomingKey } from '#/shared/query/query-keys.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import type {
@@ -34,6 +35,9 @@ const UpcomingRow = ({ leistung }: { readonly leistung: UpcomingLeistung }) => (
     <span className="ml-auto flex flex-wrap gap-x-3 text-ink-faint text-sm">
       <span>{topicsText(leistung.topics)}</span>
       <span>{fachschnittText(leistung)}</span>
+    </span>
+    <span className="basis-full text-ink-faint text-sm">
+      {studyRecencyText(leistung.lernen)}
     </span>
   </li>
 );

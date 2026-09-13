@@ -144,13 +144,22 @@ export const preparationTemplateTable = pgTable('preparation_template', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-/** Lerntage: ein Eintrag pro Tag und (optional) Fach. */
+/**
+ * Lerntage: ein Eintrag pro Tag und (optional) Fach. Der Eintrag kann einer
+ * Leistung gelten — dann heißt er „heute dafür gelernt" und zählt nur den
+ * Tag, nie die Zeit; die bleibt im Zeiterfassungswerkzeug. Zwei Leistungen
+ * desselben Fachs am selben Tag teilen sich eine Zeile; die zuletzt
+ * eingetragene gewinnt.
+ */
 export const studyDayTable = pgTable(
   'study_day',
   {
     id: text('id').primaryKey(),
     day: date('day').notNull(),
     subjectId: text('subject_id').references(() => fachTable.id, {
+      onDelete: 'set null',
+    }),
+    gradeId: text('grade_id').references(() => noteTable.id, {
       onDelete: 'set null',
     }),
     minutes: integer('minutes'),

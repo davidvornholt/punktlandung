@@ -27,6 +27,12 @@ export const leistungKey = (id: string) => [...leistungKeyPrefix, id] as const;
 export const preparationTemplatesKey = ['preparation-templates'] as const;
 
 /**
+ * Die Lernstatistik der Übersicht. Ein Lerntag für eine Leistung zählt auch
+ * dort mit, deshalb liegt der Schlüssel hier und nicht im Lernen-Feature.
+ */
+export const learningStatisticsKey = ['learning-statistics'] as const;
+
+/**
  * Die Zeugnisvorschau eines Halbjahrs enthält die Jahresvorschau, die aus den
  * Noten beider Halbjahre des Schuljahrs entsteht. Eine geänderte Note veraltet
  * deshalb auch die Zeugnisabfrage des Geschwisterhalbjahrs.

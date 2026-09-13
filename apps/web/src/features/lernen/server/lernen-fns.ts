@@ -4,6 +4,7 @@ import { Schema } from 'effect';
 
 import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { learningStatisticsKey } from '#/shared/query/query-keys.ts';
 import { runtime } from '#/shared/runtime.ts';
 import { StudyDayInput } from '../schemas/study-day-schema.ts';
 import {
@@ -28,6 +29,6 @@ export const listLerntageFn = createServerFn({ method: 'GET' })
   .handler(() => runtime.runPromise(listStudyDays()));
 
 export const learningStatisticsQueryOptions = queryOptions({
-  queryKey: ['learning-statistics'],
+  queryKey: learningStatisticsKey,
   queryFn: () => lernStatistikFn(),
 });

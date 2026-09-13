@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { learningStatisticsKey } from '#/shared/query/query-keys.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
   inputClass,
@@ -24,12 +25,13 @@ export const LearnedToday = () => {
         data: {
           day: berlinCalendarDate(),
           subjectId: null,
+          gradeId: null,
           minutes,
           notiz: null,
         },
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['learning-statistics'] }),
+      queryClient.invalidateQueries({ queryKey: learningStatisticsKey }),
   });
 
   return (

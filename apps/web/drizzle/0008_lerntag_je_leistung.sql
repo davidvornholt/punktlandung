@@ -1,0 +1,2 @@
+ALTER TABLE "study_day" ADD COLUMN "grade_id" text;--> statement-breakpoint
+ALTER TABLE "study_day" ADD CONSTRAINT "study_day_grade_id_grade_id_fk" FOREIGN KEY ("grade_id") REFERENCES "public"."grade"("id") ON DELETE set null ON UPDATE no action;

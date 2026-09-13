@@ -1,4 +1,6 @@
 import { daysBetween } from '#/shared/date/calendar-date.ts';
+import type { StudyRecency } from '#/shared/lernen/study-recency.ts';
+import { studyRecency } from '#/shared/lernen/study-recency.ts';
 import type { TopicProgress } from '#/shared/markdown/task-lines.ts';
 import { topicProgress } from '#/shared/markdown/task-lines.ts';
 import { byDringlichkeit } from '#/shared/noten/dringlichkeit.ts';
@@ -49,6 +51,8 @@ export type UpcomingLeistung = {
   readonly fachschnitt: number | null;
   /** Fortschritt der Themenliste; null, solange keine Vorbereitung angelegt ist. */
   readonly topics: TopicProgress | null;
+  /** Wann zuletzt für diese Leistung gelernt wurde. */
+  readonly lernen: StudyRecency;
   readonly system: Notensystem;
   readonly termId: string;
   readonly halbjahrLabel: string;
@@ -84,12 +88,23 @@ const groupByFach = (rows: ReadonlyArray<UpcomingRow>) => {
  * Halbjahr, auch den ausstehenden — wer den Klausurenplan früh einträgt,
  * bekommt so eine Reihenfolge, die schon stimmt.
  */
-export const calculateUpcoming = (
-  rows: ReadonlyArray<UpcomingRow>,
-  halbjahre: ReadonlyMap<string, UpcomingHalbjahr>,
-  faecherBySchoolYear: ReadonlyMap<string, ReadonlyArray<SchoolYearFach>>,
-  today: string,
-): Upcoming => {
+export const calculateUpcoming = ({
+  rows,
+  halbjahre,
+  faecherBySchoolYear,
+  studyDaysByLeistung,
+  today,
+}: {
+  readonly rows: ReadonlyArray<UpcomingRow>;
+  readonly halbjahre: ReadonlyMap<string, UpcomingHalbjahr>;
+  readonly faecherBySchoolYear: ReadonlyMap<
+    string,
+    ReadonlyArray<SchoolYearFach>
+  >;
+  /** Lerntage je Leistung, als ISO-Tage. */
+  readonly studyDaysByLeistung: ReadonlyMap<string, ReadonlyArray<string>>;
+  readonly today: string;
+}): Upcoming => {
   const groups = groupByFach(rows);
   const ranked = rows.flatMap((row) => {
     const halbjahr = halbjahre.get(row.termId);
@@ -137,6 +152,7 @@ export const calculateUpcoming = (
           fachschnitt,
           topics:
             row.preparation === null ? null : topicProgress(row.preparation),
+          lernen: studyRecency(studyDaysByLeistung.get(row.id) ?? [], today),
           system: halbjahr.system,
           termId: halbjahr.id,
           halbjahrLabel: formatHalbjahrLabel(halbjahr),

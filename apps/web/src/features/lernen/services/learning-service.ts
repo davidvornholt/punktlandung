@@ -6,7 +6,11 @@ import { studyDayTable } from '#/shared/db/schema.ts';
 import type { StudyDayInput } from '../schemas/study-day-schema.ts';
 import { calculateLearningStatistics } from './learning-statistics.ts';
 
-/** Ein Eintrag pro Tag und Fach: vorhandene Einträge werden aktualisiert. */
+/**
+ * Ein Eintrag pro Tag und Fach: vorhandene Einträge werden aktualisiert. Ein
+ * allgemeiner Lerntag für das Fach nimmt einer schon eingetragenen Leistung
+ * ihren Tag nicht wieder weg.
+ */
 export const logStudyDay = (input: StudyDayInput) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
@@ -16,12 +20,14 @@ export const logStudyDay = (input: StudyDayInput) =>
         id: crypto.randomUUID(),
         day: input.day,
         subjectId: input.subjectId,
+        gradeId: input.gradeId,
         minutes: input.minutes,
         note: input.notiz,
       })
       .onConflictDoUpdate({
         target: [studyDayTable.day, studyDayTable.subjectId],
         set: {
+          gradeId: sql`coalesce(excluded.grade_id, ${studyDayTable.gradeId})`,
           minutes: sql`excluded.minutes`,
           note: sql`excluded.note`,
         },

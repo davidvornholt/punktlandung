@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 
 import { formatIsoDate } from '#/shared/date/calendar-date.ts';
@@ -67,18 +68,23 @@ const Facts = ({ detail }: { readonly detail: Detail }) => {
 
 /**
  * Die Seite einer Leistung: die Fakten, auf Wunsch das Notenformular — hier
- * wird eine ausstehende Klausur zur Note — und darunter die Vorbereitung.
+ * wird eine ausstehende Klausur zur Note —, der Lerntag und darunter die
+ * Vorbereitung. Der Lerntag kommt als Baustein von außen: er gehört zum
+ * Lernen-Feature, und Features importieren einander nicht.
  */
 export const LeistungDetail = ({
   faecher,
   leistungId,
   leistungOperations,
+  lerntag,
   notenOperations,
 }: {
   /** Der wählbare Fachstand des Schuljahrs; null, solange er lädt. */
   readonly faecher: FachList | null;
   readonly leistungId: string;
   readonly leistungOperations: LeistungOperations;
+  /** Der Lerntag-Baustein für eine planbare Leistung. */
+  readonly lerntag: (detail: Detail) => ReactNode;
   readonly notenOperations: NotenOperations;
 }) => {
   const queryClient = useQueryClient();
@@ -185,13 +191,16 @@ export const LeistungDetail = ({
         <Facts detail={detail} />
       )}
       {isPlanbar(leistung.kind) ? (
-        <PreparationPanel
-          halbjahrId={halbjahr.id}
-          kind={leistung.kind}
-          leistungId={leistung.id}
-          operations={leistungOperations}
-          preparation={leistung.preparation}
-        />
+        <>
+          {lerntag(detail)}
+          <PreparationPanel
+            halbjahrId={halbjahr.id}
+            kind={leistung.kind}
+            leistungId={leistung.id}
+            operations={leistungOperations}
+            preparation={leistung.preparation}
+          />
+        </>
       ) : null}
     </>
   );

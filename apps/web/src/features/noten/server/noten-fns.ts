@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
 
 import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
+import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { trendKey } from '#/shared/query/query-keys.ts';
 import { runtime } from '#/shared/runtime.ts';
 import {
@@ -64,7 +65,9 @@ export const upcomingFn = createServerFn({ method: 'GET' })
 export const leistungFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
   .inputValidator(Schema.standardSchemaV1(NoteId))
-  .handler(({ data }) => runtime.runPromise(loadLeistung(data.id)));
+  .handler(({ data }) =>
+    runtime.runPromise(loadLeistung(data.id, berlinCalendarDate())),
+  );
 
 export const updatePreparationFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
