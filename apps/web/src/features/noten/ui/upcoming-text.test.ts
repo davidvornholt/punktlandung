@@ -20,6 +20,7 @@ const leistung = (
   fachName: 'Mathematik',
   fachKuerzel: 'M',
   fachschnitt: 11,
+  topics: null,
   system: 'punkte',
   termId: 'hj-1',
   halbjahrLabel: 'J1.1',

@@ -5,7 +5,7 @@ import {
   leistungsartLabel,
 } from '#/shared/noten/leistungsart-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { bereichDerLeistungsart } from '#/shared/noten/notenwert.ts';
+import { bereichDerLeistungsart, isPlanbar } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { quietButtonClass } from '#/shared/ui/form-classes.ts';
@@ -34,6 +34,16 @@ const noteLabel = (
     ? `Note ${formatNote(note.wert, system)}, ${leistungsartLabel[note.kind]} vom ${formatDisplayDate(note.datum)}, Eintrag ${position}`
     : `Ausstehende ${leistungsartLabel[note.kind]} am ${formatDisplayDate(note.datum)}, Eintrag ${position}`;
 
+/**
+ * Baut den Verweis auf die Seite einer Leistung. Er kommt von außen, weil er
+ * ein Router-Link ist und die Zeile sonst nur innerhalb eines Routers
+ * gerendert werden könnte — auch in Tests.
+ */
+export type PreparationLinkRenderer = (
+  note: Leistung,
+  label: string,
+) => ReactNode;
+
 /** Ein Fehler, der genau zu dieser Zeile gehört. */
 const RowError = ({
   error,
@@ -50,6 +60,38 @@ const RowError = ({
   </p>
 );
 
+/** Wert oder „ausstehend", Art, Datum und Notiz — der lesbare Teil der Zeile. */
+const RowSummary = ({
+  note,
+  system,
+}: {
+  readonly note: Leistung;
+  readonly system: Notensystem;
+}) => (
+  <>
+    {note.status === 'graded' ? (
+      <span className="font-display text-ink text-lg">
+        {formatNote(note.wert, system)}
+      </span>
+    ) : (
+      <span className="font-display text-ink-faint text-lg">ausstehend</span>
+    )}
+    <span className="text-ink-muted text-sm">
+      {leistungsartLabel[note.kind]}
+      {note.gewichtung.verhaeltnis === null
+        ? ''
+        : ` · ${bereichLabel[bereichDerLeistungsart[note.kind]]}`}
+      {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
+    </span>
+    <span className="text-ink-faint text-sm">
+      {formatDisplayDate(note.datum)}
+    </span>
+    {note.notiz === null ? null : (
+      <span className="text-ink-faint text-sm">{note.notiz}</span>
+    )}
+  </>
+);
+
 /** Eine Notenzeile mit ihren Aktionen und, beim Bearbeiten, dem Formular. */
 export const NoteRow = ({
   deleteMutation,
@@ -60,6 +102,7 @@ export const NoteRow = ({
   onDelete,
   onEdit,
   position,
+  preparationLink,
   savedError,
   system,
 }: {
@@ -71,6 +114,7 @@ export const NoteRow = ({
   readonly onDelete: (id: string) => void;
   readonly onEdit: (note: Leistung | null, trigger: HTMLButtonElement) => void;
   readonly position: number;
+  readonly preparationLink: PreparationLinkRenderer;
   readonly savedError: unknown;
   readonly system: Notensystem;
 }) => {
@@ -94,31 +138,17 @@ export const NoteRow = ({
     : `Löschen: ${label}`;
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
-      {note.status === 'graded' ? (
-        <span className="font-display text-ink text-lg">
-          {formatNote(note.wert, system)}
-        </span>
-      ) : (
-        <span className="font-display text-ink-faint text-lg">ausstehend</span>
-      )}
-      <span className="text-ink-muted text-sm">
-        {leistungsartLabel[note.kind]}
-        {note.gewichtung.verhaeltnis === null
-          ? ''
-          : ` · ${bereichLabel[bereichDerLeistungsart[note.kind]]}`}
-        {note.gewicht === 1 ? '' : ` · Gewicht ${note.gewicht}`}
-      </span>
-      <span className="text-ink-faint text-sm">
-        {formatDisplayDate(note.datum)}
-      </span>
-      {note.notiz === null ? null : (
-        <span className="text-ink-faint text-sm">{note.notiz}</span>
-      )}
+      <RowSummary note={note} system={system} />
+      {/*
+       * Nur Leistungen mit Termin haben eine Vorbereitung; der Verweis führt
+       * auf ihre Seite, wo Themenliste und Notenformular zusammenstehen.
+       */}
+      {isPlanbar(note.kind) ? preparationLink(note, label) : null}
       <button
         aria-controls={isEditing ? formId : undefined}
         aria-expanded={isEditing}
         aria-label={`Bearbeiten: ${label}`}
-        className={`${quietButtonClass} ml-auto`}
+        className={`${quietButtonClass} ${isPlanbar(note.kind) ? '' : 'ml-auto'}`}
         /*
          * Während ein Vorgang der Zeile läuft, führt der Knopf ins Leere: das
          * Schließen bräche das laufende Speichern nicht ab, die Änderung landete

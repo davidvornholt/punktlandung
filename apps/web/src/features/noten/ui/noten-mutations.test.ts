@@ -70,7 +70,14 @@ const setup = () => {
   return { held, onDeleted, onUpdated, onUpdateFailed, operations, options };
 };
 
-const expectedKeys = [['noten', 'hj-1'], ['trend'], ['upcoming'], ['zeugnis']];
+/** Alphabetisch, weil die Prüfung die Schlüssel sortiert vergleicht. */
+const expectedKeys = [
+  ['leistung'],
+  ['noten', 'hj-1'],
+  ['trend'],
+  ['upcoming'],
+  ['zeugnis'],
+];
 
 describe('notenMutationOptions', () => {
   it('schickt Änderung und Löschung an die Serveraufrufe', async () => {

@@ -15,6 +15,7 @@ const note: Leistung = {
   id: 'note-1',
   kind: 'klausur',
   notiz: null,
+  preparation: null,
   status: 'graded',
   wert: 2,
 };

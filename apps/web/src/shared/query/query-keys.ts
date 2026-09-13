@@ -19,6 +19,13 @@ export const trendKey = ['trend'] as const;
 /** Die ausstehenden Leistungen der Übersicht, über alle Halbjahre. */
 export const upcomingKey = ['upcoming'] as const;
 
+/** Eine einzelne Leistung samt Halbjahr — die Detailseite. */
+export const leistungKeyPrefix = ['leistung'] as const;
+
+export const leistungKey = (id: string) => [...leistungKeyPrefix, id] as const;
+
+export const preparationTemplatesKey = ['preparation-templates'] as const;
+
 /**
  * Die Zeugnisvorschau eines Halbjahrs enthält die Jahresvorschau, die aus den
  * Noten beider Halbjahre des Schuljahrs entsteht. Eine geänderte Note veraltet

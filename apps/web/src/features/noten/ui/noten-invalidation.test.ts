@@ -4,11 +4,12 @@ import { QueryClient } from '@tanstack/react-query';
 import { invalidateNotenQueries, notenQueries } from './noten-invalidation.ts';
 
 describe('notenQueries', () => {
-  it('umfasst Notenliste, Verlauf, Anstehendes und jede Zeugnisvorschau', () => {
+  it('umfasst Notenliste, Verlauf, Anstehendes, Detailseiten und jede Zeugnisvorschau', () => {
     expect(notenQueries('hj-1')).toEqual([
       ['noten', 'hj-1'],
       ['trend'],
       ['upcoming'],
+      ['leistung'],
       ['zeugnis'],
     ]);
   });
@@ -25,7 +26,13 @@ describe('invalidateNotenQueries', () => {
 
     expect(
       invalidateQueries.mock.calls.map(([selection]) => selection.queryKey),
-    ).toEqual([['noten', 'hj-1'], ['trend'], ['upcoming'], ['zeugnis']]);
+    ).toEqual([
+      ['noten', 'hj-1'],
+      ['trend'],
+      ['upcoming'],
+      ['leistung'],
+      ['zeugnis'],
+    ]);
   });
 
   /**

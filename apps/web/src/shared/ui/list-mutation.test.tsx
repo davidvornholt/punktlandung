@@ -33,6 +33,7 @@ const note = (id: string): Leistung => ({
   id,
   kind: 'klausur',
   notiz: `Ziel ${id}`,
+  preparation: null,
   status: 'graded',
   wert: 2,
 });
@@ -109,6 +110,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
         noten={noten}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        preparationLink={() => null}
         system="sechser"
         updateErrors={noUpdateErrors}
       />,
@@ -135,6 +137,7 @@ describe('geteilte Listenmutation in den verwendeten Komponenten', () => {
         noten={noten}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        preparationLink={() => null}
         system="sechser"
         updateErrors={noUpdateErrors}
       />,

@@ -43,6 +43,7 @@ const row = (
   wert: null,
   gewicht: 1,
   datum,
+  preparation: null,
   ...overrides,
 });
 
@@ -102,6 +103,27 @@ describe('calculateUpcoming', () => {
     expect(mathe?.fachschnitt).toBeNull();
     expect(englisch?.fachName).toBe('Englisch');
     expect(englisch?.halbjahrLabel).toBe('J1.1');
+  });
+
+  it('zählt die Themen der Vorbereitung und lässt sichere Leistungen zurückfallen', () => {
+    const result = calculateUpcoming(
+      [
+        row('m-k1', 'mathe', '2026-09-15', {
+          preparation: '- [x] Integrale\n- [x] Ableitungen',
+        }),
+        row('e-k1', 'englisch', '2026-09-25', {
+          preparation:
+            '## Themen\n- [ ] Vokabeln\n- [x] Grammatik\n- [ ] Essay',
+        }),
+      ],
+      halbjahre,
+      faecher,
+      today,
+    );
+    // Mathe ist näher, aber jedes Thema sitzt; Englisch hat noch zwei offene.
+    expect(result.upcoming.map((entry) => entry.id)).toEqual(['e-k1', 'm-k1']);
+    expect(result.upcoming[0]?.topics).toEqual({ total: 3, checked: 1 });
+    expect(result.upcoming[1]?.topics).toEqual({ total: 2, checked: 2 });
   });
 
   it('lässt Leistungen ohne bekanntes Halbjahr oder Fach weg', () => {

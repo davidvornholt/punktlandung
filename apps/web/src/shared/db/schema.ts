@@ -119,6 +119,11 @@ export const noteTable = pgTable(
     /** Termin der Leistung: angekündigt, solange sie aussteht, sonst der Tag der Arbeit. */
     takenOn: date('taken_on').notNull(),
     note: text('note'),
+    /**
+     * Die Vorbereitung als Markdown. Aufgabenzeilen (`- [ ]`) sind die
+     * Themen; abgehakt heißt „kann ich", nicht „erledigt".
+     */
+    preparation: text('preparation'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
@@ -128,6 +133,16 @@ export const noteTable = pgTable(
     ),
   ],
 );
+
+/**
+ * Die Vorlage, mit der die Vorbereitung einer neuen Leistung beginnt, je
+ * planbarer Leistungsart. Fehlt die Zeile, gilt die eingebaute Vorlage.
+ */
+export const preparationTemplateTable = pgTable('preparation_template', {
+  kind: leistungsartEnum('kind').primaryKey(),
+  content: text('content').notNull(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
 
 /** Lerntage: ein Eintrag pro Tag und (optional) Fach. */
 export const studyDayTable = pgTable(

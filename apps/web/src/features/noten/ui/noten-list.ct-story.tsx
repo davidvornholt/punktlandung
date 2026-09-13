@@ -1,4 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router';
 import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
@@ -54,6 +60,7 @@ const note = (id: string, wert: number, datum: string): Leistung => ({
   id,
   kind: 'klausur',
   notiz: null,
+  preparation: null,
   status: 'graded',
   wert,
 });
@@ -129,29 +136,38 @@ export const NotenListStory = ({
     };
   }, []);
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <main className="p-4">
-        <NotenList
-          faecher={waehlbareFaecher(scenario)}
-          halbjahr={halbjahr}
-          operations={operations}
-        />
-      </main>
-      <div hidden={true}>
-        <button
-          aria-label="Complete save"
-          data-testid="complete"
-          onClick={() => settleRef.current?.('success')}
-          type="button"
-        />
-        <button
-          aria-label="Fail save"
-          data-testid="fail"
-          onClick={() => settleRef.current?.('failure')}
-          type="button"
-        />
-      </div>
-    </QueryClientProvider>
+  /* Die Zeilen verweisen per Router-Link auf ihre Leistung; ein Speicherverlauf reicht. */
+  const [router] = useState(() =>
+    createRouter({
+      history: createMemoryHistory({ initialEntries: ['/noten'] }),
+      routeTree: createRootRoute({
+        component: () => (
+          <QueryClientProvider client={queryClient}>
+            <main className="p-4">
+              <NotenList
+                faecher={waehlbareFaecher(scenario)}
+                halbjahr={halbjahr}
+                operations={operations}
+              />
+            </main>
+            <div hidden={true}>
+              <button
+                aria-label="Complete save"
+                data-testid="complete"
+                onClick={() => settleRef.current?.('success')}
+                type="button"
+              />
+              <button
+                aria-label="Fail save"
+                data-testid="fail"
+                onClick={() => settleRef.current?.('failure')}
+                type="button"
+              />
+            </div>
+          </QueryClientProvider>
+        ),
+      }),
+    }),
   );
+  return <RouterProvider router={router} />;
 };

@@ -1,13 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { notenKey } from '#/shared/query/query-keys.ts';
+import { quietButtonClass } from '#/shared/ui/form-classes.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import type { Leistung } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
+import type { PreparationLinkRenderer } from './note-row.tsx';
 import { NotenCards } from './noten-cards.tsx';
 import {
   closeIfSaved,
@@ -32,6 +35,17 @@ type FachList = ReadonlyArray<{
   readonly id: string;
   readonly name: string;
 }>;
+
+const preparationLink: PreparationLinkRenderer = (note, label) => (
+  <Link
+    aria-label={`Vorbereitung: ${label}`}
+    className={`${quietButtonClass} ml-auto`}
+    params={{ id: note.id }}
+    to="/noten/$id"
+  >
+    Vorbereitung
+  </Link>
+);
 
 export const NotenList = ({
   halbjahr,
@@ -158,6 +172,7 @@ export const NotenList = ({
         }
         setEditTarget(note);
       }}
+      preparationLink={preparationLink}
       system={halbjahr.system}
       updateErrors={updateErrors}
     />,

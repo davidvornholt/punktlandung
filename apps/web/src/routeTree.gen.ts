@@ -17,6 +17,7 @@ import { Route as AppFaecherRouteImport } from './routes/_app/faecher'
 import { Route as AppNotenRouteImport } from './routes/_app/noten'
 import { Route as AppZeugnisRouteImport } from './routes/_app/zeugnis'
 import { Route as ApiHealthzRouteImport } from './routes/api/healthz'
+import { Route as AppNotenIdRouteImport } from './routes/_app/noten_.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const AppRoute = AppRouteImport.update({
@@ -58,6 +59,11 @@ const ApiHealthzRoute = ApiHealthzRouteImport.update({
   path: '/api/healthz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppNotenIdRoute = AppNotenIdRouteImport.update({
+  id: '/noten_/$id',
+  path: '/noten/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/noten': typeof AppNotenRoute
   '/zeugnis': typeof AppZeugnisRoute
   '/api/healthz': typeof ApiHealthzRoute
+  '/noten/$id': typeof AppNotenIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/zeugnis': typeof AppZeugnisRoute
   '/api/healthz': typeof ApiHealthzRoute
   '/': typeof AppIndexRoute
+  '/noten/$id': typeof AppNotenIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/_app/zeugnis': typeof AppZeugnisRoute
   '/api/healthz': typeof ApiHealthzRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/noten_/$id': typeof AppNotenIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/noten'
     | '/zeugnis'
     | '/api/healthz'
+    | '/noten/$id'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/zeugnis'
     | '/api/healthz'
     | '/'
+    | '/noten/$id'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/_app/zeugnis'
     | '/api/healthz'
     | '/_app/'
+    | '/_app/noten_/$id'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -195,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/noten_/$id': {
+      id: '/_app/noten_/$id'
+      path: '/noten/$id'
+      fullPath: '/noten/$id'
+      preLoaderRoute: typeof AppNotenIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -211,6 +230,7 @@ interface AppRouteChildren {
   AppNotenRoute: typeof AppNotenRoute
   AppZeugnisRoute: typeof AppZeugnisRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppNotenIdRoute: typeof AppNotenIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -219,6 +239,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppNotenRoute: AppNotenRoute,
   AppZeugnisRoute: AppZeugnisRoute,
   AppIndexRoute: AppIndexRoute,
+  AppNotenIdRoute: AppNotenIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

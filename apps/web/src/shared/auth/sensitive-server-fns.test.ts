@@ -9,7 +9,7 @@ const sensitiveServerFiles = [
   '../../features/zeugnis/server/zeugnis-fns.ts',
 ] as const;
 
-const expectedFunctionCount = 18;
+const expectedFunctionCount = 22;
 
 describe('sensitive server-function class', () => {
   it('attaches authentication middleware to every handler', async () => {

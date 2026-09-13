@@ -7,8 +7,15 @@ import type { Pool } from 'pg';
 import {
   createNote,
   listNoten,
+  loadLeistung,
   updateNote,
+  updatePreparation,
 } from '#/features/noten/services/noten-service.ts';
+import {
+  defaultPreparationTemplate,
+  loadPreparationTemplates,
+  savePreparationTemplate,
+} from '#/features/noten/services/preparation-template-service.ts';
 import { loadTrend } from '#/features/noten/services/trend-service.ts';
 import { loadUpcoming } from '#/features/noten/services/upcoming-service.ts';
 import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
@@ -138,5 +145,63 @@ describe('Ausstehende Leistungen', () => {
 
       await provided(updateNote({ ...fields, id: planned.id, wert: null }));
       expect((await provided(loadTrend)).length).toBe(1);
+    }));
+});
+
+describe('Vorbereitung einer Leistung', () => {
+  it('trägt eine Vorbereitung, deren Themen die Übersicht zählt und das Notenformular nicht anrührt', () =>
+    withSeededDatabase(async (provided) => {
+      await provided(createNote(fields));
+      const planned = (await provided(listNoten(termId))).find(
+        (note) => note.status === 'planned',
+      );
+      if (planned === undefined) {
+        throw new Error('Die ausstehende Klausur fehlt.');
+      }
+      expect(planned.preparation).toBeNull();
+
+      const markdown = '## Themen\n\n- [x] Gedichtanalyse\n- [ ] Erörterung\n';
+      await provided(
+        updatePreparation({ id: planned.id, preparation: markdown }),
+      );
+      const detail = await provided(loadLeistung(planned.id));
+      expect(detail.leistung.preparation).toBe(markdown);
+      expect(detail.halbjahr.label).toBe('10.1');
+
+      const upcoming = await provided(loadUpcoming);
+      const [entry] = [...upcoming.upcoming, ...upcoming.overdue];
+      expect(entry?.topics).toEqual({ total: 2, checked: 1 });
+
+      await provided(updateNote({ ...fields, id: planned.id, wert: 2 }));
+      expect(
+        (await provided(loadLeistung(planned.id))).leistung.preparation,
+      ).toBe(markdown);
+
+      const missing = await provided(
+        Effect.flip(
+          updatePreparation({ id: 'gibt-es-nicht', preparation: null }),
+        ),
+      );
+      expect(missing._tag).toBe('NoteNichtGefunden');
+    }));
+
+  it('liefert für jede planbare Art eine Vorlage und merkt sich eine geänderte', () =>
+    withSeededDatabase(async (provided) => {
+      const defaults = await provided(loadPreparationTemplates);
+      expect(defaults).toEqual({
+        klausur: defaultPreparationTemplate,
+        test: defaultPreparationTemplate,
+        gfs: defaultPreparationTemplate,
+      });
+
+      await provided(
+        savePreparationTemplate({ kind: 'gfs', content: '- [ ] Handout' }),
+      );
+      await provided(
+        savePreparationTemplate({ kind: 'gfs', content: '- [ ] Vortrag üben' }),
+      );
+      const changed = await provided(loadPreparationTemplates);
+      expect(changed.gfs).toBe('- [ ] Vortrag üben');
+      expect(changed.klausur).toBe(defaultPreparationTemplate);
     }));
 });

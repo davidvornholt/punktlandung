@@ -1,4 +1,6 @@
 import { daysBetween } from '#/shared/date/calendar-date.ts';
+import type { TopicProgress } from '#/shared/markdown/task-lines.ts';
+import { topicProgress } from '#/shared/markdown/task-lines.ts';
 import { byDringlichkeit } from '#/shared/noten/dringlichkeit.ts';
 import {
   fachAverage,
@@ -18,6 +20,7 @@ export type UpcomingRow = {
   readonly wert: number | null;
   readonly gewicht: number;
   readonly datum: string;
+  readonly preparation: string | null;
 };
 
 export type UpcomingHalbjahr = {
@@ -44,6 +47,8 @@ export type UpcomingLeistung = {
   readonly fachKuerzel: string;
   /** Aktueller Fachschnitt im System des Halbjahrs; null ohne benotete Leistung. */
   readonly fachschnitt: number | null;
+  /** Fortschritt der Themenliste; null, solange keine Vorbereitung angelegt ist. */
+  readonly topics: TopicProgress | null;
   readonly system: Notensystem;
   readonly termId: string;
   readonly halbjahrLabel: string;
@@ -130,6 +135,8 @@ export const calculateUpcoming = (
           fachName: fach.name,
           fachKuerzel: fach.shortName,
           fachschnitt,
+          topics:
+            row.preparation === null ? null : topicProgress(row.preparation),
           system: halbjahr.system,
           termId: halbjahr.id,
           halbjahrLabel: formatHalbjahrLabel(halbjahr),
