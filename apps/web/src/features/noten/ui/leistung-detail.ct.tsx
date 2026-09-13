@@ -20,14 +20,29 @@ it('zeigt die Fakten und die Themenliste mit ihrem Stand', async ({
   await expect(component.getByText('Klausur · 19.09.2026')).toBeVisible();
   await expect(component.getByText('1 von 2 Themen sicher')).toBeVisible();
   await expect(
-    component.getByRole('checkbox', { name: 'Thema offen' }),
+    component.getByRole('checkbox', { name: 'Thema offen: Integralrechnung' }),
   ).toHaveCount(1);
   await expect(
-    component.getByRole('checkbox', { name: 'Thema sicher' }),
+    component.getByRole('checkbox', { name: 'Thema sicher: Ableitungsregeln' }),
   ).toBeChecked();
   await expect(
     component.getByRole('heading', { level: 3, name: 'Notizen' }),
   ).toBeVisible();
+});
+
+it('benennt gleichartige Themenkästchen nach ihrem Thema', async ({
+  mount,
+}) => {
+  const component = await mount(
+    <LeistungDetailStory scenario="gleichartige-themen" />,
+  );
+
+  await expect(
+    component.getByRole('checkbox', { name: 'Thema offen: Integralrechnung' }),
+  ).toHaveCount(1);
+  await expect(
+    component.getByRole('checkbox', { name: 'Thema offen: Ableitungsregeln' }),
+  ).toHaveCount(1);
 });
 
 it('hakt ein Thema ab, indem es die Quelltextzeile umschreibt', async ({
@@ -36,7 +51,9 @@ it('hakt ein Thema ab, indem es die Quelltextzeile umschreibt', async ({
 }) => {
   const component = await mount(<LeistungDetailStory scenario="mit-themen" />);
 
-  await component.getByRole('checkbox', { name: 'Thema offen' }).click();
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
+    .click();
 
   const saved = page.getByRole('list', {
     includeHidden: true,

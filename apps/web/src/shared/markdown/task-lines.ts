@@ -1,3 +1,6 @@
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 /**
  * Aufgabenzeilen in Markdown, wie GFM sie kennt: `- [ ] Thema` offen,
  * `- [x] Thema` abgehakt. In der Vorbereitung einer Leistung sind das die
@@ -6,9 +9,20 @@
  * Zeilen über remark-gfm, darf aber nicht selbst zählen.
  */
 
-const taskLinePattern =
-  /^(?<before>\s*(?:[-*+]|\d+[.)])\s+\[)(?<mark>[ xX])(?<after>\]\s+\S)/u;
-const fencePattern = /^\s*(?:`{3,}|~{3,})/u;
+type MarkdownNode = {
+  readonly type?: string;
+  readonly checked?: boolean | null;
+  readonly value?: string;
+  readonly children?: ReadonlyArray<MarkdownNode>;
+  readonly position?: {
+    readonly start?: {
+      readonly line?: number;
+      readonly offset?: number;
+    };
+  };
+};
+
+const taskMarkerPattern = /\[[ xX]\]/u;
 
 export type TopicProgress = {
   readonly total: number;
@@ -19,22 +33,54 @@ type TaskLine = {
   /** 1-basierte Zeilennummer, wie remark sie in `position.start.line` meldet. */
   readonly line: number;
   readonly checked: boolean;
+  /** UTF-16-Offset des `[ ]`-Markers im ursprünglichen Markdown. */
+  readonly markerOffset: number;
 };
 
-/** Alle Aufgabenzeilen außerhalb von Codeblöcken. */
+const taskMarkerOffset = (
+  markdown: string,
+  node: MarkdownNode,
+): number | null => {
+  const offset = node.position?.start?.offset;
+  if (typeof offset !== 'number') {
+    return null;
+  }
+  const lineEnd = markdown.indexOf('\n', offset);
+  const line = markdown.slice(offset, lineEnd === -1 ? undefined : lineEnd);
+  const marker = taskMarkerPattern.exec(line);
+  return marker === null || marker.index === undefined
+    ? null
+    : offset + marker.index;
+};
+
+/** Alle Aufgabenzeilen aus demselben GFM-AST wie bei der Darstellung. */
 const taskLines = (markdown: string): ReadonlyArray<TaskLine> => {
-  const lines = markdown.split('\n');
   const found: Array<TaskLine> = [];
-  let inFence = false;
-  lines.forEach((text, index) => {
-    if (fencePattern.test(text)) {
-      inFence = !inFence;
-      return;
-    }
-    const match = inFence ? null : taskLinePattern.exec(text);
-    if (match !== null) {
-      found.push({ line: index + 1, checked: match.groups?.mark !== ' ' });
-    }
+  const collectTasks =
+    () =>
+    (tree: MarkdownNode): void => {
+      const visit = (node: MarkdownNode): void => {
+        if (node.type === 'listItem' && typeof node.checked === 'boolean') {
+          const line = node.position?.start?.line;
+          const markerOffset = taskMarkerOffset(markdown, node);
+          if (typeof line === 'number' && markerOffset !== null) {
+            found.push({
+              line,
+              checked: node.checked,
+              markerOffset,
+            });
+          }
+        }
+        node.children?.forEach(visit);
+      };
+      visit(tree);
+    };
+
+  // Markdown is synchronous; the remark plugin sees mdast before rendering,
+  // so no browser DOM or second Markdown parser is needed.
+  Markdown({
+    children: markdown,
+    remarkPlugins: [remarkGfm, collectTasks],
   });
   return found;
 };
@@ -54,17 +100,10 @@ export const topicProgress = (markdown: string): TopicProgress => {
  * Text inzwischen ein anderer ist —, bleibt alles unverändert.
  */
 export const toggleTaskLine = (markdown: string, line: number): string => {
-  const lines = markdown.split('\n');
-  const text = lines[line - 1];
-  if (
-    text === undefined ||
-    !taskLines(markdown).some((task) => task.line === line)
-  ) {
+  const task = taskLines(markdown).find((entry) => entry.line === line);
+  if (task === undefined) {
     return markdown;
   }
-  lines[line - 1] = text.replace(taskLinePattern, (...args) => {
-    const groups = args.at(-1) as Record<'after' | 'before' | 'mark', string>;
-    return `${groups.before}${groups.mark === ' ' ? 'x' : ' '}${groups.after}`;
-  });
-  return lines.join('\n');
+  const marker = task.checked ? ' ' : 'x';
+  return `${markdown.slice(0, task.markerOffset + 1)}${marker}${markdown.slice(task.markerOffset + 2)}`;
 };
