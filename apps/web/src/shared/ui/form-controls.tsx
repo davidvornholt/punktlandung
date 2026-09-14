@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useId } from 'react';
 
 /**
  * Auswahlfelder auf Basis nativer Inputs. `appearance-none` ersetzt allein die
@@ -46,26 +47,46 @@ export const Checkbox = ({
   </label>
 );
 
-/** Eckiger Rahmen mit kleiner Füllung für die exklusive Auswahl. */
+/**
+ * Eckiger Rahmen mit kleiner Füllung für die exklusive Auswahl. Eine
+ * `description` erklärt die Option unter ihrem Namen und ist dem Feld über
+ * `aria-describedby` zugeordnet, damit der Name selbst kurz bleibt.
+ */
 export const Radio = ({
   checked,
   children,
+  description,
   name,
   onSelect,
 }: {
   readonly checked: boolean;
   readonly children: ReactNode;
+  readonly description?: string;
   readonly name: string;
   readonly onSelect: () => void;
-}) => (
-  <label className={wahlKlasse}>
-    <input
-      checked={checked}
-      className={`${controlClass} bg-clip-content p-1`}
-      name={name}
-      onChange={onSelect}
-      type="radio"
-    />
-    {children}
-  </label>
-);
+}) => {
+  const descriptionId = useId();
+  const described = description !== undefined;
+  return (
+    <label className={described ? `${wahlKlasse} items-start` : wahlKlasse}>
+      <input
+        aria-describedby={described ? descriptionId : undefined}
+        checked={checked}
+        className={`${controlClass} bg-clip-content p-1 ${described ? 'mt-0.5' : ''}`}
+        name={name}
+        onChange={onSelect}
+        type="radio"
+      />
+      {described ? (
+        <span className="flex flex-col gap-0.5">
+          <span>{children}</span>
+          <span className="text-ink-muted" id={descriptionId}>
+            {description}
+          </span>
+        </span>
+      ) : (
+        children
+      )}
+    </label>
+  );
+};

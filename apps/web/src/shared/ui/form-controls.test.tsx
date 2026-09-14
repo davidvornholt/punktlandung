@@ -2,6 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Checkbox, Radio } from './form-controls.tsx';
 
+const describedByPattern = /aria-describedby="(?<id>[^"]+)"/u;
+
 /**
  * Die Felder zeichnen sich selbst, bleiben aber native Inputs im Label. Genau
  * das prüfen diese Tests: Der Lint-Regel für Label und Bedienelement ist die
@@ -47,6 +49,35 @@ describe('Auswahlfelder', () => {
     expect(markup).toInclude('forced-colors:appearance-auto');
     expect(markup).not.toInclude('rounded-');
     expect(markup).not.toInclude('<svg');
+  });
+
+  it('ordnet die Beschreibung dem Radiofeld zu', () => {
+    const markup = renderToStaticMarkup(
+      <Radio
+        checked={false}
+        description="Gilt unabhängig von der Zahl der Noten."
+        name="aufteilung"
+        onSelect={() => undefined}
+      >
+        Festes Verhältnis
+      </Radio>,
+    );
+    const descriptionId = describedByPattern.exec(markup)?.groups?.id;
+
+    expect(descriptionId).toBeDefined();
+    expect(markup).toInclude(
+      `id="${descriptionId}">Gilt unabhängig von der Zahl der Noten.</span>`,
+    );
+  });
+
+  it('lässt ein Radiofeld ohne Beschreibung unbeschrieben', () => {
+    const markup = renderToStaticMarkup(
+      <Radio checked={false} name="aufteilung" onSelect={() => undefined}>
+        Kurz
+      </Radio>,
+    );
+
+    expect(markup).not.toInclude('aria-describedby');
   });
 
   it('gibt den Auswahlzustand an das native Feld weiter', () => {

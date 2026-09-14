@@ -100,7 +100,7 @@ export const gewichtungsSaetze = (
       : verhaeltnisProzent(gewichtung.verhaeltnis);
   const aufteilung =
     prozent === null
-      ? 'Eine gemeinsame Liste'
+      ? 'Alle Noten in einer Liste'
       : `Schriftlich ${prozent.schriftlich} % : mündlich ${prozent.muendlich} %`;
   const weitere = leistungsartReihenfolge.flatMap((kind) => {
     const satz = artSatz(kind, gewichtung);
