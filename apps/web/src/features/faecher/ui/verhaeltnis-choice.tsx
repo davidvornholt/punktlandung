@@ -64,8 +64,15 @@ const ShareField = ({
 /**
  * Die Verkündung der Lehrkraft: entweder eine gemeinsame Liste oder ein
  * Verhältnis schriftlich zu mündlich. "3:1" und "60:40" sind dieselbe Angabe
- * in zwei Maßstäben — beide werden hier unverändert eingetragen.
+ * in zwei Maßstäben — beide werden hier unverändert eingetragen. Die
+ * Beschreibungen nennen den Unterschied, an dem sich der Schnitt entscheidet:
+ * ob die Zahl der Noten den Anteil eines Bereichs bestimmt oder nicht.
  */
+const listeDescription =
+  'Jede Note zählt mit ihrem Gewicht; wie viel schriftlich und mündlich ausmachen, ergibt sich aus der Zahl der Noten. Typisch: „Klausuren zählen doppelt“.';
+const verhaeltnisDescription =
+  'Schriftlich und mündlich werden getrennt gemittelt und dann im verkündeten Verhältnis verrechnet — egal, wie viele Noten es jeweils gibt. Typisch: „60:40“.';
+
 export const VerhaeltnisChoice = ({
   verhaeltnis,
   onAction,
@@ -79,74 +86,78 @@ export const VerhaeltnisChoice = ({
     verhaeltnis.schriftlich + verhaeltnis.muendlich <= 0;
   const describedBy = invalid ? errorId : undefined;
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <Radio
         checked={verhaeltnis === null}
+        description={listeDescription}
         name="aufteilung"
         onSelect={() => onAction({ type: 'ratio', verhaeltnis: null })}
       >
-        Eine gemeinsame Liste
+        Alle Noten in einer Liste
       </Radio>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="space-y-2">
         <Radio
           checked={verhaeltnis !== null}
+          description={verhaeltnisDescription}
           name="aufteilung"
           onSelect={() =>
             onAction({ type: 'ratio', verhaeltnis: standardverhaeltnis })
           }
         >
-          Schriftlich : mündlich
+          Festes Verhältnis schriftlich : mündlich
         </Radio>
         {verhaeltnis === null ? null : (
-          <>
-            <ShareField
-              bereich="schriftlich"
-              errorId={describedBy}
-              invalid={invalid}
-              onAction={onAction}
-              value={verhaeltnis.schriftlich}
-            />
-            <span aria-hidden={true} className="text-ink-muted">
-              :
-            </span>
-            <ShareField
-              bereich="muendlich"
-              errorId={describedBy}
-              invalid={invalid}
-              onAction={onAction}
-              value={verhaeltnis.muendlich}
-            />
-            {invalid ? (
-              <span
-                className="text-ink-muted text-sm"
-                id={errorId}
-                role="alert"
-              >
-                Mindestens ein Bereich muss zählen.
+          <div className="ml-6 space-y-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <ShareField
+                bereich="schriftlich"
+                errorId={describedBy}
+                invalid={invalid}
+                onAction={onAction}
+                value={verhaeltnis.schriftlich}
+              />
+              <span aria-hidden={true} className="text-ink-muted">
+                :
               </span>
-            ) : (
-              <span className="text-ink-muted text-sm">
-                ≙ {verhaeltnisProzentText(verhaeltnis)}
-              </span>
-            )}
-          </>
+              <ShareField
+                bereich="muendlich"
+                errorId={describedBy}
+                invalid={invalid}
+                onAction={onAction}
+                value={verhaeltnis.muendlich}
+              />
+              {invalid ? (
+                <span
+                  className="text-ink-muted text-sm"
+                  id={errorId}
+                  role="alert"
+                >
+                  Mindestens ein Bereich muss zählen.
+                </span>
+              ) : (
+                <span className="text-ink-muted text-sm">
+                  ≙ {verhaeltnisProzentText(verhaeltnis)}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 text-sm">
+              <span className="text-ink-faint">Häufig:</span>
+              {quickChoices.map((choice) => (
+                <button
+                  className={quietButtonClass}
+                  key={formatVerhaeltnis(choice)}
+                  onClick={() =>
+                    onAction({ type: 'ratio', verhaeltnis: choice })
+                  }
+                  type="button"
+                >
+                  {formatVerhaeltnis(choice)}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
-      {verhaeltnis === null ? null : (
-        <div className="flex flex-wrap items-center gap-x-3 text-sm">
-          <span className="text-ink-faint">Häufig:</span>
-          {quickChoices.map((choice) => (
-            <button
-              className={quietButtonClass}
-              key={formatVerhaeltnis(choice)}
-              onClick={() => onAction({ type: 'ratio', verhaeltnis: choice })}
-              type="button"
-            >
-              {formatVerhaeltnis(choice)}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

@@ -24,7 +24,7 @@ describe('verhaeltnisProzent', () => {
 describe('gewichtungsZeile', () => {
   it('nennt die Standardregeln, die die Lehrkraft verkündet hat', () => {
     expect(gewichtungsZeile(standardgewichtung)).toBe(
-      'Eine gemeinsame Liste · eine GFS zählt wie eine Klausur · alle Tests zusammen zählen wie eine Klausur · Sonstiges zählt wie eine mündliche Note',
+      'Alle Noten in einer Liste · eine GFS zählt wie eine Klausur · alle Tests zusammen zählen wie eine Klausur · Sonstiges zählt wie eine mündliche Note',
     );
   });
 

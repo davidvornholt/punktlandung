@@ -141,7 +141,30 @@ describe('VerhaeltnisChoice', () => {
     expect(inputWithName(markup, 'anteil-muendlich')).toInclude(
       'aria-invalid="false"',
     );
-    expect(markup).not.toInclude('aria-describedby=');
+    expect(inputWithName(markup, 'anteil-schriftlich')).not.toInclude(
+      'aria-describedby=',
+    );
+    expect(inputWithName(markup, 'anteil-muendlich')).not.toInclude(
+      'aria-describedby=',
+    );
     expect(markup).not.toInclude('role="alert"');
+  });
+
+  it('erklärt beide Aufteilungen an ihrem Radiofeld', () => {
+    const markup = renderToStaticMarkup(
+      <VerhaeltnisChoice onAction={noop} verhaeltnis={null} />,
+    );
+    const radios = markup.match(/<input[^>]*type="radio"[^>]*>/gu) ?? [];
+
+    expect(radios).toHaveLength(2);
+    for (const radio of radios) {
+      const descriptionId = describedByPattern.exec(radio)?.groups?.errorId;
+      expect(descriptionId).toBeDefined();
+      expect(markup).toInclude(`id="${descriptionId}"`);
+    }
+    expect(markup).toInclude('Alle Noten in einer Liste');
+    expect(markup).toInclude('ergibt sich aus der Zahl der Noten');
+    expect(markup).toInclude('Festes Verhältnis schriftlich : mündlich');
+    expect(markup).toInclude('egal, wie viele Noten es jeweils gibt');
   });
 });
