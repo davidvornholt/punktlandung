@@ -12,6 +12,12 @@ creation_rules:
       - age:
           - *david-z890-nixos
           - *david-x1-nixos
+  # Broker-issued publishing pair for PR screenshots; personal identities only.
+  - path_regex: secrets/assets\.yaml$
+    key_groups:
+      - age:
+          - *david-z890-nixos
+          - *david-x1-nixos
   - path_regex: secrets/ci\.yaml$
     key_groups:
       - age:
