@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { Effect } from 'effect';
+import { Cause, Effect, Exit } from 'effect';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
   applyInitialMigration,
@@ -154,7 +154,15 @@ describe('Klassenstufe aus der Bezeichnung', () => {
       const exit = await Effect.runPromiseExit(migrateDatabase(pool));
 
       expect(exit._tag).toBe('Failure');
-      expect(String(exit)).toContain('9b');
+      expect(
+        Exit.match(exit, {
+          onFailure: Cause.squash,
+          onSuccess: () => undefined,
+        }),
+      ).toMatchObject({
+        _tag: 'DatabaseMigrationError',
+        cause: { cause: { message: expect.stringContaining('9b') } },
+      });
       expect((await pool.query('SELECT label FROM term')).rows).toEqual([
         { label: '9b' },
       ]);
