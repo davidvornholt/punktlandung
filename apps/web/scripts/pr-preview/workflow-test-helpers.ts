@@ -89,7 +89,6 @@ case "$endpoint" in
   */git/ref/heads/main) printf '%s' '{"object":{"sha":"2222222222222222222222222222222222222222"}}' ;;
   */contents/.github/workflows/publish-container.yml*) printf '%s' '{"type":"file","path":".github/workflows/publish-container.yml","sha":"producer-blob"}' ;;
   */contents/.github/workflows/pr-preview-deploy.yml*) printf '%s' '{"type":"file","path":".github/workflows/pr-preview-deploy.yml","sha":"consumer-blob"}' ;;
-  */contents/.github/workflows/pr-preview-host-command.yml*) printf '%s' '{"type":"file","path":".github/workflows/pr-preview-host-command.yml","sha":"host-command-blob"}' ;;
   */contents/.github/workflows/standards.yml*) printf '%s' '{"type":"file","path":".github/workflows/standards.yml","sha":"standards-blob"}' ;;
   *) printf 'unexpected endpoint: %s\n' "$endpoint" >&2; exit 97 ;;
 esac
