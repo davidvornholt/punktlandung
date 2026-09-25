@@ -14,9 +14,7 @@ it('distinguishes official and interpolated rows accessibly', async ({
   mount,
 }) => {
   const component = await mount(<ConversionReference />);
-  await component
-    .getByText('Umrechnungstabelle anzeigen', { exact: true })
-    .click();
+  await component.getByText('Umrechnungstabelle', { exact: true }).click();
   const officialRow = rowWithHeader(component, '1,25 (1-)');
   const interpolatedRow = rowWithHeader(component, '1,5 (1-2)');
 
@@ -40,7 +38,7 @@ it('preserves the native disclosure and scoped table headers', async ({
 }) => {
   const component = await mount(<ConversionReference />);
   const disclosure = component.locator('details');
-  const summary = component.getByText('Umrechnungstabelle anzeigen', {
+  const summary = component.getByText('Umrechnungstabelle', {
     exact: true,
   });
 
