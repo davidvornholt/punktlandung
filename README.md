@@ -31,3 +31,11 @@ bun standards creds add cloudflare --account 831f91724ea62b0cb0215829eb001f66 --
 ## Deployment
 
 [personal-infra](https://github.com/davidvornholt/personal-infra) betreibt `https://punktlandung.vornholt.online` und verwaltet Produktionskonfiguration und Secrets.
+
+## Pull request previews
+
+An open, non-draft pull request from this repository to `main` can request a preview with the `pr-preview` label. The exact head must pass the repository gate and container migration/health checks. A trusted workflow publishes its image and deploys it at `https://<number>.pr.punktlandung.vornholt.online`; the pull request comment records the current state. Workflow changes must merge before they can run in this preview lane.
+
+The host permits one preview at a time. Each preview has an empty, isolated PostgreSQL database and an ephemeral session key; data is discarded on teardown. Updates replace the running image. Removing the label, converting to draft, retargeting away from `main`, closing the pull request, or a failed build/deployment removes the preview. Infrastructure and DNS are owned by `davidvornholt/personal-infra`.
+
+GitHub sign-in is disabled in previews. The image check verifies that the provider redirect uses the preview's HTTPS callback URL, but the isolated runtime receives neither production OAuth credentials nor network egress. Enabling real preview sign-in requires a separately provisioned provider and egress policy. The `pr-preview` GitHub environment is restricted to `main` and holds only the age identity for the dedicated, forced-command preview SSH key in `secrets/pr-preview.yaml`.

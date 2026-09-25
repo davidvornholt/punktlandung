@@ -6,6 +6,8 @@ keys:
   - &david-x1-nixos age1cgudsv52h62snquglvayft2n4ck522x4at5aja57un06w9w0gszqzfqtce
   # Repository-specific GitHub Actions identity; private key: SOPS_AGE_KEY.
   - &github_actions_ci age1yujn0fjnupxg2yrrmf5epxvy57ryph6dtx9f2y6p8jmz9cf3g39qv4zprg
+  # Main-only pr-preview environment identity; no production secrets.
+  - &github_actions_preview age1fz9u0alx59qe6qn8vgx73vzdhpa05ssna2zdu2fa66kp85eskvrsj5v092
 creation_rules:
   - path_regex: secrets/dev\.yaml$
     key_groups:
@@ -24,3 +26,9 @@ creation_rules:
           - *david-z890-nixos
           - *david-x1-nixos
           - *github_actions_ci
+  - path_regex: secrets/pr-preview\.yaml$
+    key_groups:
+      - age:
+          - *david-z890-nixos
+          - *david-x1-nixos
+          - *github_actions_preview
