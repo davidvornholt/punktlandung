@@ -3,7 +3,7 @@ import { extractRunScript, readWorkflow } from './workflow-test-helpers';
 
 const producer = await readWorkflow('publish-container.yml');
 const consumer = await readWorkflow('pr-preview-deploy.yml');
-const hostCommand = await readWorkflow('pr-preview-host-command.yml');
+const hostCommand = consumer;
 const githubExpression = (expression: string): string =>
   `\${{ ${expression} }}`;
 
@@ -112,7 +112,7 @@ describe('trusted preview consumer boundary', () => {
     expect(blobGate).toBeGreaterThan(deployOnlyGate);
     expect(output).toBeGreaterThan(blobGate);
     expect(selector).toContain('.github/workflows/pr-preview-deploy.yml');
-    expect(selector).toContain('.github/workflows/pr-preview-host-command.yml');
+    expect(selector).toContain('.github/workflows/pr-preview-deploy.yml');
   });
 
   it('discovers Standards independently and binds the exact producer gate step', () => {
@@ -158,14 +158,64 @@ describe('trusted preview consumer boundary', () => {
 });
 
 describe('preview host authorization and secret boundary', () => {
+  it('binds every host operation directly to the protected environment', () => {
+    const workflow = globalThis.Bun.YAML.parse(consumer) as {
+      jobs: Record<
+        string,
+        {
+          environment: { name: string };
+          permissions: Record<string, string>;
+          env: Record<string, string>;
+          steps: Array<{
+            name: string;
+            env?: Record<string, string>;
+            uses?: string;
+          }>;
+          uses?: string;
+        }
+      >;
+    };
+    const operations = [
+      ['deploy', 'deploy', ''],
+      ['cleanup-ineligible', 'destroy', 'ineligible'],
+      ['cleanup-failed-build', 'destroy', 'failed-build'],
+      ['cleanup-failed-publication', 'destroy', 'failed-publication'],
+      ['cleanup-failed-deploy', 'destroy', 'failed-deploy'],
+    ] as const;
+    for (const [name, operation, reason] of operations) {
+      const job = workflow.jobs[name];
+      expect(job).toBeDefined();
+      expect(job?.uses).toBeUndefined();
+      expect(job?.environment.name).toBe('pr-preview');
+      expect(job?.permissions).toEqual({
+        contents: 'read',
+        'pull-requests': 'write',
+      });
+      expect(job?.env.PREVIEW_OPERATION).toBe(operation);
+      expect(job?.env.PREVIEW_REASON).toBe(reason);
+      expect(job?.env.PREVIEW_IMAGE).toBe(
+        operation === 'deploy'
+          ? githubExpression('needs.publish.outputs.image')
+          : '',
+      );
+      expect(job?.steps).toEqual(workflow.jobs.deploy?.steps);
+      expect(job?.steps.every((step) => step.uses === undefined)).toBe(true);
+      const credentialStep = job?.steps.find(
+        (step) => step.name === 'Resolve the dedicated preview SSH key',
+      );
+      expect(Object.keys(credentialStep?.env ?? {})).toEqual(['SOPS_AGE_KEY']);
+      expect(credentialStep?.env?.SOPS_AGE_KEY).toBe(
+        githubExpression('secrets.SOPS_AGE_KEY'),
+      );
+    }
+  });
+
   it('uses only the dedicated main-only environment secret contract', () => {
     expect(hostCommand).toContain('      name: pr-preview');
     const sopsAgeKey = githubExpression('secrets.SOPS_AGE_KEY');
     expect(hostCommand).toContain(`SOPS_AGE_KEY: ${sopsAgeKey}`);
-    expect(consumer).not.toContain('secrets.SOPS_AGE_KEY');
-    expect(hostCommand).toContain(
-      '    secrets:\n      SOPS_AGE_KEY:\n        description: Bound by the main-only pr-preview job environment\n        required: false',
-    );
+    expect(consumer).not.toContain('workflow_call:');
+    expect(consumer).not.toContain('    secrets:');
     expect(consumer).not.toContain('secrets: inherit');
     expect(hostCommand).toContain('secrets/pr-preview.yaml?ref=$main_sha');
     expect(hostCommand).toContain(`printf '\\n' >>"$key"`);
@@ -182,7 +232,7 @@ describe('preview host authorization and secret boundary', () => {
       'pr=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")',
     );
     expect(hostCommand).toContain(
-      `PREVIOUS_BASE_REF: ${githubExpression('inputs.previous-base-ref')}`,
+      `PREVIOUS_BASE_REF: ${githubExpression('env.PREVIEW_PREVIOUS_BASE_REF')}`,
     );
     expect(hostCommand).toContain('test "$current_head" = "$HEAD_SHA"');
     expect(hostCommand).toContain('StrictHostKeyChecking=yes');

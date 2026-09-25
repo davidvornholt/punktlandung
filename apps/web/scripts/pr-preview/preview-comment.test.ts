@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { extractRunScript, readWorkflow } from './workflow-test-helpers';
 
 const script = extractRunScript(
-  await readWorkflow('pr-preview-host-command.yml'),
+  await readWorkflow('pr-preview-deploy.yml'),
   'Reconcile the pull request preview comment',
 );
 const marker = '<!-- punktlandung-pr-preview -->';
