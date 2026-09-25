@@ -135,7 +135,7 @@ const waitForServiceGradeWrite = (
                     AND fach_lock.mode = 'AccessShareLock'
                     AND fach_lock.granted = true
                 )`
-}
+         }
      ) AS ready`,
   );
 
