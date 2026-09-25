@@ -63,7 +63,7 @@ export const FachForm = ({
       className="border border-border bg-surface p-5 shadow-card"
       onSubmit={(event) => {
         event.preventDefault();
-        if (valid) {
+        if (valid && !pending) {
           onSave(readValues(event.currentTarget, state.gewichtung));
         }
       }}
@@ -104,13 +104,15 @@ export const FachForm = ({
       <div className="mt-5 flex gap-3">
         <button
           className={primaryButtonClass}
-          disabled={pending || !valid}
+          aria-disabled={pending || !valid}
+          aria-busy={pending}
           type="submit"
         >
           {pending ? 'Fach wird gespeichert …' : 'Fach speichern'}
         </button>
         <button
           className={secondaryButtonClass}
+          disabled={pending}
           onClick={onCancel}
           type="button"
         >

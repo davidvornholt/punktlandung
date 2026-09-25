@@ -53,6 +53,7 @@ const groupByFach = (
 
 /** Notenkarten: je Fach die Einzelnoten und der gewichtete Fachschnitt. */
 export const NotenCards = ({
+  deleteErrors,
   deleteMutation,
   editNoteId,
   editPending,
@@ -64,6 +65,7 @@ export const NotenCards = ({
   system,
   updateErrors,
 }: {
+  readonly deleteErrors: ReadonlyMap<string, unknown>;
   readonly deleteMutation: ListMutation<string>;
   readonly editNoteId: string | null;
   /** Läuft gerade das Speichern der offenen Bearbeitung? */
@@ -104,6 +106,7 @@ export const NotenCards = ({
         <ul className="mt-3 divide-y divide-border">
           {group.noten.map((note, index) => (
             <NoteRow
+              deleteError={deleteErrors.get(note.id) ?? null}
               deleteMutation={deleteMutation}
               editPending={editPending}
               form={form}

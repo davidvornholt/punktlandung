@@ -191,6 +191,9 @@ export const NoteForm = (props: NoteFormProps) => {
       onReset={() => setKind(values.kind as Leistungsart)}
       onSubmit={(event) => {
         event.preventDefault();
+        if (pending) {
+          return;
+        }
         onSave(readValues(event.currentTarget));
       }}
       ref={formRef}
@@ -233,7 +236,8 @@ export const NoteForm = (props: NoteFormProps) => {
         <div className="col-span-2 flex gap-3 sm:col-span-1">
           <button
             className={`${primaryButtonClass} ${onCancel === null ? 'w-full sm:w-auto' : ''}`}
-            disabled={pending}
+            aria-disabled={pending}
+            aria-busy={pending}
             type="submit"
           >
             {buttonText}

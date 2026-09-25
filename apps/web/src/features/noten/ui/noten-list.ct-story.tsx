@@ -18,7 +18,8 @@ type Scenario =
   | 'letzte-note'
   | 'ohne-fach-ohne-note'
   | 'ohne-fach'
-  | 'standard';
+  | 'standard'
+  | 'retry';
 
 const halbjahr = {
   endsOn: '2027-01-31',
@@ -93,6 +94,8 @@ export const NotenListStory = ({
 }) => {
   const notenRef = useRef<ReadonlyArray<Leistung>>(initialNoten(scenario));
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
+  const pendingByIdRef = useRef(new Map<string, (outcome: Outcome) => void>());
+  const firstReadRef = useRef(true);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -103,22 +106,32 @@ export const NotenListStory = ({
       }),
   );
   const operations = useMemo<NotenOperations>(() => {
-    const awaitOutcome = async () => {
+    const awaitOutcome = async (id: string) => {
       const outcome = await new Promise<Outcome>((resolve) => {
         settleRef.current = resolve;
+        pendingByIdRef.current.set(id, resolve);
       });
       settleRef.current = null;
+      pendingByIdRef.current.delete(id);
       return outcome;
     };
     return {
       create: () => Promise.resolve(),
       delete: async (id) => {
-        await awaitOutcome();
+        if ((await awaitOutcome(id)) === 'failure') {
+          throw new Error('Verbindung weg');
+        }
         notenRef.current = notenRef.current.filter((entry) => entry.id !== id);
       },
-      list: () => Promise.resolve(notenRef.current),
+      list: () => {
+        if (scenario === 'retry' && firstReadRef.current) {
+          firstReadRef.current = false;
+          return Promise.reject(new Error('Verbindung weg'));
+        }
+        return Promise.resolve(notenRef.current);
+      },
       update: async (values) => {
-        if ((await awaitOutcome()) === 'failure') {
+        if ((await awaitOutcome(values.id)) === 'failure') {
           throw new Error('Verbindung weg');
         }
         const { wert, ...fields } = values;
@@ -134,7 +147,7 @@ export const NotenListStory = ({
         );
       },
     };
-  }, []);
+  }, [scenario]);
 
   /* Die Zeilen verweisen per Router-Link auf ihre Leistung; ein Speicherverlauf reicht. */
   const [router] = useState(() =>
@@ -151,6 +164,24 @@ export const NotenListStory = ({
               />
             </main>
             <div hidden={true}>
+              <button
+                type="button"
+                data-testid="complete-a"
+                onClick={() =>
+                  pendingByIdRef.current.get('note-a')?.('success')
+                }
+              >
+                Complete A
+              </button>
+              <button
+                type="button"
+                data-testid="complete-b"
+                onClick={() =>
+                  pendingByIdRef.current.get('note-b')?.('success')
+                }
+              >
+                Complete B
+              </button>
               <button
                 aria-label="Complete save"
                 data-testid="complete"

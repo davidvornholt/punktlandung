@@ -39,6 +39,7 @@ const deleting: ListMutation<string> = {
 type RowProps = ComponentProps<typeof NoteRow>;
 
 const baseProps: RowProps = {
+  deleteError: null,
   deleteMutation: idle,
   editPending: false,
   form: <p>Formular</p>,
