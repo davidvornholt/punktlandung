@@ -39,3 +39,5 @@ An open, non-draft pull request from this repository to `main` can request a pre
 The host permits one preview at a time. Each preview has an empty, isolated PostgreSQL database and an ephemeral session key; data is discarded on teardown. Updates replace the running image. Removing the label, converting to draft, retargeting away from `main`, closing the pull request, or a failed build/deployment removes the preview. Infrastructure and DNS are owned by `davidvornholt/personal-infra`.
 
 GitHub sign-in is disabled in previews. The image check verifies that the provider redirect uses the preview's HTTPS callback URL, but the isolated runtime receives neither production OAuth credentials nor network egress. Enabling real preview sign-in requires a separately provisioned provider and egress policy. The `pr-preview` GitHub environment is restricted to `main` and holds only the age identity for the dedicated, forced-command preview SSH key in `secrets/pr-preview.yaml`.
+
+<!-- Temporary preview lifecycle verification fixture. This PR is closed after verification. -->
