@@ -10,13 +10,13 @@ export const ConversionReference = () => (
     <h2 className="font-display text-2xl text-ink tracking-tight">
       Notenumrechnung
     </h2>
-    <p className="mt-2 text-ink-muted">
+    <p className="mt-2 max-w-prose text-ink-muted">
       Ein Halbjahr rechnet entweder in Noten von 1 bis 6 oder in Notenpunkten
       von 0 bis 15. Damit Punktlandung Halbjahre beider Systeme zusammen zeigen
       kann — etwa im Gesamtschnitt auf der Übersicht — rechnet es jede Note in
       Notenpunkte um.
     </p>
-    <p className="mt-2 text-ink-muted">
+    <p className="mt-2 max-w-prose text-ink-muted">
       Die Tabelle zeigt das Viertelnoten-Raster: zuerst den Dezimalwert und
       dahinter die Notentendenz in Klammern. Die Ankerwerte sind die amtlichen
       Notentendenzen: 1+ sind 15 Punkte, 1 sind 14, 1- sind 13, 2+ sind 12 und
@@ -24,7 +24,7 @@ export const ConversionReference = () => (
       amtlichen Tabelle. Dort teilt Punktlandung gleichmäßig zwischen den
       benachbarten Tendenzen und markiert das Ergebnis mit ≈.
     </p>
-    <p className="mt-2 text-ink-muted">
+    <p className="mt-2 max-w-prose text-ink-muted">
       Ein Gesamtschnitt kann zwischen zwei Tabellenzeilen liegen. 1,88 bei 11,5
       P. liegt zum Beispiel zwischen 1,75 (12 P.) und 2 (11 P.). Suche für
       solche Werte die beiden benachbarten Zeilen, zwischen denen sowohl die
@@ -33,7 +33,7 @@ export const ConversionReference = () => (
     </p>
     <details className="mt-4">
       <summary className="cursor-pointer text-ink-muted text-sm transition-colors duration-150 ease-standard hover:text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">
-        Umrechnungstabelle anzeigen
+        Umrechnungstabelle
       </summary>
       <table className="mt-3 w-full max-w-xs border-collapse">
         <caption className="sr-only">
