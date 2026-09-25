@@ -444,7 +444,7 @@ jobs:
           test "$tags" = '["punktlandung:pull-request"]'
           test "$(docker image inspect punktlandung:pull-request --format '{{.Os}}')" = linux
           test "$(docker image inspect punktlandung:pull-request --format '{{.Architecture}}')" = amd64
-          test "$(docker image inspect punktlandung:pull-request --format '{{.Config.User}}')" = app
+          test "$(docker image inspect punktlandung:pull-request --format '{{.Config.User}}')" = bun
           image_size=$(docker image inspect punktlandung:pull-request --format '{{.Size}}')
           [[ "$image_size" =~ ^[1-9][0-9]*$ ]]
           test "$image_size" -le 2147483648
