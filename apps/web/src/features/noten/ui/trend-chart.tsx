@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -33,11 +34,7 @@ const shortDate = (iso: string): string => {
  * Recharts liefert den Datensatz der Reihe untypisiert zurück; er stammt aus
  * genau der Liste, die dieses Modul selbst an das Diagramm übergibt.
  */
-const TrendTooltip = ({ active, payload }: TooltipContentProps) => {
-  const entry = payload.at(0)?.payload as TrendEntry | undefined;
-  if (!active || entry === undefined) {
-    return null;
-  }
+const TrendPointCard = ({ entry }: { readonly entry: TrendEntry }) => {
   const point = createTrendPointText(entry);
   return (
     <div className="border border-border bg-surface px-3 py-2 shadow-card">
@@ -59,6 +56,15 @@ const TrendTooltip = ({ active, payload }: TooltipContentProps) => {
   );
 };
 
+const TrendTooltip = ({ active, payload }: TooltipContentProps) => {
+  const entry = payload.at(0)?.payload as TrendEntry | undefined;
+  return active && entry !== undefined ? (
+    <TrendPointCard entry={entry} />
+  ) : null;
+};
+
+const touchTargetRadius = 22;
+
 /**
  * Die Verlaufslinie: alle Noten als Notenpunkte (Akzentlinie) und der
  * laufende gewichtete Gesamtschnitt (Primärlinie). Farben kommen
@@ -72,65 +78,133 @@ export const TrendChart = ({
   readonly entries: ReadonlyArray<TrendEntry>;
 }) => {
   const textModel = createTrendTextModel(entries);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const selectedCardRef = useRef<HTMLElement>(null);
+  const [selected, setSelected] = useState<TrendEntry | null>(null);
+  const pinned =
+    selected !== null && entries.includes(selected) ? selected : null;
+  useEffect(() => {
+    if (pinned === null) {
+      return;
+    }
+    const dismissOutside = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !chartRef.current?.contains(event.target) &&
+        !selectedCardRef.current?.contains(event.target)
+      ) {
+        setSelected(null);
+      }
+    };
+    const dismissEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelected(null);
+      }
+    };
+    document.addEventListener('pointerdown', dismissOutside);
+    document.addEventListener('keydown', dismissEscape);
+    return () => {
+      document.removeEventListener('pointerdown', dismissOutside);
+      document.removeEventListener('keydown', dismissEscape);
+    };
+  }, [pinned]);
+  const selectAt = (clientX: number, clientY: number) => {
+    let nearest: TrendEntry | null = null;
+    let nearestDistance = touchTargetRadius;
+    chartRef.current
+      ?.querySelectorAll('.recharts-line-dot')
+      .forEach((dot, index) => {
+        const bounds = dot.getBoundingClientRect();
+        const distance = Math.hypot(
+          clientX - bounds.x - bounds.width / 2,
+          clientY - bounds.y - bounds.height / 2,
+        );
+        if (distance <= nearestDistance) {
+          nearest = entries[index] ?? null;
+          nearestDistance = distance;
+        }
+      });
+    setSelected(nearest);
+  };
 
   return (
     <figure>
-      <ResponsiveContainer height={chartHeight} width="100%">
-        <LineChart
-          accessibilityLayer={false}
-          aria-hidden="true"
-          data={[...entries]}
-          margin={chartMargin}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Pointer inspection supplements the complete accessible data table. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: Pointer inspection supplements the complete keyboard-accessible data table below. */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: Keyboard users inspect the complete data table; Escape dismisses pointer selection. */}
+      <div
+        ref={chartRef}
+        onClick={(event) => selectAt(event.clientX, event.clientY)}
+      >
+        <ResponsiveContainer height={chartHeight} width="100%">
+          <LineChart
+            accessibilityLayer={false}
+            aria-hidden="true"
+            data={[...entries]}
+            margin={chartMargin}
+          >
+            <CartesianGrid stroke="var(--pl-border)" vertical={false} />
+            <XAxis
+              dataKey="datum"
+              stroke="var(--pl-ink-faint)"
+              tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
+              tickFormatter={shortDate}
+              tickLine={false}
+            />
+            <YAxis
+              domain={[0, maxNotenpunkte]}
+              stroke="var(--pl-ink-faint)"
+              tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
+              tickCount={yAxisTicks}
+              tickLine={false}
+            />
+            <Tooltip
+              content={TrendTooltip}
+              active={pinned === null ? undefined : false}
+              cursor={{ stroke: 'var(--pl-border-strong)', strokeWidth: 1 }}
+              isAnimationActive={false}
+            />
+            <Line
+              activeDot={{
+                fill: 'var(--pl-accent)',
+                r: activePointRadius,
+                stroke: 'none',
+              }}
+              dataKey="punkte"
+              dot={{ fill: 'var(--pl-accent)', r: pointRadius, stroke: 'none' }}
+              isAnimationActive={false}
+              name="Einzelnoten"
+              stroke="var(--pl-accent)"
+              strokeWidth={1}
+              type="monotone"
+            />
+            <Line
+              activeDot={false}
+              dataKey="schnitt"
+              dot={false}
+              isAnimationActive={false}
+              name="Gesamtschnitt"
+              stroke="var(--pl-primary)"
+              strokeWidth={2}
+              type="monotone"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      {pinned === null ? null : (
+        <aside
+          ref={selectedCardRef}
+          aria-label="Ausgewählte Note"
+          aria-live="polite"
+          className="mt-3"
         >
-          <CartesianGrid stroke="var(--pl-border)" vertical={false} />
-          <XAxis
-            dataKey="datum"
-            stroke="var(--pl-ink-faint)"
-            tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
-            tickFormatter={shortDate}
-            tickLine={false}
-          />
-          <YAxis
-            domain={[0, maxNotenpunkte]}
-            stroke="var(--pl-ink-faint)"
-            tick={{ fill: 'var(--pl-ink-faint)', fontSize: axisFont }}
-            tickCount={yAxisTicks}
-            tickLine={false}
-          />
-          <Tooltip
-            content={TrendTooltip}
-            cursor={{ stroke: 'var(--pl-border-strong)', strokeWidth: 1 }}
-            isAnimationActive={false}
-          />
-          <Line
-            activeDot={{
-              fill: 'var(--pl-accent)',
-              r: activePointRadius,
-              stroke: 'none',
-            }}
-            dataKey="punkte"
-            dot={{ fill: 'var(--pl-accent)', r: pointRadius, stroke: 'none' }}
-            isAnimationActive={false}
-            name="Einzelnoten"
-            stroke="var(--pl-accent)"
-            strokeWidth={1}
-            type="monotone"
-          />
-          <Line
-            activeDot={false}
-            dataKey="schnitt"
-            dot={false}
-            isAnimationActive={false}
-            name="Gesamtschnitt"
-            stroke="var(--pl-primary)"
-            strokeWidth={2}
-            type="monotone"
-          />
-        </LineChart>
-      </ResponsiveContainer>
+          <TrendPointCard entry={pinned} />
+        </aside>
+      )}
       <figcaption className="mt-2 text-ink-faint text-sm">
         {textModel.summary} Dünne Linie: Einzelnoten, kräftige Linie: laufender
-        Schnitt.
+        Schnitt. Einen Punkt antippen, um die Note festzuhalten; außerhalb
+        tippen oder Escape drücken schließt die Auswahl.
       </figcaption>
       <details className="mt-4 border border-border bg-surface-sunken">
         <summary className="cursor-pointer px-3 py-2 text-ink text-sm marker:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">

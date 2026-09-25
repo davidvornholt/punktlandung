@@ -1,0 +1,5 @@
+/* The component harness lives outside src; include the same application and UI class sources explicitly. */
+/* biome-ignore lint/nursery/useLayeredStyles: The application stylesheet owns its cascade layers. */
+@import "../src/styles.css";
+@source "../src";
+@source "../../../packages/ui/src";

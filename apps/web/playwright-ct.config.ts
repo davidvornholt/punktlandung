@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite';
+
 const { defineConfig, devices } = await import(
   '@playwright/experimental-ct-react'
 );
@@ -17,6 +19,7 @@ export default defineConfig({
   use: {
     ctCacheDir: 'test-results/playwright-ct-cache',
     ctViteConfig: {
+      plugins: [tailwindcss()],
       resolve: {
         alias: {
           '#': appSource,
