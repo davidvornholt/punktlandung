@@ -62,6 +62,9 @@ describe('preview producer trust boundary', () => {
 
   it('keeps every workflow run in the FIFO queue without cancellation', () => {
     expect(producer).toContain('  cancel-in-progress: false');
+    expect(producer).toContain('  queue: max');
+    expect(consumer).toContain('  queue: max');
+    expect(consumer).toContain('  cancel-in-progress: false');
     expect(producer).not.toContain('cancel-in-progress: true');
   });
 

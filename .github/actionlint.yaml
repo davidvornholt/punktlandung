@@ -1,0 +1,10 @@
+# actionlint 1.7.12 lacks GitHub's documented FIFO queue property (upstream #657).
+# These exact workflows need every lifecycle event; remove only this diagnostic
+# exception when the pinned parser supports queue. All other checks remain active.
+paths:
+  .github/workflows/publish-container.yml:
+    ignore:
+      - '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$'
+  .github/workflows/pr-preview-deploy.yml:
+    ignore:
+      - '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$'
