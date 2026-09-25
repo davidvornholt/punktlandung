@@ -64,6 +64,3 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 USER bun
 
 CMD ["bun", "run", "start"]
-
-# Disposable PR73 lifecycle proof: this build must fail.
-RUN false
