@@ -2,6 +2,10 @@ name: Punktlandung preview host command
 
 on:
   workflow_call:
+    secrets:
+      SOPS_AGE_KEY:
+        description: Bound by the main-only pr-preview job environment
+        required: false
     inputs:
       operation:
         description: Exact forced-command operation

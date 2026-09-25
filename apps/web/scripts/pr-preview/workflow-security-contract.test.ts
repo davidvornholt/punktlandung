@@ -163,7 +163,10 @@ describe('preview host authorization and secret boundary', () => {
     const sopsAgeKey = githubExpression('secrets.SOPS_AGE_KEY');
     expect(hostCommand).toContain(`SOPS_AGE_KEY: ${sopsAgeKey}`);
     expect(consumer).not.toContain('secrets.SOPS_AGE_KEY');
-    expect(hostCommand).not.toContain('    secrets:');
+    expect(hostCommand).toContain(
+      '    secrets:\n      SOPS_AGE_KEY:\n        description: Bound by the main-only pr-preview job environment\n        required: false',
+    );
+    expect(consumer).not.toContain('secrets: inherit');
     expect(hostCommand).toContain('secrets/pr-preview.yaml?ref=$main_sha');
     expect(hostCommand).toContain(`printf '\\n' >>"$key"`);
     expect(hostCommand).toContain('ssh-keygen -y -f "$key" >/dev/null');
