@@ -151,6 +151,9 @@ export const HalbjahrForm = ({
       className="border border-border bg-surface p-5 shadow-card"
       onSubmit={(event) => {
         event.preventDefault();
+        if (pending || alreadyOccupied) {
+          return;
+        }
         onSave(toHalbjahrInput(values));
       }}
       ref={formRef}
@@ -186,13 +189,15 @@ export const HalbjahrForm = ({
       <div className="mt-5 flex gap-3">
         <button
           className={primaryButtonClass}
-          disabled={pending || alreadyOccupied}
+          aria-disabled={pending || alreadyOccupied}
+          aria-busy={pending}
           type="submit"
         >
           {pending ? 'Halbjahr wird gespeichert …' : 'Halbjahr speichern'}
         </button>
         <button
           className={secondaryButtonClass}
+          disabled={pending}
           onClick={onCancel}
           type="button"
         >

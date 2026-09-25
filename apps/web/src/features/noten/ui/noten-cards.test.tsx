@@ -41,6 +41,7 @@ const cards = (
 ) =>
   renderToStaticMarkup(
     <NotenCards
+      deleteErrors={new Map()}
       deleteMutation={idle}
       editNoteId={editNoteId}
       editPending={false}
@@ -76,6 +77,7 @@ const buttons = (node: unknown): ReadonlyArray<ReactElement> => {
 const editButton = (editNoteId: string | null, onEdit: unknown) =>
   buttons(
     NotenCards({
+      deleteErrors: new Map(),
       deleteMutation: idle,
       editNoteId,
       editPending: false,

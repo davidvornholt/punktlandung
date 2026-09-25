@@ -3,7 +3,6 @@ import { describe, expect, it } from 'bun:test';
 import type { Leistung } from '../services/noten-service.ts';
 import {
   closeIfSaved,
-  isEditPending,
   noUpdateErrors,
   updateErrorText,
   withNote,
@@ -76,21 +75,5 @@ describe('closeIfSaved', () => {
   it('lässt eine inzwischen geöffnete andere Note offen', () => {
     expect(closeIfSaved('note-a')(noteB)).toBe(noteB);
     expect(closeIfSaved('note-a')(null)).toBe(null);
-  });
-});
-
-describe('isEditPending', () => {
-  it('meldet nur die gerade gespeicherte Note als beschäftigt', () => {
-    const saving = { isPending: true, variables: { id: 'note-a' } };
-
-    expect(isEditPending(saving, noteA)).toBe(true);
-    expect(isEditPending(saving, noteB)).toBe(false);
-    expect(isEditPending(saving, null)).toBe(false);
-  });
-
-  it('meldet nichts, solange nichts läuft', () => {
-    expect(
-      isEditPending({ isPending: false, variables: { id: 'note-a' } }, noteA),
-    ).toBe(false);
   });
 });

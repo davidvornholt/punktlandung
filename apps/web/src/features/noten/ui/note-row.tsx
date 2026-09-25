@@ -95,6 +95,7 @@ const RowSummary = ({
 
 /** Eine Notenzeile mit ihren Aktionen und, beim Bearbeiten, dem Formular. */
 export const NoteRow = ({
+  deleteError,
   deleteMutation,
   editPending,
   form,
@@ -107,6 +108,7 @@ export const NoteRow = ({
   savedError,
   system,
 }: {
+  readonly deleteError: unknown | null;
   readonly deleteMutation: ListMutation<string>;
   readonly editPending: boolean;
   readonly form: ReactNode;
@@ -176,9 +178,9 @@ export const NoteRow = ({
           {form}
         </div>
       ) : null}
-      {rowState.error === null ? null : (
+      {deleteError === null ? null : (
         <RowError
-          error={rowState.error}
+          error={deleteError}
           fallbackText="Die Note konnte nicht gelöscht werden. Sie bleibt in der Liste; versuche es erneut."
         />
       )}

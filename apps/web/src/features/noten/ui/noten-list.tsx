@@ -16,7 +16,6 @@ import { NotenCards } from './noten-cards.tsx';
 import {
   closeIfSaved,
   emptyNotenHint,
-  isEditPending,
   noUpdateErrors,
   updateErrorText,
   withNote,
@@ -24,6 +23,7 @@ import {
 } from './noten-list-model.ts';
 import { notenMutationOptions } from './noten-mutations.ts';
 import type { NotenOperations } from './noten-operations.ts';
+import { usePendingUpdates } from './use-pending-updates.ts';
 
 type Halbjahr = {
   readonly id: string;
@@ -65,6 +65,7 @@ export const NotenList = ({
   });
   const [editTarget, setEditTarget] = useState<Leistung | null>(null);
   const [updateErrors, setUpdateErrors] = useState(noUpdateErrors);
+  const [deleteErrors, setDeleteErrors] = useState(noUpdateErrors);
   const focus = useFormFocus<HTMLElement>(editTarget?.id ?? null);
 
   const forgetUpdateError = (id: string) =>
@@ -86,9 +87,15 @@ export const NotenList = ({
     operations,
     queryClient,
   });
-  const deleteMutation = useMutation(options.delete);
-  const updateMutation = useMutation(options.update);
-  const editPending = isEditPending(updateMutation, editTarget);
+  const deleteMutation = useMutation({
+    ...options.delete,
+    onError: (error: unknown, id: string) =>
+      setDeleteErrors((errors) => withNote(errors, id, error)),
+  });
+  const { updateMutation, editPending } = usePendingUpdates(
+    options.update,
+    editTarget,
+  );
 
   /*
    * Auffangziel für den Fokus: der Zeilenknopf, der das Formular geöffnet hat,
@@ -120,7 +127,13 @@ export const NotenList = ({
     return shell(
       <div className="mt-6">
         <QueryError
-          onRetry={() => notenQuery.refetch()}
+          onRetry={() =>
+            notenQuery.refetch().then((result) => {
+              if (result.isSuccess) {
+                focus.fallbackTriggerRef.current?.focus();
+              }
+            })
+          }
           text="Die Notenliste konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>,
@@ -136,6 +149,7 @@ export const NotenList = ({
 
   return shell(
     <NotenCards
+      deleteErrors={deleteErrors}
       deleteMutation={deleteMutation}
       editNoteId={editTarget?.id ?? null}
       editPending={editPending}
@@ -159,7 +173,7 @@ export const NotenList = ({
       }
       noten={noten}
       onDelete={(id) => {
-        deleteMutation.reset();
+        setDeleteErrors((errors) => withoutNote(errors, id));
         deleteMutation.mutate(id);
       }}
       onEdit={(note, trigger) => {

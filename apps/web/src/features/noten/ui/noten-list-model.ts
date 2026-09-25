@@ -48,15 +48,3 @@ export const closeIfSaved =
   (id: string) =>
   (open: Leistung | null): Leistung | null =>
     open?.id === id ? null : open;
-
-/** Läuft gerade das Speichern der offenen Bearbeitung? */
-export const isEditPending = (
-  update: {
-    readonly isPending: boolean;
-    readonly variables?: { readonly id: string } | undefined;
-  },
-  editTarget: Leistung | null,
-) =>
-  update.isPending &&
-  editTarget !== null &&
-  update.variables?.id === editTarget.id;

@@ -1,0 +1,25 @@
+import { expect, test as it } from '@playwright/experimental-ct-react';
+import { PendingFormStory } from './halbjahr-form.ct-story.tsx';
+
+it('retains submit focus and blocks duplicate saves and cancellation while pending', async ({
+  mount,
+}) => {
+  const component = await mount(<PendingFormStory />);
+
+  const submit = component.getByRole('button', { name: 'Halbjahr speichern' });
+  await submit.focus();
+  await submit.press('Enter');
+  await expect(
+    component.getByRole('button', { name: 'Halbjahr wird gespeichert' }),
+  ).toBeFocused();
+  await expect(
+    component.getByRole('button', { name: 'Abbrechen' }),
+  ).toBeDisabled();
+  await component.locator('form').dispatchEvent('submit');
+  await expect(
+    component.getByRole('status', { name: 'Save calls' }),
+  ).toHaveText('1');
+  await component.getByTestId('fail').dispatchEvent('click');
+  await expect(submit).toBeFocused();
+  await expect(component.getByRole('alert')).toHaveText('Verbindung weg');
+});
