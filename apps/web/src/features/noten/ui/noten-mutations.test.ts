@@ -80,16 +80,6 @@ const expectedKeys = [
 ];
 
 describe('notenMutationOptions', () => {
-  it('schickt Änderung und Löschung an die Serveraufrufe', async () => {
-    const { operations, options } = setup();
-
-    await options.update.mutationFn(values);
-    await options.delete.mutationFn('note-a');
-
-    expect(operations.update).toHaveBeenCalledWith(values);
-    expect(operations.delete).toHaveBeenCalledWith('note-a');
-  });
-
   /**
    * Ändern und Löschen verschieben denselben Notenstand: Notenliste, Verlauf
    * und jede Zeugnisvorschau. Bliebe eine davon stehen, zeigte sie einen

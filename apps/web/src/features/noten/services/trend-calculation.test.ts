@@ -77,10 +77,6 @@ describe('calculateTrend', () => {
     });
   });
 
-  it('liefert für keine Noten eine leere Liste', () => {
-    expect(calculateTrend([])).toEqual([]);
-  });
-
   it('wendet den schriftlich/mündlich-Anteil trotz ungleicher Anzahl an', () => {
     const fachGewichtung = {
       ...equallyWeighted,

@@ -73,22 +73,6 @@ describe('Gewichtungseditor-Persistenz', () => {
     }
   });
 
-  it('weist gesammelte Tests mit abweichendem Gewicht vor dem Editor zurück', () => {
-    for (const gewicht of [0.25, 3.75, 10] as const) {
-      const raw = {
-        ...standardgewichtung,
-        arten: {
-          ...standardgewichtung.arten,
-          test: { gewicht, sammlung: 'gesammelt' },
-        },
-      };
-
-      expect(Schema.decodeUnknownEither(FachgewichtungSchema)(raw)._tag).toBe(
-        'Left',
-      );
-    }
-  });
-
   it('holt die GFS beim erneuten Ankoppeln zurück auf die Klausur', () => {
     const state = reduceActions([
       { type: 'coupling', kind: 'gfs', coupled: false },

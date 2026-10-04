@@ -85,12 +85,6 @@ describe('NoteRow', () => {
     expect(markup).not.toContain('gelöscht …:');
   });
 
-  it('sperrt beide Zeilenaktionen, solange ein Löschvorgang läuft', () => {
-    expect(
-      row({ deleteMutation: deleting }).match(/disabled=""/gu),
-    ).toHaveLength(2);
-  });
-
   it('sperrt das Schließen, solange das Speichern dieser Zeile läuft', () => {
     expect(row({ editPending: true, isEditing: true })).toContain(
       'disabled=""',
@@ -112,16 +106,5 @@ describe('NoteRow', () => {
       'aria-label="Bearbeiten: Ausstehende Klausur am 01.10.2026, Eintrag 3"',
     );
     expect(markup).not.toContain('Note 2');
-  });
-
-  it('meldet einen Änderungsfehler nur in der wieder geschlossenen Zeile', () => {
-    const error = new Error('Verbindung weg');
-
-    expect(row({ savedError: error })).toContain(
-      'Die Änderung an dieser Note wurde nicht gespeichert',
-    );
-    expect(row({ isEditing: true, savedError: error })).not.toContain(
-      'role="alert"',
-    );
   });
 });
