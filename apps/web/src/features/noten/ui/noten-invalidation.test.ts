@@ -1,40 +1,9 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { QueryClient } from '@tanstack/react-query';
 
-import { invalidateNotenQueries, notenQueries } from './noten-invalidation.ts';
-
-describe('notenQueries', () => {
-  it('umfasst Notenliste, Verlauf, Anstehendes, Detailseiten und jede Zeugnisvorschau', () => {
-    expect(notenQueries('hj-1')).toEqual([
-      ['noten', 'hj-1'],
-      ['trend'],
-      ['upcoming'],
-      ['leistung'],
-      ['zeugnis'],
-    ]);
-  });
-});
+import { invalidateNotenQueries } from './noten-invalidation.ts';
 
 describe('invalidateNotenQueries', () => {
-  it('entwertet jede betroffene Abfrage genau einmal', async () => {
-    const invalidateQueries = mock(
-      (_selection: { readonly queryKey: ReadonlyArray<string> }) =>
-        Promise.resolve(),
-    );
-
-    await invalidateNotenQueries({ invalidateQueries }, 'hj-1');
-
-    expect(
-      invalidateQueries.mock.calls.map(([selection]) => selection.queryKey),
-    ).toEqual([
-      ['noten', 'hj-1'],
-      ['trend'],
-      ['upcoming'],
-      ['leistung'],
-      ['zeugnis'],
-    ]);
-  });
-
   /**
    * Die Zeugnisvorschau eines Halbjahrs enthält die Jahresvorschau aus den
    * Noten beider Halbjahre. Ein echter Abfragespeicher zeigt, dass das

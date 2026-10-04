@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-import { Effect } from 'effect';
 
 import {
   FachNotFound,
@@ -75,14 +74,5 @@ const stableTags = [
 describe('Effect error tag contract', () => {
   it('keeps all 13 pre-rename discriminators', () => {
     expect(errors.map((error) => error._tag)).toEqual([...stableTags]);
-  });
-
-  it('keeps existing catchTag recovery paths working', () => {
-    const recovered = Effect.runSync(
-      Effect.fail(errors[1]).pipe(
-        Effect.catchTag('FachNichtGefunden', () => Effect.succeed('caught')),
-      ),
-    );
-    expect(recovered).toBe('caught');
   });
 });

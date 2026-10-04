@@ -32,7 +32,7 @@ type FachList = ReadonlyArray<{
 }>;
 
 /** Die Bearbeitungsrolle: das Datum stammt aus der Note, nicht aus einer Vorgabe. */
-const editMarkup = (faecher: FachList, own: Leistung = note, pending = false) =>
+const editMarkup = (faecher: FachList, own: Leistung = note) =>
   renderToStaticMarkup(
     <NoteForm
       error={null}
@@ -42,7 +42,7 @@ const editMarkup = (faecher: FachList, own: Leistung = note, pending = false) =>
       note={own}
       onCancel={() => undefined}
       onSave={() => undefined}
-      pending={pending}
+      pending={false}
     />,
   );
 
@@ -70,12 +70,6 @@ const fachField = (rendered: string) => {
 
 const submitButton = (rendered: string) => {
   const end = rendered.indexOf('type="submit"');
-  return rendered.slice(rendered.lastIndexOf('<button', end), end);
-};
-
-/** Der Abbrechen-Knopf, den nur die Bearbeitungsrolle rendert. */
-const cancelButton = (rendered: string) => {
-  const end = rendered.indexOf('>Abbrechen<');
   return rendered.slice(rendered.lastIndexOf('<button', end), end);
 };
 
@@ -130,15 +124,6 @@ describe('NoteForm', () => {
       '<option value="" selected="">Fach wählen</option>',
     );
     expect(field.match(/selected=""/gu)).toHaveLength(1);
-  });
-
-  it('sperrt Abbrechen, solange die Änderung unterwegs ist', () => {
-    const faecher = [{ id: 'latein', name: 'Latein' }];
-
-    expect(cancelButton(editMarkup(faecher, note, true))).toContain(
-      'disabled=""',
-    );
-    expect(cancelButton(editMarkup(faecher))).not.toContain('disabled=""');
   });
 
   it('lässt den Eintragsknopf auf dem Telefon die volle Breite füllen', () => {

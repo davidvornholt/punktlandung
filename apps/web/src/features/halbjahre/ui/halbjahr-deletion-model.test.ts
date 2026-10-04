@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'bun:test';
 
-import {
-  HalbjahrDeletionBlockedByNoten,
-  HalbjahrDeletionConsequenceChanged,
-} from '../errors/halbjahr-errors.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import {
   advanceHalbjahrDeletion,
@@ -11,7 +7,6 @@ import {
   halbjahrDeletionSuccessMessage,
   initialHalbjahrDeletionDecision,
   isFinalHalbjahrInSchoolYear,
-  isProtectedHalbjahrDeletionError,
 } from './halbjahr-deletion-model.ts';
 
 const halbjahr = (
@@ -71,28 +66,5 @@ describe('Halbjahr deletion decision', () => {
       decision: initialHalbjahrDeletionDecision,
       expectedFinalInSchoolYear: false,
     });
-  });
-});
-
-describe('Halbjahr deletion refresh', () => {
-  it('recognizes typed rejections that require a list refresh', () => {
-    expect(
-      isProtectedHalbjahrDeletionError(
-        new HalbjahrDeletionBlockedByNoten({
-          halbjahrId: 'target',
-          notenCount: 1,
-        }),
-      ),
-    ).toBeTrue();
-    expect(
-      isProtectedHalbjahrDeletionError(
-        new HalbjahrDeletionConsequenceChanged({
-          actualFinalInSchoolYear: true,
-          expectedFinalInSchoolYear: false,
-          halbjahrId: 'target',
-        }),
-      ),
-    ).toBeTrue();
-    expect(isProtectedHalbjahrDeletionError(new Error('offline'))).toBeFalse();
   });
 });

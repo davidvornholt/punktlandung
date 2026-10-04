@@ -112,7 +112,6 @@ describe('trusted preview consumer boundary', () => {
     expect(blobGate).toBeGreaterThan(deployOnlyGate);
     expect(output).toBeGreaterThan(blobGate);
     expect(selector).toContain('.github/workflows/pr-preview-deploy.yml');
-    expect(selector).toContain('.github/workflows/pr-preview-deploy.yml');
   });
 
   it('discovers Standards independently and binds the exact producer gate step', () => {

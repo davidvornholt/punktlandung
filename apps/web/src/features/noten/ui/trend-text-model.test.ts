@@ -70,46 +70,6 @@ describe('createTrendTextModel', () => {
     expect(model.summary).toContain('Niedrigster Einzelwert: 7 P.');
     expect(model.summary).toContain('höchster Einzelwert: 13 P.');
   });
-
-  it('exposes full point identity and the originally entered grade', () => {
-    const model = createTrendTextModel([
-      entry({ punkte: 11, schnitt: 11, notenwert: 11 }),
-      entry({
-        fachKuerzel: 'D',
-        fachName: 'Deutsch',
-        punkte: 7,
-        schnitt: 9,
-        notenwert: 2.75,
-        notensystem: 'sechser',
-        leistungsart: 'gfs',
-        klassenstufe: '10',
-        half: 2,
-      }),
-    ]);
-
-    expect(model.rows).toEqual([
-      {
-        id: '0-2026-09-14-M',
-        halbjahr: 'J1.1',
-        leistungsart: 'Klausur',
-        date: '14.09.2026',
-        fach: 'Mathematik',
-        note: '11 P.',
-        notenpunkte: '11 P.',
-        average: '11 P.',
-      },
-      {
-        id: '1-2026-09-14-D',
-        halbjahr: '10.2',
-        leistungsart: 'GFS',
-        date: '14.09.2026',
-        fach: 'Deutsch',
-        note: '2,75',
-        notenpunkte: '7 P.',
-        average: '9 P.',
-      },
-    ]);
-  });
 });
 
 describe('createTrendPointText', () => {

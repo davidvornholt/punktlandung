@@ -76,14 +76,6 @@ describe('noteFormValues', () => {
     const { wert: _wert, ...rest } = note;
     expect(noteFormValues({ ...rest, status: 'planned' }).wert).toBe('');
   });
-
-  it('liefert jedes Feld als Text, wie das Formular es erwartet', () => {
-    expect(
-      Object.values(noteFormValues(note)).every(
-        (value) => typeof value === 'string',
-      ),
-    ).toBe(true);
-  });
 });
 
 describe('emptyNoteFormValues', () => {

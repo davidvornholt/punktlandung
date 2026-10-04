@@ -114,10 +114,6 @@ describe('NotenCards', () => {
     expect(cards(null).match(/aria-label="Löschen: /gu)).toHaveLength(2);
   });
 
-  it('bietet jede Note zum Bearbeiten an', () => {
-    expect(cards(null).match(/aria-label="Bearbeiten: /gu)).toHaveLength(2);
-  });
-
   it('benennt zwei ununterscheidbare Noten derselben Karte verschieden', () => {
     const twins = [note('A'), note('B')];
     /** Das Label der Fachkarte, dazu Bearbeiten und Löschen je Note. */

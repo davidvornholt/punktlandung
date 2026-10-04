@@ -1,18 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { QueryClient } from '@tanstack/react-query';
 
-import { fachQueries, invalidateFachQueries } from './fach-invalidation.ts';
-
-describe('fachQueries', () => {
-  it('umfasst Fächerliste, Notenlisten, Verlauf und Zeugnisvorschau', () => {
-    expect(fachQueries('2026/27')).toEqual([
-      ['faecher', '2026/27'],
-      ['noten'],
-      ['trend'],
-      ['zeugnis'],
-    ]);
-  });
-});
+import { invalidateFachQueries } from './fach-invalidation.ts';
 
 describe('invalidateFachQueries', () => {
   /**

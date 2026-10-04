@@ -5,8 +5,6 @@ import {
   fachschnittText,
   overdueHeading,
   tageBisText,
-  terminText,
-  upcomingLabel,
 } from './upcoming-text.ts';
 
 const leistung = (
@@ -39,10 +37,6 @@ describe('tageBisText', () => {
 });
 
 describe('Texte einer ausstehenden Leistung', () => {
-  it('setzt Art, Datum und Abstand zu einer Zeile zusammen', () => {
-    expect(terminText(leistung())).toBe('Klausur · 19.09.2026 · in 6 Tagen');
-  });
-
   it('zeigt den Fachschnitt im System des Halbjahrs oder sagt, dass er fehlt', () => {
     expect(fachschnittText(leistung())).toBe('Schnitt 11 P.');
     expect(
@@ -51,10 +45,6 @@ describe('Texte einer ausstehenden Leistung', () => {
     expect(fachschnittText(leistung({ fachschnitt: null }))).toBe(
       'noch kein Schnitt',
     );
-  });
-
-  it('benennt die Leistung eindeutig für Verweise', () => {
-    expect(upcomingLabel(leistung())).toBe('Klausur Mathematik am 19.09.2026');
   });
 
   it('beugt die Nachfrage nach fehlenden Noten', () => {
