@@ -19,7 +19,9 @@ import {
 } from './postgres-test-database.ts';
 
 const keys = (value: unknown): ReadonlyArray<string> =>
-  Object.keys(JSON.parse(JSON.stringify(value))).sort();
+  Object.keys(JSON.parse(JSON.stringify(value))).sort((a, b) =>
+    a.localeCompare(b),
+  );
 
 const required = <Value>(value: Value | undefined, name: string): Value => {
   if (value === undefined) {
