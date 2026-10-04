@@ -47,7 +47,7 @@
     "drizzle-orm": "^0.45.3",
     "effect": "^3.22.2",
     "lucide-react": "1.48.0",
-    "pg": "^8.23.0",
+    "pg": "^8.23.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",
