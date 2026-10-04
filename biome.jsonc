@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   // Repo-owned wrapper. Extends the canonical strict base synced from
   // davidvornholt/standards. Add project-specific overrides here; never edit
   // biome.base.jsonc locally.
@@ -94,32 +94,6 @@
           },
           "style": {
             "noHeadElement": "off"
-          }
-        }
-      }
-    },
-    {
-      // Data.TaggedError tag literals ("HalbjahrNotFound", …) are stable
-      // error identifiers that the entropy-based secret heuristic
-      // misclassifies as credentials.
-      "includes": ["apps/web/src/features/*/errors/*.ts"],
-      "linter": {
-        "rules": {
-          "security": {
-            "noSecrets": "off"
-          }
-        }
-      }
-    },
-    {
-      // Notenmath tests compare against literal numeric fixtures (Noten,
-      // Punkte, Gewichte, Daten); naming each expected value would obscure
-      // the arithmetic the tests pin down.
-      "includes": ["apps/web/src/**/*.test.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noMagicNumbers": "off"
           }
         }
       }

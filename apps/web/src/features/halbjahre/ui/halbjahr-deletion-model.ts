@@ -151,7 +151,5 @@ export const isProtectedHalbjahrDeletionError = (error: unknown): boolean =>
   typeof error === 'object' &&
   error !== null &&
   '_tag' in error &&
-  // biome-ignore lint/security/noSecrets: This is a stable Effect error tag, not a credential.
   (error._tag === 'HalbjahrDeletionBlockedByNoten' ||
-    // biome-ignore lint/security/noSecrets: This is a stable Effect error tag, not a credential.
     error._tag === 'HalbjahrDeletionConsequenceChanged');
