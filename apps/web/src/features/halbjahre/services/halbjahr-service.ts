@@ -178,7 +178,7 @@ export const loadLockedHalbjahr = (id: string) =>
  * könnte sie sich mit einer gleichzeitigen Bearbeitung des anderen Halbjahrs
  * gegenseitig blockieren.
  */
-const loadLockedSchoolYear = (id: string) =>
+const loadLockedSchoolYear = (id: string, nextSchoolYear: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
     const schoolYearOfHalbjahr = db
@@ -197,9 +197,22 @@ const loadLockedSchoolYear = (id: string) =>
       .orderBy(halbjahrTable.id)
       .for('update');
     const halbjahr = rows.find((row) => row.id === id);
-    return (
-      halbjahr ?? (yield* Effect.fail(new HalbjahrNotFound({ halbjahrId: id })))
-    );
+    if (halbjahr === undefined) {
+      return yield* Effect.fail(new HalbjahrNotFound({ halbjahrId: id }));
+    }
+    yield* lockSchoolYearLifecycle(halbjahr.schoolYear, nextSchoolYear);
+    const currentHalbjahre = yield* db
+      .select({ id: halbjahrTable.id })
+      .from(halbjahrTable)
+      .where(eq(halbjahrTable.schoolYear, halbjahr.schoolYear));
+    const lockedIds = new Set(rows.map((row) => row.id));
+    // Ein neues Halbjahr kann nach dem SELECT-Snapshot hinzukommen.
+    // Ohne Schreibzugriff beenden und alle Sperren freigeben, bevor
+    // wir erneut Zeilen sperren: Löschen und Fachänderungen halten
+    // ebenfalls erst Zeilensperren und dann den Lifecycle-Lock.
+    return currentHalbjahre.every((row) => lockedIds.has(row.id))
+      ? halbjahr
+      : null;
   });
 
 export const createHalbjahr = (input: HalbjahrInput) =>
@@ -234,8 +247,13 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
-          const halbjahr = yield* loadLockedSchoolYear(input.id);
-          yield* lockSchoolYearLifecycle(halbjahr.schoolYear, input.schoolYear);
+          const halbjahr = yield* loadLockedSchoolYear(
+            input.id,
+            input.schoolYear,
+          );
+          if (halbjahr === null) {
+            return false;
+          }
           const existingNoten = yield* db
             .select({ takenOn: noteTable.takenOn })
             .from(noteTable)
@@ -246,32 +264,33 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
             next,
             existingNoten.map((note) => note.takenOn),
           );
-          if (violation === 'notensystem') {
-            return yield* Effect.fail(
-              new NotensystemImmutableWithNoten({
-                halbjahrId: input.id,
-                previous: halbjahr.system,
-                next: next.system,
-              }),
-            );
-          }
-          if (violation === 'schoolYear') {
-            return yield* Effect.fail(
-              new SchoolYearImmutableWithNoten({
-                halbjahrId: input.id,
-                previous: halbjahr.schoolYear,
-                next: input.schoolYear,
-              }),
-            );
-          }
-          if (violation === 'dateRange') {
-            return yield* Effect.fail(
-              new HalbjahrExcludesNoten({
-                halbjahrId: input.id,
-                startsOn: input.startsOn,
-                endsOn: input.endsOn,
-              }),
-            );
+          switch (violation) {
+            case 'notensystem':
+              return yield* Effect.fail(
+                new NotensystemImmutableWithNoten({
+                  halbjahrId: input.id,
+                  previous: halbjahr.system,
+                  next: next.system,
+                }),
+              );
+            case 'schoolYear':
+              return yield* Effect.fail(
+                new SchoolYearImmutableWithNoten({
+                  halbjahrId: input.id,
+                  previous: halbjahr.schoolYear,
+                  next: input.schoolYear,
+                }),
+              );
+            case 'dateRange':
+              return yield* Effect.fail(
+                new HalbjahrExcludesNoten({
+                  halbjahrId: input.id,
+                  startsOn: input.startsOn,
+                  endsOn: input.endsOn,
+                }),
+              );
+            default:
+              break;
           }
           const other = yield* checkSharedKlassenstufe(input);
           if (other !== null) {
@@ -285,7 +304,11 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
           if (halbjahr.schoolYear !== input.schoolYear) {
             yield* deleteOrphanedFachSnapshot(halbjahr.schoolYear);
           }
+          return true;
         }),
       )
-      .pipe(Effect.catchTag('SqlError', (error) => mapOccupancy(error, input)));
+      .pipe(
+        Effect.repeat({ until: (completed) => completed }),
+        Effect.catchTag('SqlError', (error) => mapOccupancy(error, input)),
+      );
   });
