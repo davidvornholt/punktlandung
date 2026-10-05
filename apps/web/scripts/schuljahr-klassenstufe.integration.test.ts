@@ -155,35 +155,6 @@ describe('Eine Klassenstufe je Schuljahr beim Speichern', () => {
       expect(await countRows(pool, 'term', firstHalbjahr.schoolYear)).toBe(2);
     }));
 
-  it('lehnt beim Ändern eine abweichende Klassenstufe ab und lässt das Halbjahr unverändert', () =>
-    withFach(async (provided) => {
-      await provided(createHalbjahr(firstHalbjahr));
-      await provided(createHalbjahr(secondHalbjahr));
-      const second = (await provided(listHalbjahre)).find(
-        (halbjahr) => halbjahr.half === 2,
-      );
-      if (second === undefined) {
-        throw new Error('Das 2. Halbjahr fehlt.');
-      }
-
-      const error = await provided(
-        Effect.flip(
-          updateHalbjahr({
-            ...secondHalbjahr,
-            id: second.id,
-            klassenstufe: '9',
-          }),
-        ),
-      );
-
-      expect(error._tag).toBe('KlassenstufeDiffersInSchoolYear');
-      const unchanged = (await provided(listHalbjahre)).find(
-        (halbjahr) => halbjahr.id === second.id,
-      );
-      expect(unchanged?.klassenstufe).toBe('10');
-      expect(unchanged?.system).toBe('sechser');
-    }));
-
   it('meldet eine doppelte Halbjahresnummer weiterhin als Belegung', () =>
     withFach(async (provided) => {
       await provided(createHalbjahr(firstHalbjahr));

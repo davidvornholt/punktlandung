@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import {
   findHalbjahrViolation,
-  findKlassenstufeConflict,
+  findKlassenstufeMismatch,
 } from './halbjahr-invariants.ts';
 
 const previous = {
@@ -56,28 +56,44 @@ describe('Klassenstufe je Schuljahr', () => {
   };
   const tenTwo = { ...tenOne, id: 'h2', half: 2 as const };
 
-  it('meldet das andere Halbjahr, wenn die Klassenstufe abweicht', () => {
+  it('lehnt ein neues oder ins Schuljahr verschobenes Halbjahr mit abweichender Klassenstufe ab', () => {
     expect(
-      findKlassenstufeConflict([tenOne], {
+      findKlassenstufeMismatch([tenOne], {
         ...tenTwo,
         id: null,
         klassenstufe: 'J1',
       }),
-    ).toBe(tenOne);
+    ).toEqual({ kind: 'conflict', other: tenOne });
+    const elsewhere = { ...tenTwo, schoolYear: '2025/26' };
     expect(
-      findKlassenstufeConflict([tenOne, tenTwo], {
+      findKlassenstufeMismatch([tenOne, elsewhere], {
         ...tenTwo,
         klassenstufe: '9',
       }),
-    ).toBe(tenOne);
+    ).toEqual({ kind: 'conflict', other: tenOne });
+  });
+
+  it('korrigiert die Klassenstufe des ganzen Schuljahrs, wenn ein Halbjahr in seinem Schuljahr bleibt', () => {
+    expect(
+      findKlassenstufeMismatch([tenOne, tenTwo], {
+        ...tenTwo,
+        klassenstufe: '9',
+      }),
+    ).toEqual({ kind: 'correction', other: tenOne });
+    expect(
+      findKlassenstufeMismatch([tenOne, tenTwo], {
+        ...tenOne,
+        klassenstufe: 'J1',
+      }),
+    ).toEqual({ kind: 'correction', other: tenTwo });
   });
 
   it('lässt dieselbe Klassenstufe, andere Schuljahre und das Halbjahr selbst zu', () => {
     expect(
-      findKlassenstufeConflict([tenOne], { ...tenTwo, id: null }),
+      findKlassenstufeMismatch([tenOne], { ...tenTwo, id: null }),
     ).toBeNull();
     expect(
-      findKlassenstufeConflict([tenOne], {
+      findKlassenstufeMismatch([tenOne], {
         ...tenTwo,
         id: null,
         schoolYear: '2027/28',
@@ -85,16 +101,16 @@ describe('Klassenstufe je Schuljahr', () => {
       }),
     ).toBeNull();
     expect(
-      findKlassenstufeConflict([tenOne], { ...tenOne, klassenstufe: '9' }),
+      findKlassenstufeMismatch([tenOne], { ...tenOne, klassenstufe: '9' }),
     ).toBeNull();
   });
 
   it('überlässt eine doppelte Belegung derselben Halbjahresnummer der eigenen Meldung', () => {
     const duplicate = { ...tenOne, id: null, klassenstufe: 'J1' as const };
-    expect(findKlassenstufeConflict([tenOne], duplicate)).toBeNull();
-    expect(findKlassenstufeConflict([tenOne, tenTwo], duplicate)).toBeNull();
+    expect(findKlassenstufeMismatch([tenOne], duplicate)).toBeNull();
+    expect(findKlassenstufeMismatch([tenOne, tenTwo], duplicate)).toBeNull();
     expect(
-      findKlassenstufeConflict([tenOne, tenTwo], {
+      findKlassenstufeMismatch([tenOne, tenTwo], {
         ...tenTwo,
         half: 1,
         klassenstufe: 'J1',

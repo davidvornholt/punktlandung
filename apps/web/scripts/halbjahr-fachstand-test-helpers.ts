@@ -75,17 +75,21 @@ export const countRows = async (
   return Number(result.rows[0]?.count ?? '0');
 };
 
-const waitForLifecycleLocks = async (
+/**
+ * Zählt jede wartende Sperre, nicht nur den Schuljahr-Lock: Eine Änderung
+ * eines Halbjahrs sperrt zuerst die Zeilen ihres Schuljahrs und kann deshalb
+ * schon an einer Zeile warten, die eine vorige Operation hält.
+ */
+export const waitForLifecycleLocks = async (
   pool: Pool,
   expected: number,
-  remainingAttempts: number,
+  remainingAttempts: number = maxLockAttempts,
 ): Promise<void> => {
   const result = await pool.query<{ readonly count: string }>(
     `SELECT count(*)::text AS count
      FROM pg_stat_activity
-     WHERE datname = current_database()
-       AND wait_event_type = 'Lock'
-       AND wait_event = 'advisory'`,
+     WHERE datname = current_database() AND wait_event_type = 'Lock'
+       AND cardinality(pg_blocking_pids(pid)) > 0`,
   );
   if (Number(result.rows[0]?.count ?? '0') >= expected) {
     return;

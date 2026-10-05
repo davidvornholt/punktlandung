@@ -41,15 +41,27 @@ type SchoolYearHalbjahr = {
 };
 
 /**
- * Ein Schuljahr ist eine Klassenstufe und hat damit ein Notensystem. Liefert
- * das andere Halbjahr desselben Schuljahrs, wenn es eine andere Klassenstufe
- * trägt als `next`. Ist die Halbjahresnummer schon belegt, gilt null: Die
- * doppelte Belegung wird eigens gemeldet und geht vor.
+ * Das andere Halbjahr des Schuljahrs, wenn es eine andere Klassenstufe trägt
+ * als `next`. Kommt das Halbjahr neu ins Schuljahr, muss es die vorhandene
+ * Klassenstufe übernehmen (`conflict`). Ändert ein Halbjahr sie in seinem
+ * eigenen Schuljahr, korrigiert es die Klassenstufe des ganzen Schuljahrs
+ * (`correction`) und das andere Halbjahr folgt.
  */
-export const findKlassenstufeConflict = <Halbjahr extends SchoolYearHalbjahr>(
+export type KlassenstufeMismatch<Halbjahr> = {
+  readonly kind: 'conflict' | 'correction';
+  readonly other: Halbjahr;
+};
+
+/**
+ * Ein Schuljahr ist eine Klassenstufe und hat damit ein Notensystem. Ist die
+ * Halbjahresnummer schon belegt, gilt null: Die doppelte Belegung wird eigens
+ * gemeldet und geht vor. `halbjahre` muss das bearbeitete Halbjahr mit seinem
+ * gespeicherten Schuljahr enthalten, sonst gilt es als neu im Schuljahr.
+ */
+export const findKlassenstufeMismatch = <Halbjahr extends SchoolYearHalbjahr>(
   halbjahre: ReadonlyArray<Halbjahr>,
   next: Omit<SchoolYearHalbjahr, 'id'> & { readonly id: string | null },
-): Halbjahr | null => {
+): KlassenstufeMismatch<Halbjahr> | null => {
   const others = halbjahre.filter(
     (halbjahr) =>
       halbjahr.id !== next.id && halbjahr.schoolYear === next.schoolYear,
@@ -57,8 +69,15 @@ export const findKlassenstufeConflict = <Halbjahr extends SchoolYearHalbjahr>(
   if (others.some((halbjahr) => halbjahr.half === next.half)) {
     return null;
   }
-  return (
-    others.find((halbjahr) => halbjahr.klassenstufe !== next.klassenstufe) ??
-    null
+  const other = others.find(
+    (halbjahr) => halbjahr.klassenstufe !== next.klassenstufe,
   );
+  if (other === undefined) {
+    return null;
+  }
+  const staysInSchoolYear = halbjahre.some(
+    (halbjahr) =>
+      halbjahr.id === next.id && halbjahr.schoolYear === next.schoolYear,
+  );
+  return { kind: staysInSchoolYear ? 'correction' : 'conflict', other };
 };

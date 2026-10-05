@@ -78,8 +78,11 @@ export const schoolYearFachSetTable = pgTable('school_year_subject_set', {
  * Ein Schuljahr ist eine Klassenstufe: Beide Halbjahre eines Schuljahrs
  * teilen `klassenstufe` und `system`. Drizzle kann die dafür nötigen
  * Exclusion-Constraints (`term_school_year_klassenstufe_shared`,
- * `term_school_year_system_shared`) nicht ausdrücken; sie stehen in der
- * Custom-Migration `0009_eine_klassenstufe_je_schuljahr`.
+ * `term_school_year_system_shared`) nicht ausdrücken; sie stehen in den
+ * Custom-Migrationen `0009_eine_klassenstufe_je_schuljahr` und
+ * `0010_klassenstufe_je_schuljahr_korrigierbar`. Sie sind
+ * `DEFERRABLE INITIALLY IMMEDIATE`, damit eine Anweisung die Klassenstufe
+ * beider Halbjahre zugleich korrigieren kann.
  */
 export const halbjahrTable = pgTable(
   'term',

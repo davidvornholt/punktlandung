@@ -42,7 +42,13 @@ const toColumns = (input: FachInput | FachUpdate) => ({
 const prepareMutation = (schoolYear: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
-    const halbjahre = yield* db.select().from(halbjahrTable).for('update');
+    // Nach id geordnet wie die Sperre beim Ändern eines Halbjahrs, damit
+    // sich beide nicht gegenseitig blockieren.
+    const halbjahre = yield* db
+      .select()
+      .from(halbjahrTable)
+      .orderBy(halbjahrTable.id)
+      .for('update');
     if (!halbjahre.some((halbjahr) => halbjahr.schoolYear === schoolYear)) {
       return yield* Effect.fail(new FachSchoolYearNotFound({ schoolYear }));
     }

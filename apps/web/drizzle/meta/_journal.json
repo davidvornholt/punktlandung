@@ -71,6 +71,13 @@
       "when": 1791215700762,
       "tag": "0009_eine_klassenstufe_je_schuljahr",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791228164885,
+      "tag": "0010_klassenstufe_je_schuljahr_korrigierbar",
+      "breakpoints": true
     }
   ]
 }
