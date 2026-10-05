@@ -1,4 +1,4 @@
-import { Data, Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { Pool, PoolClient, QueryResultRow } from 'pg';
 import { LegacyReconciliationDatabaseError } from './legacy-reconciliation-database-error.ts';
 
@@ -20,9 +20,10 @@ type StudyDayRow = QueryResultRow & {
   readonly note: string | null;
 };
 
-export class LegacyDataConflict extends Data.TaggedError('LegacyDataConflict')<{
-  readonly message: string;
-}> {}
+export class LegacyDataConflict extends Schema.TaggedError<LegacyDataConflict>()(
+  'LegacyDataConflict',
+  { message: Schema.String },
+) {}
 
 const query = <Row extends QueryResultRow>(
   client: PoolClient,

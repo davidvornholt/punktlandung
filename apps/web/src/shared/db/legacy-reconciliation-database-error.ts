@@ -1,5 +1,6 @@
-import { Data } from 'effect';
+import { Schema } from 'effect';
 
-export class LegacyReconciliationDatabaseError extends Data.TaggedError(
+export class LegacyReconciliationDatabaseError extends Schema.TaggedError<LegacyReconciliationDatabaseError>()(
   'LegacyReconciliationDatabaseError',
-)<{ readonly message: string; readonly cause: unknown }> {}
+  { message: Schema.String, cause: Schema.Defect },
+) {}
