@@ -16,6 +16,7 @@ import {
   HalbjahrAlreadyExists,
   HalbjahrExcludesNoten,
   HalbjahrNotFound,
+  KlassenstufeDiffersInSchoolYear,
   NotensystemImmutableWithNoten,
   SchoolYearImmutableWithNoten,
 } from '../errors/halbjahr-errors.ts';
@@ -23,7 +24,10 @@ import type {
   HalbjahrInput,
   HalbjahrUpdate,
 } from '../schemas/halbjahr-schema.ts';
-import { findHalbjahrViolation } from './halbjahr-invariants.ts';
+import {
+  findHalbjahrViolation,
+  findKlassenstufeConflict,
+} from './halbjahr-invariants.ts';
 
 export type Halbjahr = typeof halbjahrTable.$inferSelect;
 
@@ -68,6 +72,38 @@ const withNotensystem = <
   system: notensystemForKlassenstufe(fields.klassenstufe),
 });
 
+/**
+ * Lehnt ein Halbjahr ab, dessen Klassenstufe von der des anderen Halbjahrs im
+ * Schuljahr abweicht. Läuft hinter `lockSchoolYearLifecycle`, sodass zwei
+ * Speichervorgänge sich nicht gegenseitig übersehen; die Exclusion-Constraints
+ * auf `term` sichern dieselbe Regel zusätzlich in der Datenbank ab.
+ */
+const ensureSharedKlassenstufe = (
+  next: Parameters<typeof findKlassenstufeConflict>[1],
+) =>
+  Effect.gen(function* () {
+    const db = yield* PgDrizzle;
+    const schoolYearHalbjahre = yield* db
+      .select({
+        id: halbjahrTable.id,
+        schoolYear: halbjahrTable.schoolYear,
+        half: halbjahrTable.half,
+        klassenstufe: halbjahrTable.klassenstufe,
+      })
+      .from(halbjahrTable)
+      .where(eq(halbjahrTable.schoolYear, next.schoolYear));
+    const conflict = findKlassenstufeConflict(schoolYearHalbjahre, next);
+    if (conflict !== null) {
+      return yield* Effect.fail(
+        new KlassenstufeDiffersInSchoolYear({
+          schoolYear: conflict.schoolYear,
+          half: conflict.half,
+          klassenstufe: conflict.klassenstufe,
+        }),
+      );
+    }
+  });
+
 /** Halbjahre samt Notenanzahl, neuestes zuerst (nach Beginn sortiert). */
 export const listHalbjahre = Effect.gen(function* () {
   const db = yield* PgDrizzle;
@@ -103,6 +139,7 @@ export const createHalbjahr = (input: HalbjahrInput) =>
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
           yield* lockSchoolYearLifecycle(input.schoolYear);
+          yield* ensureSharedKlassenstufe({ ...input, id: null });
           const inserted = yield* db
             .insert(halbjahrTable)
             .values({ id: crypto.randomUUID(), ...withNotensystem(input) })
@@ -165,6 +202,7 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
               }),
             );
           }
+          yield* ensureSharedKlassenstufe(input);
           yield* db
             .update(halbjahrTable)
             .set(next)

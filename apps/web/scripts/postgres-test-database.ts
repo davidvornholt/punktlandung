@@ -5,17 +5,15 @@ import { Effect, Layer } from 'effect';
 import pg, { type Pool } from 'pg';
 import { preservePostgresDates } from '../src/shared/db/postgres-date.ts';
 
-const initialMigrationTimestamp = 1_784_738_851_477;
-const laterInitialMigrations = [
-  {
-    name: '0001_acoustic_white_queen',
-    timestamp: 1_784_746_557_636,
-  },
-  {
-    name: '0002_amused_shotgun',
-    timestamp: 1_784_986_637_608,
-  },
-] as const;
+type JournalEntry = { readonly tag: string; readonly when: number };
+
+const journalEntries = async (): Promise<ReadonlyArray<JournalEntry>> => {
+  const journal: { readonly entries: ReadonlyArray<JournalEntry> } =
+    await Bun.file(
+      new URL('../drizzle/meta/_journal.json', import.meta.url),
+    ).json();
+  return journal.entries;
+};
 
 const testDatabaseUrl = (): URL => {
   const configured = Bun.env.DATABASE_URL;
@@ -70,27 +68,27 @@ const executeStatements = async (
   }
 };
 
-export const applyInitialMigration = async (pool: Pool): Promise<void> => {
-  const migrationUrl = new URL(
-    '../drizzle/0000_lucky_loa.sql',
-    import.meta.url,
-  );
-  const migration = await Bun.file(migrationUrl).text();
+const migrationText = (entry: JournalEntry): Promise<string> =>
+  Bun.file(new URL(`../drizzle/${entry.tag}.sql`, import.meta.url)).text();
+
+/** Spielt eine Migration ein und verbucht sie so, wie Drizzle es täte. */
+const applyRecordedMigration = async (
+  pool: Pool,
+  entry: JournalEntry,
+): Promise<void> => {
+  const migration = await migrationText(entry);
   await pool.query('BEGIN');
   try {
     await executeStatements(pool, migration.split('--> statement-breakpoint'));
-    await pool.query('CREATE SCHEMA drizzle');
-    await pool.query(`CREATE TABLE drizzle.__drizzle_migrations (
+    await pool.query('CREATE SCHEMA IF NOT EXISTS drizzle');
+    await pool.query(`CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
       id serial PRIMARY KEY,
       hash text NOT NULL,
       created_at bigint
     )`);
     await pool.query(
       'INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)',
-      [
-        createHash('sha256').update(migration).digest('hex'),
-        initialMigrationTimestamp,
-      ],
+      [createHash('sha256').update(migration).digest('hex'), entry.when],
     );
     await pool.query('COMMIT');
   } catch (error) {
@@ -99,30 +97,26 @@ export const applyInitialMigration = async (pool: Pool): Promise<void> => {
   }
 };
 
-const applyRecordedMigration = async (
+const applyRecordedMigrations = async (
   pool: Pool,
-  entry: (typeof laterInitialMigrations)[number],
+  entries: ReadonlyArray<JournalEntry>,
 ): Promise<void> => {
-  const migration = await Bun.file(
-    new URL(`../drizzle/${entry.name}.sql`, import.meta.url),
-  ).text();
-  await pool.query('BEGIN');
-  try {
-    await executeStatements(pool, migration.split('--> statement-breakpoint'));
-    await pool.query(
-      'INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)',
-      [createHash('sha256').update(migration).digest('hex'), entry.timestamp],
-    );
-    await pool.query('COMMIT');
-  } catch (error) {
-    await pool.query('ROLLBACK');
-    throw error;
+  const [entry, ...remaining] = entries;
+  if (entry !== undefined) {
+    await applyRecordedMigration(pool, entry);
+    await applyRecordedMigrations(pool, remaining);
   }
 };
 
-/** Baut den direkt vor der Gewichtungsumstellung ausgelieferten Stand auf. */
-export const applyMigrationsThrough0002 = async (pool: Pool): Promise<void> => {
-  await applyInitialMigration(pool);
-  await applyRecordedMigration(pool, laterInitialMigrations[0]);
-  await applyRecordedMigration(pool, laterInitialMigrations[1]);
+/** Baut den ausgelieferten Stand bis einschließlich der Migration `tag` auf. */
+export const applyMigrationsThrough = async (
+  pool: Pool,
+  tag: string,
+): Promise<void> => {
+  const entries = await journalEntries();
+  const last = entries.findIndex((entry) => entry.tag === tag);
+  if (last === -1) {
+    throw new Error(`Die Migration ${tag} steht nicht im Journal.`);
+  }
+  await applyRecordedMigrations(pool, entries.slice(0, last + 1));
 };

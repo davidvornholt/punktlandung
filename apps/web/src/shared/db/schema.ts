@@ -74,6 +74,13 @@ export const schoolYearFachSetTable = pgTable('school_year_subject_set', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+/**
+ * Ein Schuljahr ist eine Klassenstufe: Beide Halbjahre eines Schuljahrs
+ * teilen `klassenstufe` und `system`. Drizzle kann die dafür nötigen
+ * Exclusion-Constraints (`term_school_year_klassenstufe_shared`,
+ * `term_school_year_system_shared`) nicht ausdrücken; sie stehen in der
+ * Custom-Migration `0009_eine_klassenstufe_je_schuljahr`.
+ */
 export const halbjahrTable = pgTable(
   'term',
   {

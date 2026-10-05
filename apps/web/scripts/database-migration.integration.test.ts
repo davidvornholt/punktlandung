@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import type { Pool } from 'pg';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
-  applyMigrationsThrough0002,
+  applyMigrationsThrough,
   withPostgresTestDatabase,
 } from './postgres-test-database.ts';
 
@@ -73,7 +73,7 @@ describe('Datenbankmigrationen', () => {
 
   it('migriert kompatible Altbereiche und Gewichtungen ab 0002 verlustfrei', () =>
     withPostgresTestDatabase(async (pool) => {
-      await applyMigrationsThrough0002(pool);
+      await applyMigrationsThrough(pool, '0002_amused_shotgun');
       await seedLegacySubjectAndTerm(pool);
       await pool.query(`
         INSERT INTO grade (
@@ -125,7 +125,7 @@ describe('Datenbankmigrationen', () => {
 
   it('listet abweichende Altbereiche aller Leistungsarten und ändert nichts', () =>
     withPostgresTestDatabase(async (pool) => {
-      await applyMigrationsThrough0002(pool);
+      await applyMigrationsThrough(pool, '0002_amused_shotgun');
       await seedLegacySubjectAndTerm(pool);
       await pool.query(`
         INSERT INTO grade (

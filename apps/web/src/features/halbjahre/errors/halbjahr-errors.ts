@@ -2,12 +2,35 @@ import { Data } from 'effect';
 
 import { notenCountText } from '#/shared/noten/noten-count-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
+import type { Klassenstufe } from '#/shared/school/klassenstufe.ts';
+import { klassenstufeText } from '#/shared/school/klassenstufe.ts';
 
 export class HalbjahrAlreadyExists extends Data.TaggedError(
   'HalbjahrBelegungDoppelt',
 )<{ readonly schoolYear: string; readonly half: 1 | 2 }> {
   override get message(): string {
     return `Für ${this.schoolYear} existiert bereits das ${this.half}. Halbjahr. Bearbeite den vorhandenen Eintrag.`;
+  }
+}
+
+type OtherHalbjahr = {
+  readonly schoolYear: string;
+  readonly half: 1 | 2;
+  readonly klassenstufe: Klassenstufe;
+};
+
+/** Gemeinsamer Text für die Formularprüfung und die Ablehnung beim Speichern. */
+export const klassenstufeConflictText = (other: OtherHalbjahr): string => {
+  const klassenstufe = klassenstufeText(other.klassenstufe);
+  return `Das ${other.half}. Halbjahr ${other.schoolYear} gehört zur ${klassenstufe}. Beide Halbjahre eines Schuljahrs haben dieselbe Klassenstufe; wähle auch hier ${klassenstufe}.`;
+};
+
+/** Trägt das vorhandene andere Halbjahr des Schuljahrs. */
+export class KlassenstufeDiffersInSchoolYear extends Data.TaggedError(
+  'KlassenstufeDiffersInSchoolYear',
+)<OtherHalbjahr> {
+  override get message(): string {
+    return klassenstufeConflictText(this);
   }
 }
 

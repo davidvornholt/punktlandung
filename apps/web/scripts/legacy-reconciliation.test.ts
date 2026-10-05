@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { Cause, Effect, Exit } from 'effect';
+import type { Pool } from 'pg';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
-  applyInitialMigration,
+  applyMigrationsThrough,
   withPostgresTestDatabase,
 } from './postgres-test-database.ts';
 
-const insertFach = (pool: Parameters<typeof applyInitialMigration>[0]) =>
+const insertFach = (pool: Pool) =>
   pool.query(
     `INSERT INTO subject (id, name, short_name)
      VALUES ('mathe', 'Mathematik', 'M')`,
@@ -15,7 +16,7 @@ const insertFach = (pool: Parameters<typeof applyInitialMigration>[0]) =>
 describe('Bestandsdaten vor Migrationen', () => {
   it('führt kompatible Halbjahre und Lerntage vor dem Constraint verlustfrei zusammen', () =>
     withPostgresTestDatabase(async (pool) => {
-      await applyInitialMigration(pool);
+      await applyMigrationsThrough(pool, '0000_lucky_loa');
       await insertFach(pool);
       await pool.query(`
         INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
@@ -62,7 +63,7 @@ describe('Bestandsdaten vor Migrationen', () => {
 
   it('führt Halbjahre mit abweichender Bezeichnung nicht zusammen', () =>
     withPostgresTestDatabase(async (pool) => {
-      await applyInitialMigration(pool);
+      await applyMigrationsThrough(pool, '0000_lucky_loa');
       await pool.query(`
         INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
         VALUES
@@ -81,7 +82,7 @@ describe('Bestandsdaten vor Migrationen', () => {
 
   it('meldet alle nicht verlustfrei auflösbaren Gruppen und lässt sie unverändert', () =>
     withPostgresTestDatabase(async (pool) => {
-      await applyInitialMigration(pool);
+      await applyMigrationsThrough(pool, '0000_lucky_loa');
       await insertFach(pool);
       await pool.query(`
         INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
@@ -120,7 +121,7 @@ describe('Bestandsdaten vor Migrationen', () => {
 describe('Klassenstufe aus der Bezeichnung', () => {
   it('leitet Klassenstufen ab und übersetzt die alte Kursstufen-Schreibweise', () =>
     withPostgresTestDatabase(async (pool) => {
-      await applyInitialMigration(pool);
+      await applyMigrationsThrough(pool, '0000_lucky_loa');
       await pool.query(`
         INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
         VALUES
@@ -145,7 +146,7 @@ describe('Klassenstufe aus der Bezeichnung', () => {
 
   it('bricht ab und behält die Bezeichnung, wenn sich keine Klassenstufe ergibt', () =>
     withPostgresTestDatabase(async (pool) => {
-      await applyInitialMigration(pool);
+      await applyMigrationsThrough(pool, '0000_lucky_loa');
       await pool.query(`
         INSERT INTO term (id, label, school_year, half, system, starts_on, ends_on)
         VALUES ('term-a', '9b', '2024/25', 2, 'sechser', '2025-02-01', '2025-07-31');
