@@ -17,8 +17,6 @@
     "test": "bun test && bun run test:ct",
     "test:ct": "./node_modules/@playwright/experimental-ct-react/cli.js install chromium && ./node_modules/@playwright/experimental-ct-react/cli.js test --config=playwright-ct.config.ts",
     "test:a11y": "export PATH=$PWD/scripts:$PATH && playwright install chromium && playwright test --config playwright.config.ts",
-    "db:up": "podman start punktlandung-db || podman run -d --name punktlandung-db -e POSTGRES_USER=punktlandung -e POSTGRES_PASSWORD=punktlandung -e POSTGRES_DB=punktlandung_dev -p 127.0.0.1:15432:5432 -v punktlandung-db-data:/var/lib/postgresql/data docker.io/library/postgres:17-alpine",
-    "db:down": "podman stop punktlandung-db",
     "db:generate": "bun --env-file=.env.local run drizzle-kit generate",
     "db:migrate": "bun --env-file=.env.local run scripts/migrate.ts",
     "db:migrate:deploy": "bun run scripts/migrate.ts",

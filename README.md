@@ -8,8 +8,8 @@ Die Bun-Version steht in `package.json`. Von der Repo-Wurzel aus:
 
 ```sh
 bun install
-bun run --filter @punktlandung/web db:up
 just dev-env-generate
+just dev-db-start
 bun run --filter @punktlandung/web db:migrate
 bun run dev
 ```
