@@ -1,4 +1,4 @@
-import { Data, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import type { Artgewichtung, Fachgewichtung } from './notenwert.ts';
 
@@ -66,9 +66,10 @@ export const FachgewichtungSchema = Schema.Struct({
   ),
 );
 
-export class GewichtungInvalid extends Data.TaggedError('GewichtungUngueltig')<{
-  readonly fachId: string;
-}> {
+export class GewichtungInvalid extends Schema.TaggedError<GewichtungInvalid>()(
+  'GewichtungUngueltig',
+  { fachId: Schema.String },
+) {
   override get message(): string {
     return `Die Gewichtung des Fachs ${this.fachId} ist ungültig. Öffne das Fach und speichere die Gewichtung neu.`;
   }

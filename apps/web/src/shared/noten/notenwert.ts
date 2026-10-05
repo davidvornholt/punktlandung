@@ -3,7 +3,10 @@
  * und "punkte" (Notenpunkte 0–15, größer ist besser).
  */
 
-export type Notensystem = 'sechser' | 'punkte';
+/** Notensysteme; die Reihenfolge ist die des grade_system-Enums. */
+export const notensysteme = ['sechser', 'punkte'] as const;
+
+export type Notensystem = (typeof notensysteme)[number];
 
 /** Leistungsarten eines Fachs; die Reihenfolge ist die des grade_kind-Enums. */
 export const leistungsarten = [

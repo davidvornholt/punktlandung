@@ -13,11 +13,11 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 
-import { leistungsarten } from '#/shared/noten/notenwert.ts';
+import { leistungsarten, notensysteme } from '#/shared/noten/notenwert.ts';
 import { klassenstufen } from '#/shared/school/klassenstufe.ts';
 
 /** Notensystem eines Halbjahrs: Unterstufe 1–6, Kursstufe 0–15 Punkte. */
-export const notensystemEnum = pgEnum('grade_system', ['sechser', 'punkte']);
+export const notensystemEnum = pgEnum('grade_system', notensysteme);
 
 /** Klassenstufen des Gymnasiums; J1/J2 sind die Jahrgänge der Kursstufe. */
 export const klassenstufeEnum = pgEnum('klassenstufe', klassenstufen);
