@@ -1,7 +1,7 @@
 import { SqlClient } from '@effect/sql/SqlClient';
 import type { SqlError } from '@effect/sql/SqlError';
 import { PgDrizzle } from '@effect/sql-drizzle/Pg';
-import { count, desc, eq, getTableColumns } from 'drizzle-orm';
+import { count, desc, eq, getTableColumns, inArray, or } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
@@ -16,6 +16,7 @@ import {
   HalbjahrAlreadyExists,
   HalbjahrExcludesNoten,
   HalbjahrNotFound,
+  KlassenstufeCorrectionBlockedByNoten,
   KlassenstufeDiffersInSchoolYear,
   NotensystemImmutableWithNoten,
   SchoolYearImmutableWithNoten,
@@ -26,7 +27,7 @@ import type {
 } from '../schemas/halbjahr-schema.ts';
 import {
   findHalbjahrViolation,
-  findKlassenstufeConflict,
+  findKlassenstufeMismatch,
 } from './halbjahr-invariants.ts';
 
 export type Halbjahr = typeof halbjahrTable.$inferSelect;
@@ -73,13 +74,16 @@ const withNotensystem = <
 });
 
 /**
- * Lehnt ein Halbjahr ab, dessen Klassenstufe von der des anderen Halbjahrs im
- * Schuljahr abweicht. Läuft hinter `lockSchoolYearLifecycle`, sodass zwei
- * Speichervorgänge sich nicht gegenseitig übersehen; die Exclusion-Constraints
- * auf `term` sichern dieselbe Regel zusätzlich in der Datenbank ab.
+ * Prüft die Klassenstufe gegen das andere Halbjahr des Schuljahrs. Ein neues
+ * oder ins Schuljahr verschobenes Halbjahr mit abweichender Klassenstufe wird
+ * abgelehnt. Bei einer Korrektur im eigenen Schuljahr liefert die Prüfung das
+ * andere Halbjahr, das mitgeändert werden muss. Läuft hinter
+ * `lockSchoolYearLifecycle`, sodass zwei Speichervorgänge sich nicht
+ * gegenseitig übersehen; die Exclusion-Constraints auf `term` sichern dieselbe
+ * Regel zusätzlich in der Datenbank ab.
  */
-const ensureSharedKlassenstufe = (
-  next: Parameters<typeof findKlassenstufeConflict>[1],
+const checkSharedKlassenstufe = (
+  next: Parameters<typeof findKlassenstufeMismatch>[1],
 ) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
@@ -89,19 +93,55 @@ const ensureSharedKlassenstufe = (
         schoolYear: halbjahrTable.schoolYear,
         half: halbjahrTable.half,
         klassenstufe: halbjahrTable.klassenstufe,
+        system: halbjahrTable.system,
       })
       .from(halbjahrTable)
       .where(eq(halbjahrTable.schoolYear, next.schoolYear));
-    const conflict = findKlassenstufeConflict(schoolYearHalbjahre, next);
-    if (conflict !== null) {
+    const mismatch = findKlassenstufeMismatch(schoolYearHalbjahre, next);
+    if (mismatch?.kind === 'conflict') {
       return yield* Effect.fail(
         new KlassenstufeDiffersInSchoolYear({
-          schoolYear: conflict.schoolYear,
-          half: conflict.half,
-          klassenstufe: conflict.klassenstufe,
+          schoolYear: mismatch.other.schoolYear,
+          half: mismatch.other.half,
+          klassenstufe: mismatch.other.klassenstufe,
         }),
       );
     }
+    return mismatch?.other ?? null;
+  });
+
+/**
+ * Setzt die Klassenstufe beider Halbjahre des Schuljahrs in einer Anweisung,
+ * denn die Exclusion-Constraints prüfen erst an deren Ende. Wechselt dabei das
+ * Notensystem, darf das andere Halbjahr noch keine Noten haben. Seine Zeile
+ * ist schon über `loadLockedSchoolYear` gesperrt, sodass keine Note mehr
+ * dazukommt, bevor die Transaktion endet.
+ */
+const correctSchoolYearKlassenstufe = (
+  other: Pick<Halbjahr, 'id' | 'schoolYear' | 'half' | 'system'>,
+  next: Pick<Halbjahr, 'klassenstufe' | 'system'>,
+) =>
+  Effect.gen(function* () {
+    const db = yield* PgDrizzle;
+    if (other.system !== next.system) {
+      const [notenCountRow] = yield* db
+        .select({ count: count(noteTable.id) })
+        .from(noteTable)
+        .where(eq(noteTable.termId, other.id));
+      if ((notenCountRow?.count ?? 0) > 0) {
+        return yield* Effect.fail(
+          new KlassenstufeCorrectionBlockedByNoten({
+            schoolYear: other.schoolYear,
+            half: other.half,
+            klassenstufe: next.klassenstufe,
+          }),
+        );
+      }
+    }
+    yield* db
+      .update(halbjahrTable)
+      .set({ klassenstufe: next.klassenstufe, system: next.system })
+      .where(eq(halbjahrTable.schoolYear, other.schoolYear));
   });
 
 /** Halbjahre samt Notenanzahl, neuestes zuerst (nach Beginn sortiert). */
@@ -131,6 +171,37 @@ export const loadLockedHalbjahr = (id: string) =>
     );
   });
 
+/**
+ * Sperrt das Halbjahr zusammen mit dem anderen Halbjahr seines Schuljahrs in
+ * fester Reihenfolge nach id. Eine Korrektur der Klassenstufe ändert beide
+ * Zeilen; würde sie die zweite erst nach `lockSchoolYearLifecycle` sperren,
+ * könnte sie sich mit einer gleichzeitigen Bearbeitung des anderen Halbjahrs
+ * gegenseitig blockieren.
+ */
+const loadLockedSchoolYear = (id: string) =>
+  Effect.gen(function* () {
+    const db = yield* PgDrizzle;
+    const schoolYearOfHalbjahr = db
+      .select({ schoolYear: halbjahrTable.schoolYear })
+      .from(halbjahrTable)
+      .where(eq(halbjahrTable.id, id));
+    const rows = yield* db
+      .select()
+      .from(halbjahrTable)
+      .where(
+        or(
+          eq(halbjahrTable.id, id),
+          inArray(halbjahrTable.schoolYear, schoolYearOfHalbjahr),
+        ),
+      )
+      .orderBy(halbjahrTable.id)
+      .for('update');
+    const halbjahr = rows.find((row) => row.id === id);
+    return (
+      halbjahr ?? (yield* Effect.fail(new HalbjahrNotFound({ halbjahrId: id })))
+    );
+  });
+
 export const createHalbjahr = (input: HalbjahrInput) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
@@ -139,7 +210,7 @@ export const createHalbjahr = (input: HalbjahrInput) =>
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
           yield* lockSchoolYearLifecycle(input.schoolYear);
-          yield* ensureSharedKlassenstufe({ ...input, id: null });
+          yield* checkSharedKlassenstufe({ ...input, id: null });
           const inserted = yield* db
             .insert(halbjahrTable)
             .values({ id: crypto.randomUUID(), ...withNotensystem(input) })
@@ -163,7 +234,7 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
       .withTransaction(
         Effect.gen(function* () {
           const db = yield* PgDrizzle;
-          const halbjahr = yield* loadLockedHalbjahr(input.id);
+          const halbjahr = yield* loadLockedSchoolYear(input.id);
           yield* lockSchoolYearLifecycle(halbjahr.schoolYear, input.schoolYear);
           const existingNoten = yield* db
             .select({ takenOn: noteTable.takenOn })
@@ -202,7 +273,10 @@ export const updateHalbjahr = (input: HalbjahrUpdate) =>
               }),
             );
           }
-          yield* ensureSharedKlassenstufe(input);
+          const other = yield* checkSharedKlassenstufe(input);
+          if (other !== null) {
+            yield* correctSchoolYearKlassenstufe(other, next);
+          }
           yield* db
             .update(halbjahrTable)
             .set(next)

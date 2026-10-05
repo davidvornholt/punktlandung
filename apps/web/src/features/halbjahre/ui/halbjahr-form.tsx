@@ -19,7 +19,8 @@ import {
 } from '#/shared/ui/form-classes.ts';
 import { klassenstufeConflictText } from '../errors/halbjahr-errors.ts';
 import type { HalbjahrInput } from '../schemas/halbjahr-schema.ts';
-import { findKlassenstufeConflict } from '../services/halbjahr-invariants.ts';
+import type { KlassenstufeMismatch } from '../services/halbjahr-invariants.ts';
+import { findKlassenstufeMismatch } from '../services/halbjahr-invariants.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
 import { HalbjahrDateRangeField } from './halbjahr-date-range-field.tsx';
 import type { HalbjahrFormValues } from './halbjahr-form-model.ts';
@@ -36,22 +37,30 @@ type UpdateFields = (part: Partial<HalbjahrFormValues>) => void;
 const formatHalbjahrNumber = (half: 1 | 2) =>
   half === 1 ? '1. Halbjahr (Aug–Jan)' : '2. Halbjahr (Feb–Jul)';
 
+type HalbjahrMismatch = KlassenstufeMismatch<Halbjahr> | null;
+
 /** Warum die gewählte Kombination nicht gespeichert werden kann, sonst null. */
 const selectionErrorText = (
   values: HalbjahrFormValues,
   occupied: ReadonlySet<string>,
-  halbjahre: ReadonlyArray<Halbjahr>,
-  halbjahrId: string | null,
+  mismatch: HalbjahrMismatch,
 ): string | null => {
   if (isOccupied(occupied, values.schoolYear, values.half)) {
     return `Für ${values.schoolYear} gibt es das ${values.half}. Halbjahr bereits. Wähle eine andere Kombination oder bearbeite den vorhandenen Eintrag.`;
   }
-  const conflict = findKlassenstufeConflict(halbjahre, {
-    ...values,
-    id: halbjahrId,
-  });
-  return conflict === null ? null : klassenstufeConflictText(conflict);
+  return mismatch?.kind === 'conflict'
+    ? klassenstufeConflictText(mismatch.other)
+    : null;
 };
+
+/** Kündigt an, dass das andere Halbjahr die korrigierte Klassenstufe übernimmt. */
+const klassenstufeCorrectionText = (
+  values: HalbjahrFormValues,
+  mismatch: HalbjahrMismatch,
+): string | null =>
+  mismatch?.kind === 'correction'
+    ? `Die Klassenstufe gilt für das ganze Schuljahr. Beim Speichern wechselt auch das ${mismatch.other.half}. Halbjahr ${mismatch.other.schoolYear} zu ${klassenstufeText(values.klassenstufe)}.`
+    : null;
 
 const Summary = ({ values }: { readonly values: HalbjahrFormValues }) => (
   <p className="mt-4 border border-border bg-surface-sunken px-3 py-2 text-ink-muted text-sm">
@@ -163,12 +172,15 @@ export const HalbjahrForm = ({
     today,
     halbjahre.map((entry) => entry.schoolYear),
   );
-  const selectionError = selectionErrorText(
-    values,
-    occupied,
-    halbjahre,
-    halbjahr?.id ?? null,
-  );
+  const mismatch = findKlassenstufeMismatch(halbjahre, {
+    ...values,
+    id: halbjahr?.id ?? null,
+  });
+  const selectionError = selectionErrorText(values, occupied, mismatch);
+  const correction =
+    selectionError === null
+      ? klassenstufeCorrectionText(values, mismatch)
+      : null;
 
   return (
     <form
@@ -196,6 +208,14 @@ export const HalbjahrForm = ({
           role="alert"
         >
           {selectionError}
+        </p>
+      )}
+      {correction === null ? null : (
+        <p
+          className="mt-2 border border-border bg-surface-sunken px-3 py-2 text-ink text-sm"
+          role="status"
+        >
+          {correction}
         </p>
       )}
       <div className="mt-4">

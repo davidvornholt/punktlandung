@@ -34,6 +34,19 @@ export class KlassenstufeDiffersInSchoolYear extends Data.TaggedError(
   }
 }
 
+/**
+ * Die Korrektur der Klassenstufe würde das Notensystem des anderen Halbjahrs
+ * wechseln, in dem schon Noten stehen. Trägt dieses andere Halbjahr und die
+ * gewünschte Klassenstufe.
+ */
+export class KlassenstufeCorrectionBlockedByNoten extends Data.TaggedError(
+  'KlassenstufeCorrectionBlockedByNoten',
+)<OtherHalbjahr> {
+  override get message(): string {
+    return `Im ${this.half}. Halbjahr ${this.schoolYear} sind schon Noten eingetragen. Die Klassenstufe gilt für beide Halbjahre; mit ${klassenstufeText(this.klassenstufe)} würde sich auch dort das Notensystem ändern. Lösche zuerst diese Noten oder behalte die Klassenstufe.`;
+  }
+}
+
 export class HalbjahrNotFound extends Data.TaggedError(
   'HalbjahrNichtGefunden',
 )<{
