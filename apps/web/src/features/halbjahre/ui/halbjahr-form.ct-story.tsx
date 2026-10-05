@@ -36,3 +36,35 @@ export const PendingFormStory = () => {
     </div>
   );
 };
+
+/** Das 1. Halbjahr 2026/27 steht schon als Klasse 10 fest. */
+export const KlassenstufeConflictStory = () => {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [calls, setCalls] = useState(0);
+  return (
+    <div>
+      <HalbjahrForm
+        title="Neues Halbjahr"
+        halbjahr={null}
+        halbjahre={[
+          {
+            endsOn: '2027-01-31',
+            half: 1,
+            id: 'erstes',
+            klassenstufe: '10',
+            schoolYear: '2026/27',
+            startsOn: '2026-08-01',
+            system: 'sechser',
+          },
+        ]}
+        today="2026-09-25"
+        pending={false}
+        error={null}
+        formRef={formRef}
+        onCancel={() => undefined}
+        onSave={() => setCalls((count) => count + 1)}
+      />
+      <output aria-label="Save calls">{calls}</output>
+    </div>
+  );
+};

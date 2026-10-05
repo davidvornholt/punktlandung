@@ -35,16 +35,11 @@ const FaecherPage = () => {
       </>
     );
   }
-  // Ein Schuljahr ist eine Klassenstufe: seine Halbjahre teilen das
-  // Notensystem, deshalb genügt eines davon für die Vorschau im Formular.
-  const schoolYears = [
-    ...new Map(
-      halbjahre.map((halbjahr) => [
-        halbjahr.schoolYear,
-        { schoolYear: halbjahr.schoolYear, system: halbjahr.system },
-      ]),
-    ).values(),
-  ];
+  // Die Datenbank erzwingt eine Klassenstufe je Schuljahr; alle Halbjahre
+  // eines Schuljahrs nennen also dasselbe Notensystem.
+  const notensystemBySchoolYear = new Map(
+    halbjahre.map((halbjahr) => [halbjahr.schoolYear, halbjahr.system]),
+  );
   return (
     <>
       <h1 className="font-display text-3xl text-ink tracking-tight">Fächer</h1>
@@ -53,7 +48,7 @@ const FaecherPage = () => {
         verkündet hat. Änderungen gelten nur für das gewählte Schuljahr.
       </p>
       <div className="mt-6">
-        <FaecherManagement schoolYears={schoolYears} />
+        <FaecherManagement notensystemBySchoolYear={notensystemBySchoolYear} />
       </div>
     </>
   );

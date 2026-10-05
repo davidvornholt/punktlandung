@@ -45,18 +45,11 @@ const fachFormError = (
   return null;
 };
 
-/** Ein Schuljahr mit dem Notensystem, in dem seine Halbjahre gewertet werden. */
-export type SchoolYearOption = {
-  readonly schoolYear: string;
-  readonly system: Notensystem;
-};
-
-const systemFor = (
-  schoolYears: ReadonlyArray<SchoolYearOption>,
+/** Ein Schuljahr, das es nicht mehr gibt (etwa in einem anderen Tab gelöscht), rechnet in Sechsern. */
+const notensystemOf = (
+  notensystemBySchoolYear: ReadonlyMap<string, Notensystem>,
   schoolYear: string,
-): Notensystem =>
-  schoolYears.find((year) => year.schoolYear === schoolYear)?.system ??
-  'sechser';
+): Notensystem => notensystemBySchoolYear.get(schoolYear) ?? 'sechser';
 
 const NoHalbjahr = () => (
   <section className="border border-border bg-surface-sunken p-6">
@@ -68,15 +61,15 @@ const NoHalbjahr = () => (
   </section>
 );
 
+/** Schuljahre, neuestes zuerst, mit dem Notensystem ihrer Halbjahre. */
 export const FaecherManagement = ({
-  schoolYears,
+  notensystemBySchoolYear,
 }: {
-  readonly schoolYears: ReadonlyArray<SchoolYearOption>;
+  readonly notensystemBySchoolYear: ReadonlyMap<string, Notensystem>;
 }) => {
   const queryClient = useQueryClient();
-  const [schoolYear, setSchoolYear] = useState(
-    schoolYears[0]?.schoolYear ?? '',
-  );
+  const schoolYears = [...notensystemBySchoolYear.keys()];
+  const [schoolYear, setSchoolYear] = useState(schoolYears[0] ?? '');
   const faecherQuery = useQuery({
     ...faecherQueryOptions(schoolYear),
     enabled: schoolYear !== '',
@@ -127,8 +120,8 @@ export const FaecherManagement = ({
               value={schoolYear}
             >
               {schoolYears.map((year) => (
-                <option key={year.schoolYear} value={year.schoolYear}>
-                  {year.schoolYear}
+                <option key={year} value={year}>
+                  {year}
                 </option>
               ))}
             </select>
@@ -168,7 +161,7 @@ export const FaecherManagement = ({
                 updateMutation.mutate({ ...values, id: editTarget.id });
               }
             }}
-            system={systemFor(schoolYears, schoolYear)}
+            system={notensystemOf(notensystemBySchoolYear, schoolYear)}
             title={editTarget === 'create' ? 'Neues Fach' : 'Fach bearbeiten'}
           />
         </div>

@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import type { Pool } from 'pg';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
-  applyMigrationsThrough0002,
+  applyMigrationsThrough,
   withPostgresTestDatabase,
 } from './postgres-test-database.ts';
 
@@ -149,7 +149,7 @@ describe('Datenbankmigrationen unter konkurrierenden Schreibzugriffen', () => {
     'prüft eine nach der Bestandsabstimmung begonnene inkompatible Note unter Schreibsperre',
     () =>
       withPostgresTestDatabase(async (pool) => {
-        await applyMigrationsThrough0002(pool);
+        await applyMigrationsThrough(pool, '0002_amused_shotgun');
         await pool.query(`
         INSERT INTO subject (id, name, short_name)
         VALUES ('mathe', 'Mathematik', 'M');

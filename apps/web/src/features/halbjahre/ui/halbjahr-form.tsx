@@ -17,7 +17,9 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
+import { klassenstufeConflictText } from '../errors/halbjahr-errors.ts';
 import type { HalbjahrInput } from '../schemas/halbjahr-schema.ts';
+import { findKlassenstufeConflict } from '../services/halbjahr-invariants.ts';
 import type { Halbjahr } from '../services/halbjahr-service.ts';
 import { HalbjahrDateRangeField } from './halbjahr-date-range-field.tsx';
 import type { HalbjahrFormValues } from './halbjahr-form-model.ts';
@@ -33,6 +35,23 @@ type UpdateFields = (part: Partial<HalbjahrFormValues>) => void;
 
 const formatHalbjahrNumber = (half: 1 | 2) =>
   half === 1 ? '1. Halbjahr (Aug–Jan)' : '2. Halbjahr (Feb–Jul)';
+
+/** Warum die gewählte Kombination nicht gespeichert werden kann, sonst null. */
+const selectionErrorText = (
+  values: HalbjahrFormValues,
+  occupied: ReadonlySet<string>,
+  halbjahre: ReadonlyArray<Halbjahr>,
+  halbjahrId: string | null,
+): string | null => {
+  if (isOccupied(occupied, values.schoolYear, values.half)) {
+    return `Für ${values.schoolYear} gibt es das ${values.half}. Halbjahr bereits. Wähle eine andere Kombination oder bearbeite den vorhandenen Eintrag.`;
+  }
+  const conflict = findKlassenstufeConflict(halbjahre, {
+    ...values,
+    id: halbjahrId,
+  });
+  return conflict === null ? null : klassenstufeConflictText(conflict);
+};
 
 const Summary = ({ values }: { readonly values: HalbjahrFormValues }) => (
   <p className="mt-4 border border-border bg-surface-sunken px-3 py-2 text-ink-muted text-sm">
@@ -144,14 +163,19 @@ export const HalbjahrForm = ({
     today,
     halbjahre.map((entry) => entry.schoolYear),
   );
-  const alreadyOccupied = isOccupied(occupied, values.schoolYear, values.half);
+  const selectionError = selectionErrorText(
+    values,
+    occupied,
+    halbjahre,
+    halbjahr?.id ?? null,
+  );
 
   return (
     <form
       className="border border-border bg-surface p-5 shadow-card"
       onSubmit={(event) => {
         event.preventDefault();
-        if (pending || alreadyOccupied) {
+        if (pending || selectionError !== null) {
           return;
         }
         onSave(toHalbjahrInput(values));
@@ -166,15 +190,14 @@ export const HalbjahrForm = ({
         values={values}
       />
       <Summary values={values} />
-      {alreadyOccupied ? (
+      {selectionError === null ? null : (
         <p
           className="mt-2 border border-critical bg-critical-subtle px-3 py-2 text-ink"
           role="alert"
         >
-          Für {values.schoolYear} gibt es das {values.half}. Halbjahr bereits.
-          Wähle eine andere Kombination oder bearbeite den vorhandenen Eintrag.
+          {selectionError}
         </p>
-      ) : null}
+      )}
       <div className="mt-4">
         <HalbjahrDateRangeField onUpdate={updateValue} values={values} />
       </div>
@@ -189,7 +212,7 @@ export const HalbjahrForm = ({
       <div className="mt-5 flex gap-3">
         <button
           className={primaryButtonClass}
-          aria-disabled={pending || alreadyOccupied}
+          aria-disabled={pending || selectionError !== null}
           aria-busy={pending}
           type="submit"
         >
