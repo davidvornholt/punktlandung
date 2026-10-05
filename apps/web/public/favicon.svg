@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Punktlandung</title>
+  <!-- A dot landing on a line, in the pl-primary and pl-on-primary colors of packages/ui/src/theme.css. -->
+  <!-- favicon.ico (16 and 32 px) and apple-touch-icon.png (180 px) are rendered from this file. -->
+  <rect width="32" height="32" fill="#185b37"/>
+  <circle cx="16" cy="14" r="6" fill="#f9f5ec"/>
+  <path fill="#f9f5ec" d="M4 20h24v2H4z"/>
+</svg>
