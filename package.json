@@ -11,6 +11,8 @@
     "standards": "standards",
     "check": "bun test scripts/repository-artifacts.test.ts && standards check && turbo run lint check-types test build test:a11y --output-logs=errors-only",
     "check:fix": "bun test scripts/repository-artifacts.test.ts && standards check && turbo run lint:fix check-types test build test:a11y --output-logs=errors-only",
+    "lint": "biome check --error-on-warnings .",
+    "lint:fix": "biome check --write --error-on-warnings .",
     "test:a11y": "turbo run test:a11y",
     "dev": "turbo run dev --filter=@punktlandung/web",
     "build": "turbo run build --filter=@punktlandung/web",
@@ -27,7 +29,7 @@
   "packageManager": "bun@1.4.2",
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "@davidvornholt/standards": "0.27.0",
+    "@davidvornholt/standards": "0.29.0",
     "turbo": "^2.11.7",
     "typescript": "7.0.2"
   }
