@@ -30,7 +30,7 @@ bun standards creds add cloudflare --account 831f91724ea62b0cb0215829eb001f66 --
 
 ## Deployment
 
-[personal-infra](https://github.com/davidvornholt/personal-infra) betreibt `https://punktlandung.vornholt.online` und verwaltet Produktionskonfiguration und Secrets.
+[personal-infra](https://github.com/davidvornholt/personal-infra) betreibt den Host für `https://punktlandung.vornholt.online` und verwaltet Produktionskonfiguration und Secrets. Ein Merge nach `main` ist ein Deployment: Sobald Standards auf dem Merge-Commit bestanden hat, gibt der Workflow Publish container genau dieses Image für die Produktion frei. Der Workflow Roll back kehrt zum vorherigen Release zurück; ein zweiter Lauf kehrt zum neueren Release zurück.
 
 ## Pull request previews
 
