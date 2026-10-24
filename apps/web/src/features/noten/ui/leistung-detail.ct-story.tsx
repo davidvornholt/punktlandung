@@ -95,6 +95,7 @@ const LerntagStub = () => {
 };
 
 const noSaveDelays: ReadonlyArray<number> = [];
+const noFailedSaves: ReadonlyArray<number> = [];
 
 /**
  * Die Detailseite mit erfundenen Serveraufrufen. Der Verlauf der Aufrufe
@@ -105,6 +106,7 @@ export const LeistungDetailStory = ({
   scenario = 'mit-themen',
   refreshFails = false,
   saveDelays = noSaveDelays,
+  failedSaves = noFailedSaves,
 }: {
   readonly scenario?: Scenario;
   /** Nach dem ersten Laden scheitert jedes weitere, wie bei einem Verbindungsabbruch. */
@@ -114,6 +116,7 @@ export const LeistungDetailStory = ({
    * Server ankommt. Aufrufe ohne Eintrag kommen sofort an.
    */
   readonly saveDelays?: ReadonlyArray<number>;
+  readonly failedSaves?: ReadonlyArray<number>;
 }) => {
   const leistungRef = useRef<Leistung>(initialLeistung(scenario));
   const loadsRef = useRef(0);
@@ -148,10 +151,14 @@ export const LeistungDetailStory = ({
         }),
       saveTemplate: () => Promise.resolve(),
       updatePreparation: async (input) => {
-        const delay = saveDelays[savesRef.current];
+        const saveIndex = savesRef.current;
+        const delay = saveDelays[saveIndex];
         savesRef.current += 1;
         if (delay !== undefined) {
           await wait(delay);
+        }
+        if (failedSaves.includes(saveIndex)) {
+          throw new Error('Verbindung unterbrochen');
         }
         leistungRef.current = {
           ...leistungRef.current,
@@ -160,7 +167,7 @@ export const LeistungDetailStory = ({
         setSaved((list) => [...list, input.preparation ?? '<null>']);
       },
     }),
-    [refreshFails, saveDelays],
+    [failedSaves, refreshFails, saveDelays],
   );
   const notenOperations = useMemo<NotenOperations>(
     () => ({
