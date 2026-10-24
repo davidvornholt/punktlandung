@@ -109,3 +109,21 @@ it('zeigt eine benotete Leistung mit ihrer Note und behält die Vorbereitung', a
   await expect(component.getByText('11 P.', { exact: true })).toBeVisible();
   await expect(component.getByText('1 von 2 Themen sicher')).toBeVisible();
 });
+
+it('behält einen ungespeicherten Entwurf, wenn das Neuladen scheitert', async ({
+  mount,
+}) => {
+  const component = await mount(
+    <LeistungDetailStory refreshFails={true} scenario="mit-themen" />,
+  );
+
+  await component.getByRole('button', { name: 'Text bearbeiten' }).click();
+  const editor = component.getByRole('textbox', {
+    name: 'Vorbereitung als Markdown',
+  });
+  await editor.fill('Noch nicht gespeichert');
+  await component.getByRole('button', { name: 'Lerntag-Baustein' }).click();
+
+  await expect(component.getByRole('alert')).toBeVisible();
+  await expect(editor).toHaveValue('Noch nicht gespeichert');
+});

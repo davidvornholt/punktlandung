@@ -167,7 +167,9 @@ export const LeistungDetail = ({
       </>
     );
   }
-  if (detailQuery.isError) {
+  // A failed refresh keeps the data already shown, so open forms and an
+  // unsaved preparation draft stay mounted.
+  if (detailQuery.isError && detailQuery.data === undefined) {
     return (
       <>
         <Heading text="Leistung" />
@@ -205,6 +207,17 @@ export const LeistungDetail = ({
           />
         )}
       </div>
+      {detailQuery.isError ? (
+        <div className="mt-4">
+          <QueryError
+            onRetry={() => detailQuery.refetch()}
+            text={actionErrorText(
+              detailQuery.error,
+              'Die Leistung konnte nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut.',
+            )}
+          />
+        </div>
+      ) : null}
       {editing ? (
         <div className="mt-4">
           {faecher === null ? (

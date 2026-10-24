@@ -1,4 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   createMemoryHistory,
   createRootRoute,
@@ -8,6 +12,7 @@ import {
 import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
+import { leistungKey } from '#/shared/query/query-keys.ts';
 import type {
   LeistungDetail as Detail,
   Leistung,
@@ -67,16 +72,38 @@ const initialLeistung = (scenario: Scenario): Leistung => {
 };
 
 /**
+ * Steht für den Lerntag-Baustein, der nach „Heute dafür gelernt“ die Leistung
+ * neu lädt.
+ */
+const LerntagStub = () => {
+  const queryClient = useQueryClient();
+  return (
+    <button
+      onClick={() =>
+        queryClient.invalidateQueries({ queryKey: leistungKey('k-1') })
+      }
+      type="button"
+    >
+      Lerntag-Baustein
+    </button>
+  );
+};
+
+/**
  * Die Detailseite mit erfundenen Serveraufrufen. Der Verlauf der Aufrufe
  * steht in einer Liste im DOM, damit ein Test prüfen kann, welcher Quelltext
  * gespeichert wurde.
  */
 export const LeistungDetailStory = ({
   scenario = 'mit-themen',
+  refreshFails = false,
 }: {
   readonly scenario?: Scenario;
+  /** Nach dem ersten Laden scheitert jedes weitere, wie bei einem Verbindungsabbruch. */
+  readonly refreshFails?: boolean;
 }) => {
   const leistungRef = useRef<Leistung>(initialLeistung(scenario));
+  const loadsRef = useRef(0);
   const [saved, setSaved] = useState<ReadonlyArray<string>>([]);
   const [queryClient] = useState(
     () =>
@@ -89,12 +116,16 @@ export const LeistungDetailStory = ({
   );
   const leistungOperations = useMemo<LeistungOperations>(
     () => ({
-      load: () =>
-        Promise.resolve({
-          halbjahr,
-          leistung: leistungRef.current,
-          lernen: { daysAgo: 4, inLastWeek: 1 },
-        } satisfies Detail),
+      load: () => {
+        loadsRef.current += 1;
+        return refreshFails && loadsRef.current > 1
+          ? Promise.reject(new Error('Verbindung unterbrochen'))
+          : Promise.resolve({
+              halbjahr,
+              leistung: leistungRef.current,
+              lernen: { daysAgo: 4, inLastWeek: 1 },
+            } satisfies Detail);
+      },
       loadTemplates: () =>
         Promise.resolve({
           klausur: defaultPreparationTemplate,
@@ -111,7 +142,7 @@ export const LeistungDetailStory = ({
         return Promise.resolve();
       },
     }),
-    [],
+    [refreshFails],
   );
   const notenOperations = useMemo<NotenOperations>(
     () => ({
@@ -140,7 +171,7 @@ export const LeistungDetailStory = ({
                 faecher={faecher}
                 leistungId="k-1"
                 leistungOperations={leistungOperations}
-                lerntag={() => <p>Lerntag-Baustein</p>}
+                lerntag={() => <LerntagStub />}
                 notenOperations={notenOperations}
               />
             </main>
