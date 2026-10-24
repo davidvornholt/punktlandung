@@ -204,6 +204,39 @@ it('beginnt eine neue Vorbereitung mit der Vorlage der Leistungsart', async ({
   await expect(editor).toHaveValue(placeholderTopic);
 });
 
+it('meldet eine Vorlage, die nicht lädt, und lädt sie erneut', async ({
+  mount,
+}) => {
+  const component = await mount(
+    <LeistungDetailStory scenario="ohne-vorbereitung" templateFailures={1} />,
+  );
+
+  await component.getByRole('button', { name: 'Vorbereitung anlegen' }).click();
+  await expect(component.getByRole('alert')).toContainText(
+    'Die Vorlage konnte nicht geladen werden.',
+  );
+  await component.getByRole('button', { name: 'Erneut versuchen' }).click();
+
+  const editor = component.getByRole('textbox', {
+    name: 'Vorbereitung als Markdown',
+  });
+  await expect(editor).toHaveValue(themenHeading);
+  await expect(editor).toHaveValue(placeholderTopic);
+});
+
+it('kehrt zurück, wenn die Vorlage nicht lädt', async ({ mount }) => {
+  const component = await mount(
+    <LeistungDetailStory scenario="ohne-vorbereitung" templateFailures={1} />,
+  );
+
+  await component.getByRole('button', { name: 'Vorbereitung anlegen' }).click();
+  await expect(component.getByRole('alert')).toBeVisible();
+  await component.getByRole('button', { name: 'Abbrechen' }).click();
+
+  await expect(component.getByText('Noch keine Vorbereitung.')).toBeVisible();
+  await expect(component.getByRole('alert')).toHaveCount(0);
+});
+
 it('öffnet das Notenformular, um die ausstehende Klausur zu benoten', async ({
   mount,
 }) => {
