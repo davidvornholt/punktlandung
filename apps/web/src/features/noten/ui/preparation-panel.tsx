@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Pencil } from 'lucide-react';
 import { useId, useState } from 'react';
 
@@ -25,6 +30,9 @@ import type { PreparationTemplates } from '../services/preparation-template-serv
 import type { LeistungOperations } from './leistung-operations.ts';
 import { topicsText } from './preparation-text.ts';
 import { ThemenMarkdown } from './themen-markdown.tsx';
+
+const preparationSaveKey = (leistungId: string) =>
+  ['preparation-save', leistungId] as const;
 
 const saveErrorText =
   'Die Vorbereitung konnte nicht gespeichert werden. Der Text bleibt erhalten; prüfe die Verbindung und versuche es erneut.';
@@ -137,7 +145,7 @@ export const PreparationPanel = ({
   kind,
   leistungId,
   operations,
-  preparation,
+  preparation: savedPreparation,
 }: {
   readonly halbjahrId: string;
   readonly kind: PlanbareLeistungsart;
@@ -147,44 +155,50 @@ export const PreparationPanel = ({
 }) => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const saveKey = preparationSaveKey(leistungId);
+  const pendingPreparations = useMutationState({
+    filters: { mutationKey: saveKey, status: 'pending' },
+    select: (mutation) => mutation.state.variables as string | null,
+  });
+  const pendingPreparation = pendingPreparations.at(-1);
+  const preparation =
+    pendingPreparation === undefined ? savedPreparation : pendingPreparation;
   const templatesQuery = useQuery({
     enabled: editing && preparation === null,
     queryFn: () => operations.loadTemplates(),
     queryKey: preparationTemplatesKey,
   });
   /*
-   * Ein Haken schreibt die Seite sofort um und schickt erst dann. Ohne das
-   * blinkte die ganze Liste: sie wartete auf die Antwort, holte neu und baute
-   * sich auf. Scheitert der Aufruf, kehrt der alte Stand zurück und der Fehler
-   * steht darunter.
+   * Jeder Aufruf schickt den ganzen Text. Deshalb gehen die Aufrufe einer
+   * Vorbereitung nacheinander hinaus: käme ein älterer nach einem neueren an,
+   * nähme er dessen Haken zurück.
    */
   const saveMutation = useMutation({
+    mutationKey: saveKey,
+    scope: { id: saveKey.join(':') },
     mutationFn: (markdown: string | null) =>
       operations.updatePreparation({ id: leistungId, preparation: markdown }),
-    onMutate: async (markdown) => {
+    onSuccess: async (_result, markdown) => {
       const key = leistungKey(leistungId);
       await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<LeistungDetail>(key);
-      if (previous !== undefined) {
-        queryClient.setQueryData<LeistungDetail>(key, {
-          ...previous,
-          leistung: { ...previous.leistung, preparation: markdown },
-        });
-      }
-      return { previous };
-    },
-    onError: (_error, _markdown, context) => {
-      if (context?.previous !== undefined) {
-        queryClient.setQueryData(leistungKey(leistungId), context.previous);
-      }
-    },
-    onSuccess: async () => {
-      await invalidateAll(queryClient, [
-        leistungKey(leistungId),
-        notenKey(halbjahrId),
-        upcomingKey,
-      ]);
+      queryClient.setQueryData<LeistungDetail>(key, (previous) =>
+        previous === undefined
+          ? previous
+          : {
+              ...previous,
+              leistung: { ...previous.leistung, preparation: markdown },
+            },
+      );
       setEditing(false);
+    },
+    onSettled: async () => {
+      if (queryClient.isMutating({ mutationKey: saveKey }) === 1) {
+        await invalidateAll(queryClient, [
+          leistungKey(leistungId),
+          notenKey(halbjahrId),
+          upcomingKey,
+        ]);
+      }
     },
   });
   const error = saveMutation.isError

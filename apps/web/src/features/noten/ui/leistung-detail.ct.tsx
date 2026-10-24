@@ -1,6 +1,6 @@
 import { expect, test as it } from '@playwright/experimental-ct-react';
 
-import { themen } from './leistung-detail.ct-fixtures.ts';
+import { gleichartigeThemen, themen } from './leistung-detail.ct-fixtures.ts';
 import { LeistungDetailStory } from './leistung-detail.ct-story.tsx';
 
 const themenHeading = /## Themen/u;
@@ -63,6 +63,128 @@ it('hakt ein Thema ab, indem es die Quelltextzeile umschreibt', async ({
     [themen.replace('- [ ] Integralrechnung', '- [x] Integralrechnung')],
   );
   await expect(component.getByText('alle 2 Themen sicher')).toBeVisible();
+});
+
+const integralSicher = gleichartigeThemen.replace(
+  '- [ ] Integralrechnung',
+  '- [x] Integralrechnung',
+);
+const beideSicher = integralSicher.replace(
+  '- [ ] Ableitungsregeln',
+  '- [x] Ableitungsregeln',
+);
+
+/** Millisekunden, die ein langsamer Speicheraufruf bis zum Server braucht. */
+const langsam = 300;
+const langsamer = 600;
+
+it('speichert schnell gesetzte Haken in ihrer Reihenfolge', async ({
+  mount,
+  page,
+}) => {
+  // Der erste Aufruf braucht länger als der zweite.
+  const component = await mount(
+    <LeistungDetailStory
+      saveDelays={[langsam]}
+      scenario="gleichartige-themen"
+    />,
+  );
+
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
+    .click();
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Ableitungsregeln' })
+    .click();
+
+  const saved = page.getByRole('list', {
+    includeHidden: true,
+    name: 'Gespeicherte Vorbereitungen',
+  });
+  await expect(saved.getByRole('listitem', { includeHidden: true })).toHaveText(
+    [integralSicher, beideSicher],
+  );
+  await expect(component.getByText('alle 2 Themen sicher')).toBeVisible();
+});
+
+it('behält einen Haken, solange er noch gespeichert wird', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(
+    <LeistungDetailStory
+      saveDelays={[langsam, langsamer]}
+      scenario="gleichartige-themen"
+    />,
+  );
+
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
+    .click();
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Ableitungsregeln' })
+    .click();
+  const savedItems = page
+    .getByRole('list', {
+      includeHidden: true,
+      name: 'Gespeicherte Vorbereitungen',
+    })
+    .getByRole('listitem', { includeHidden: true });
+  // Der erste Haken ist gespeichert, der zweite noch unterwegs.
+  await expect(savedItems).toHaveCount(1);
+  await component.getByRole('button', { name: 'Lerntag-Baustein' }).click();
+  await component
+    .getByRole('checkbox', { name: 'Thema sicher: Integralrechnung' })
+    .click();
+
+  await expect(savedItems).toHaveText([
+    integralSicher,
+    beideSicher,
+    gleichartigeThemen.replace(
+      '- [ ] Ableitungsregeln',
+      '- [x] Ableitungsregeln',
+    ),
+  ]);
+  await expect(
+    component.getByRole('checkbox', { name: 'Thema sicher: Ableitungsregeln' }),
+  ).toBeChecked();
+  await expect(component.getByText('1 von 2 Themen sicher')).toBeVisible();
+});
+
+it('nimmt ungespeicherte Haken zurück, wenn alle Aufrufe scheitern', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(
+    <LeistungDetailStory
+      failedSaves={[0, 1]}
+      saveDelays={[langsam]}
+      scenario="gleichartige-themen"
+    />,
+  );
+
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
+    .click();
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Ableitungsregeln' })
+    .click();
+
+  await expect(component.getByRole('alert')).toBeVisible();
+  await expect(
+    page
+      .getByRole('list', {
+        includeHidden: true,
+        name: 'Gespeicherte Vorbereitungen',
+      })
+      .getByRole('listitem', { includeHidden: true }),
+  ).toHaveCount(0);
+  await expect(
+    component.getByRole('checkbox', { name: 'Thema offen: Integralrechnung' }),
+  ).not.toBeChecked();
+  await expect(
+    component.getByRole('checkbox', { name: 'Thema offen: Ableitungsregeln' }),
+  ).not.toBeChecked();
 });
 
 it('beginnt eine neue Vorbereitung mit der Vorlage der Leistungsart', async ({
