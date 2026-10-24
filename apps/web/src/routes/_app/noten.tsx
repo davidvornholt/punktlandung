@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { faecherQueryOptions } from '#/features/faecher/server/fach-fns.ts';
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
-import { currentHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
+import { defaultHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
 import { HalbjahrSelect } from '#/features/halbjahre/ui/halbjahr-select.tsx';
 import { liveNotenOperations } from '#/features/noten/ui/noten-operations.ts';
 import { NotenSection } from '#/features/noten/ui/noten-section.tsx';
@@ -20,7 +20,7 @@ const NotenPage = () => {
   const defaultValue =
     halbjahre === undefined
       ? null
-      : currentHalbjahr(halbjahre, berlinCalendarDate());
+      : defaultHalbjahr(halbjahre, berlinCalendarDate());
   const halbjahr =
     halbjahre?.find((entry) => entry.id === selectedId) ?? defaultValue;
   const faecherQuery = useQuery({

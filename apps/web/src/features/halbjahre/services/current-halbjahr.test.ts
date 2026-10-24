@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { currentHalbjahr } from './current-halbjahr.ts';
+import { currentHalbjahr, defaultHalbjahr } from './current-halbjahr.ts';
 
 const halbjahre = [
   { id: 'newer', startsOn: '2027-02-01', endsOn: '2027-07-28' },
@@ -27,5 +27,20 @@ describe('currentHalbjahr', () => {
 
   it('liefert null ohne Halbjahre', () => {
     expect(currentHalbjahr([], '2027-08-15')).toBeNull();
+  });
+});
+
+describe('defaultHalbjahr', () => {
+  it('zeigt das aktuelle Halbjahr, sobald eines begonnen hat', () => {
+    expect(defaultHalbjahr(halbjahre, '2027-01-30')?.id).toBe('older');
+    expect(defaultHalbjahr(halbjahre, '2027-03-01')?.id).toBe('newer');
+  });
+
+  it('zeigt vor dem ersten Halbjahr das zuerst beginnende', () => {
+    expect(defaultHalbjahr(halbjahre, '2026-09-01')?.id).toBe('older');
+  });
+
+  it('liefert null ohne Halbjahre', () => {
+    expect(defaultHalbjahr([], '2026-09-01')).toBeNull();
   });
 });

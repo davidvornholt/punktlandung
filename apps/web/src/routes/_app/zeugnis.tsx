@@ -3,7 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
-import { currentHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
+import { defaultHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
 import { HalbjahrSelect } from '#/features/halbjahre/ui/halbjahr-select.tsx';
 import { Zeugnisblatt } from '#/features/zeugnis/ui/zeugnisblatt.tsx';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
@@ -43,7 +43,7 @@ const ZeugnisPage = () => {
     );
   }
 
-  const defaultValue = currentHalbjahr(halbjahre, berlinCalendarDate());
+  const defaultValue = defaultHalbjahr(halbjahre, berlinCalendarDate());
   const halbjahr =
     halbjahre.find((entry) => entry.id === selectedId) ?? defaultValue;
 
