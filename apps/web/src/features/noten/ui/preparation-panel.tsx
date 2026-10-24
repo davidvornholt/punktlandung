@@ -26,6 +26,10 @@ import type { LeistungOperations } from './leistung-operations.ts';
 import { topicsText } from './preparation-text.ts';
 import { ThemenMarkdown } from './themen-markdown.tsx';
 
+/** Die Speicheraufrufe einer Vorbereitung, damit sie einander abwarten. */
+const preparationSaveKey = (leistungId: string) =>
+  ['preparation-save', leistungId] as const;
+
 const saveErrorText =
   'Die Vorbereitung konnte nicht gespeichert werden. Der Text bleibt erhalten; prüfe die Verbindung und versuche es erneut.';
 
@@ -157,8 +161,20 @@ export const PreparationPanel = ({
    * blinkte die ganze Liste: sie wartete auf die Antwort, holte neu und baute
    * sich auf. Scheitert der Aufruf, kehrt der alte Stand zurück und der Fehler
    * steht darunter.
+   *
+   * Jeder Aufruf schickt den ganzen Text. Deshalb gehen die Aufrufe einer
+   * Vorbereitung nacheinander hinaus: käme ein älterer nach einem neueren an,
+   * nähme er dessen Haken zurück. Solange ein späterer noch wartet, holt ein
+   * fertiger nichts neu und setzt nichts zurück, denn der Server kennt die
+   * neueren Haken noch nicht, und der spätere Aufruf trägt ohnehin den
+   * neuesten Text.
    */
+  const saveKey = preparationSaveKey(leistungId);
+  const laterSavePending = () =>
+    queryClient.isMutating({ mutationKey: saveKey }) > 1;
   const saveMutation = useMutation({
+    mutationKey: saveKey,
+    scope: { id: saveKey.join(':') },
     mutationFn: (markdown: string | null) =>
       operations.updatePreparation({ id: leistungId, preparation: markdown }),
     onMutate: async (markdown) => {
@@ -174,16 +190,18 @@ export const PreparationPanel = ({
       return { previous };
     },
     onError: (_error, _markdown, context) => {
-      if (context?.previous !== undefined) {
+      if (!laterSavePending() && context?.previous !== undefined) {
         queryClient.setQueryData(leistungKey(leistungId), context.previous);
       }
     },
     onSuccess: async () => {
-      await invalidateAll(queryClient, [
-        leistungKey(leistungId),
-        notenKey(halbjahrId),
-        upcomingKey,
-      ]);
+      if (!laterSavePending()) {
+        await invalidateAll(queryClient, [
+          leistungKey(leistungId),
+          notenKey(halbjahrId),
+          upcomingKey,
+        ]);
+      }
       setEditing(false);
     },
   });
