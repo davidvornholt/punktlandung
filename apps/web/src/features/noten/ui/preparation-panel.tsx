@@ -23,7 +23,7 @@ import {
   secondaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
 import { IconButton } from '#/shared/ui/icon-button.tsx';
-import { LoadingHint } from '#/shared/ui/query-state.tsx';
+import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { preparationLimits } from '../schemas/note-schema.ts';
 import type { LeistungDetail } from '../services/noten-service.ts';
 import type { PreparationTemplates } from '../services/preparation-template-service.ts';
@@ -33,6 +33,9 @@ import { ThemenMarkdown } from './themen-markdown.tsx';
 
 const preparationSaveKey = (leistungId: string) =>
   ['preparation-save', leistungId] as const;
+
+const templateErrorText =
+  'Die Vorlage konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut.';
 
 const saveErrorText =
   'Die Vorbereitung konnte nicht gespeichert werden. Der Text bleibt erhalten; prüfe die Verbindung und versuche es erneut.';
@@ -90,6 +93,26 @@ const PreparationEditor = ({
     </form>
   );
 };
+
+/** Die Vorlage für eine neue Vorbereitung kam nicht an. */
+const TemplateError = ({
+  onCancel,
+  onRetry,
+}: {
+  readonly onCancel: () => void;
+  readonly onRetry: () => unknown;
+}) => (
+  <>
+    <QueryError onRetry={onRetry} text={templateErrorText} />
+    <button
+      className={`${secondaryButtonClass} mt-3`}
+      onClick={onCancel}
+      type="button"
+    >
+      Abbrechen
+    </button>
+  </>
+);
 
 /** Die Aufforderung, solange keine Vorbereitung angelegt ist. */
 const EmptyPreparation = ({ onStart }: { readonly onStart: () => void }) => (
@@ -225,7 +248,14 @@ export const PreparationPanel = ({
       );
     }
     if (preparation === null && templatesQuery.data === undefined) {
-      return <LoadingHint text="Vorlage wird geladen …" />;
+      return templatesQuery.isError && !templatesQuery.isFetching ? (
+        <TemplateError
+          onCancel={() => setEditing(false)}
+          onRetry={() => templatesQuery.refetch()}
+        />
+      ) : (
+        <LoadingHint text="Vorlage wird geladen …" />
+      );
     }
     return (
       <PreparationEditor
