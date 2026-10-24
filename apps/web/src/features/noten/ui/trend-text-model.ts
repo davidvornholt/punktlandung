@@ -60,15 +60,22 @@ export const createTrendTextModel = (
       summary: 'Noch keine Noten für die Verlaufslinie.',
     };
   }
-  const [first] = entries;
-  const last = entries.at(-1) ?? first;
   const notenpunkte = entries.map((entry) => entry.punkte);
+  const schnitte = entries.flatMap((entry) =>
+    entry.schnitt === null ? [] : [entry.schnitt],
+  );
+  const [first] = schnitte;
+  const last = schnitte.at(-1);
   let direction = 'gleich geblieben';
-  if (last.schnitt > first.schnitt) {
+  if (first !== undefined && last !== undefined && last > first) {
     direction = 'gestiegen';
-  } else if (last.schnitt < first.schnitt) {
+  } else if (first !== undefined && last !== undefined && last < first) {
     direction = 'gesunken';
   }
+  const verlauf =
+    last === undefined
+      ? 'Noch geht keine Note in einen Fachschnitt ein.'
+      : `Der laufende Schnitt ist ${direction}.`;
   return {
     rows: entries.map((entry, index) => {
       const point = createTrendPointText(entry);
@@ -80,9 +87,10 @@ export const createTrendTextModel = (
         fach: point.fach,
         note: point.note,
         notenpunkte: formatNote(entry.punkte, 'punkte'),
-        average: formatNote(entry.schnitt, 'punkte'),
+        average:
+          entry.schnitt === null ? '—' : formatNote(entry.schnitt, 'punkte'),
       };
     }),
-    summary: `Der laufende Schnitt ist ${direction}. Niedrigster Einzelwert: ${formatNote(Math.min(...notenpunkte), 'punkte')}; höchster Einzelwert: ${formatNote(Math.max(...notenpunkte), 'punkte')}; aktueller Schnitt: ${formatNote(last.schnitt, 'punkte')}.`,
+    summary: `${verlauf} Niedrigster Einzelwert: ${formatNote(Math.min(...notenpunkte), 'punkte')}; höchster Einzelwert: ${formatNote(Math.max(...notenpunkte), 'punkte')}; aktueller Schnitt: ${last === undefined ? '—' : formatNote(last, 'punkte')}.`,
   };
 };

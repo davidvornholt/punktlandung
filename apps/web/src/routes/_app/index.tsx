@@ -44,7 +44,7 @@ const Overview = () => {
     );
   }
   const trend = trendQuery.data;
-  const last = trend.at(-1);
+  const schnitt = trend.at(-1)?.schnitt ?? null;
 
   return (
     <>
@@ -54,12 +54,12 @@ const Overview = () => {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           detail={
-            last === undefined
+            schnitt === null
               ? undefined
-              : `entspricht Note ${formatNote(toSechser(last.schnitt), 'sechser')}`
+              : `entspricht Note ${formatNote(toSechser(schnitt), 'sechser')}`
           }
           label="Gesamtschnitt"
-          value={last === undefined ? '—' : formatNote(last.schnitt, 'punkte')}
+          value={schnitt === null ? '—' : formatNote(schnitt, 'punkte')}
         />
         <StatCard label="Anzahl Noten" value={`${trend.length}`} />
         <LearnedToday />

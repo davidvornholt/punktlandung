@@ -27,8 +27,12 @@ export type TrendNote = {
 export type TrendEntry = {
   readonly datum: string;
   readonly punkte: number;
-  /** Laufender gewichteter Schnitt in Notenpunkten. */
-  readonly schnitt: number;
+  /**
+   * Laufender gewichteter Schnitt in Notenpunkten; null, solange noch keine
+   * Note in einen Fachschnitt eingeht (etwa nur schriftliche Noten in einem
+   * Fach, das schriftlich mit 0 % wertet).
+   */
+  readonly schnitt: number | null;
   readonly fachKuerzel: string;
   readonly fachName: string;
   /** Der eingetragene Wert im Notensystem seines Halbjahrs. */
@@ -76,12 +80,17 @@ export const calculateTrend = (
         return average === null ? [] : [average];
       },
     );
-    const total =
-      fachAverages.reduce((sum, value) => sum + value, 0) / fachAverages.length;
+    const schnitt =
+      fachAverages.length === 0
+        ? null
+        : roundToPrecision(
+            fachAverages.reduce((sum, value) => sum + value, 0) /
+              fachAverages.length,
+          );
     return {
       datum: note.date,
       punkte: roundToPrecision(note.notenpunkte),
-      schnitt: roundToPrecision(total),
+      schnitt,
       fachKuerzel: note.fachShortName,
       fachName: note.fachName,
       notenwert: note.notenwert,

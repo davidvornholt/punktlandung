@@ -94,6 +94,18 @@ describe('calculateTrend', () => {
     expect(trend.at(-1)?.schnitt).toBe(8);
   });
 
+  it('führt keinen Schnitt, solange keine Note in einen Fachschnitt eingeht', () => {
+    const fachGewichtung = {
+      ...equallyWeighted,
+      verhaeltnis: { schriftlich: 0, muendlich: 100 },
+    };
+    const trend = calculateTrend([
+      note('M', '2026-09-01', 12, { fachGewichtung }),
+      note('M', '2026-09-02', 9, { leistungsart: 'muendlich', fachGewichtung }),
+    ]);
+    expect(trend.map(({ schnitt }) => schnitt)).toEqual([null, 9]);
+  });
+
   it('gewichtet Fächer gleich statt nach ihrer Anzahl an Leistungen', () => {
     const trend = calculateTrend([
       note('M', '2026-09-01', 12),

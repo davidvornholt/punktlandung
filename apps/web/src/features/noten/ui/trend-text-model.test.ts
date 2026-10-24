@@ -72,6 +72,34 @@ describe('createTrendTextModel', () => {
   });
 });
 
+describe('createTrendTextModel ohne Schnitt', () => {
+  it('zeigt einen Strich statt eines Schnitts und misst den Verlauf ab dem ersten Schnitt', () => {
+    const model = createTrendTextModel([
+      entry({ schnitt: null }),
+      entry({ datum: '2026-10-02', punkte: 9, schnitt: 9, notenwert: 9 }),
+      entry({ datum: '2026-11-20', punkte: 12, schnitt: 10, notenwert: 12 }),
+    ]);
+
+    expect(model.rows.map(({ average }) => average)).toEqual([
+      '—',
+      '9 P.',
+      '10 P.',
+    ]);
+    expect(model.summary).toContain('gestiegen');
+    expect(model.summary).toContain('aktueller Schnitt: 10 P.');
+  });
+
+  it('sagt, dass noch kein Schnitt feststeht', () => {
+    const model = createTrendTextModel([entry({ schnitt: null })]);
+
+    expect(model.summary).toStartWith(
+      'Noch geht keine Note in einen Fachschnitt ein.',
+    );
+    expect(model.summary).toContain('aktueller Schnitt: —.');
+    expect(model.summary).not.toContain('NaN');
+  });
+});
+
 describe('createTrendPointText', () => {
   it('zeigt in einem Punkte-Halbjahr nur den Punktwert', () => {
     expect(createTrendPointText(entry({ punkte: 11, notenwert: 11 }))).toEqual({
