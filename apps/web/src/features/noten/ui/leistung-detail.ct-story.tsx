@@ -107,6 +107,7 @@ export const LeistungDetailStory = ({
   refreshFails = false,
   saveDelays = noSaveDelays,
   failedSaves = noFailedSaves,
+  templateFailures = 0,
 }: {
   readonly scenario?: Scenario;
   /** Nach dem ersten Laden scheitert jedes weitere, wie bei einem Verbindungsabbruch. */
@@ -117,10 +118,13 @@ export const LeistungDetailStory = ({
    */
   readonly saveDelays?: ReadonlyArray<number>;
   readonly failedSaves?: ReadonlyArray<number>;
+  /** Wie viele der ersten Aufrufe für die Vorlagen scheitern. */
+  readonly templateFailures?: number;
 }) => {
   const leistungRef = useRef<Leistung>(initialLeistung(scenario));
   const loadsRef = useRef(0);
   const savesRef = useRef(0);
+  const templateLoadsRef = useRef(0);
   const [saved, setSaved] = useState<ReadonlyArray<string>>([]);
   const [queryClient] = useState(
     () =>
@@ -143,12 +147,16 @@ export const LeistungDetailStory = ({
               lernen: { daysAgo: 4, inLastWeek: 1 },
             } satisfies Detail);
       },
-      loadTemplates: () =>
-        Promise.resolve({
-          klausur: defaultPreparationTemplate,
-          test: defaultPreparationTemplate,
-          gfs: '- [ ] Handout',
-        }),
+      loadTemplates: () => {
+        templateLoadsRef.current += 1;
+        return templateLoadsRef.current <= templateFailures
+          ? Promise.reject(new Error('Verbindung unterbrochen'))
+          : Promise.resolve({
+              klausur: defaultPreparationTemplate,
+              test: defaultPreparationTemplate,
+              gfs: '- [ ] Handout',
+            });
+      },
       saveTemplate: () => Promise.resolve(),
       updatePreparation: async (input) => {
         const saveIndex = savesRef.current;
@@ -167,7 +175,7 @@ export const LeistungDetailStory = ({
         setSaved((list) => [...list, input.preparation ?? '<null>']);
       },
     }),
-    [failedSaves, refreshFails, saveDelays],
+    [failedSaves, refreshFails, saveDelays, templateFailures],
   );
   const notenOperations = useMemo<NotenOperations>(
     () => ({
