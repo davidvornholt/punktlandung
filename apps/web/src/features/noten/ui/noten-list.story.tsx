@@ -87,11 +87,7 @@ const waehlbareFaecher = (scenario: Scenario) =>
  * den verborgenen Knöpfen, damit ein Test den Zustand während des laufenden
  * Vorgangs prüfen und den Ausgang selbst bestimmen kann.
  */
-export const NotenListStory = ({
-  scenario = 'standard',
-}: {
-  readonly scenario?: Scenario;
-}) => {
+const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
   const notenRef = useRef<ReadonlyArray<Leistung>>(initialNoten(scenario));
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
   const pendingByIdRef = useRef(new Map<string, (outcome: Outcome) => void>());
@@ -202,3 +198,15 @@ export const NotenListStory = ({
   );
   return <RouterProvider router={router} />;
 };
+
+export const Standard = () => <NotenListScenario scenario="standard" />;
+
+export const LetzteNote = () => <NotenListScenario scenario="letzte-note" />;
+
+export const OhneFach = () => <NotenListScenario scenario="ohne-fach" />;
+
+export const OhneFachOhneNote = () => (
+  <NotenListScenario scenario="ohne-fach-ohne-note" />
+);
+
+export const Retry = () => <NotenListScenario scenario="retry" />;

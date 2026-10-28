@@ -19,8 +19,9 @@
     "a11y",
     "scripts",
     "drizzle.config.ts",
+    "playwright",
     "playwright.config.ts",
-    "playwright-ct.config.ts"
+    "playwright-stories.config.ts"
   ],
   "exclude": ["node_modules"]
 }

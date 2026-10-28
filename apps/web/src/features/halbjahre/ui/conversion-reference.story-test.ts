@@ -1,19 +1,17 @@
-import type { MountResult } from '@playwright/experimental-ct-react';
-import { expect, test as it } from '@playwright/experimental-ct-react';
+import type * as playwright from '@playwright/test';
+import { expect, test as it } from '@playwright/test';
 
 import { conversionTable } from '#/shared/noten/conversion-table.ts';
 
-import { ConversionReference } from './conversion-reference.tsx';
-
-type ComponentLocator = ReturnType<MountResult['getByRole']>;
-
-const rowWithHeader = (component: ComponentLocator, header: string) =>
+const rowWithHeader = (component: playwright.Locator, header: string) =>
   component.getByRole('rowheader', { name: header, exact: true }).locator('..');
 
 it('distinguishes official and interpolated rows accessibly', async ({
   mount,
 }) => {
-  const component = await mount(<ConversionReference />);
+  const component = await mount(
+    'features/halbjahre/ui/conversion-reference/Default',
+  );
   await component.getByText('Umrechnungstabelle', { exact: true }).click();
   const officialRow = rowWithHeader(component, '1,25 (1-)');
   const interpolatedRow = rowWithHeader(component, '1,5 (1-2)');
@@ -36,7 +34,9 @@ it('preserves the native disclosure and scoped table headers', async ({
   mount,
   page,
 }) => {
-  const component = await mount(<ConversionReference />);
+  const component = await mount(
+    'features/halbjahre/ui/conversion-reference/Default',
+  );
   const disclosure = component.locator('details');
   const summary = component.getByText('Umrechnungstabelle', {
     exact: true,

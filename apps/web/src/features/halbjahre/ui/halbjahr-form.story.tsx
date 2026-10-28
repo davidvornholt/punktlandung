@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { HalbjahrForm } from './halbjahr-form.tsx';
-export const PendingFormStory = () => {
+export const PendingForm = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,7 @@ const zweitesHalbjahr = {
 } as const;
 
 /** Das 1. Halbjahr 2026/27 steht schon als Klasse 10 fest. */
-export const KlassenstufeConflictStory = () => {
+export const KlassenstufeConflict = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const [calls, setCalls] = useState(0);
   return (
@@ -78,7 +78,7 @@ export const KlassenstufeConflictStory = () => {
 };
 
 /** Beide Halbjahre 2026/27 stehen als Klasse 10 fest; das 2. wird bearbeitet. */
-export const KlassenstufeCorrectionStory = () => {
+export const KlassenstufeCorrection = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const [saved, setSaved] = useState<string>('');
   return (

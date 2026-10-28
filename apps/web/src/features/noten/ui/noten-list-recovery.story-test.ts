@@ -1,4 +1,4 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
+import { expect, test as it } from '@playwright/test';
 import {
   editForm,
   firstRow,
@@ -6,11 +6,10 @@ import {
   save,
   secondRow,
   settle,
-} from './noten-list.ct-locators.ts';
-import { NotenListStory } from './noten-list.ct-story.tsx';
+} from './noten-list.story-locators.ts';
 
 it('keeps save focus while pending and after failure', async ({ mount }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   const submit = editForm(component).getByRole('button', {
     name: 'Note speichern',
@@ -31,7 +30,7 @@ it('keeps save focus while pending and after failure', async ({ mount }) => {
 it('retains the first deletion failure when a second deletion starts', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await firstRow(component).getByRole('button', { name: 'Löschen' }).click();
   await settle(component, 'fail');
   await expect(firstRow(component).getByRole('alert')).toBeVisible();
@@ -44,7 +43,7 @@ it('retains the first deletion failure when a second deletion starts', async ({
 it('keeps an earlier save pending after a later save finishes', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await save(component);
   await openEditor(secondRow(component));
@@ -60,7 +59,7 @@ it('keeps an earlier save pending after a later save finishes', async ({
 });
 
 it('returns focus to the list after a successful retry', async ({ mount }) => {
-  const component = await mount(<NotenListStory scenario="retry" />);
+  const component = await mount('features/noten/ui/noten-list/Retry');
   const retry = component.getByRole('button', { name: 'Erneut versuchen' });
   await retry.focus();
   await retry.press('Enter');

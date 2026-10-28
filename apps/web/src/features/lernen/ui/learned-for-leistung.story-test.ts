@@ -1,12 +1,10 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
-
-import { LearnedForLeistungStory } from './learned-for-leistung.ct-story.tsx';
+import { expect, test as it } from '@playwright/test';
 
 it('widmet den heutigen Tag der Leistung — ohne Minuten', async ({
   mount,
   page,
 }) => {
-  const component = await mount(<LearnedForLeistungStory scenario="nie" />);
+  const component = await mount('features/lernen/ui/learned-for-leistung/Nie');
   await expect(component.getByText('noch nicht dafür gelernt')).toBeVisible();
 
   await component.getByRole('button', { name: 'Heute dafür gelernt' }).click();
@@ -20,7 +18,9 @@ it('widmet den heutigen Tag der Leistung — ohne Minuten', async ({
 it('lässt den Knopf ruhen, wenn heute schon dafür gelernt wurde', async ({
   mount,
 }) => {
-  const component = await mount(<LearnedForLeistungStory scenario="heute" />);
+  const component = await mount(
+    'features/lernen/ui/learned-for-leistung/Heute',
+  );
 
   await expect(
     component.getByText('heute gelernt · an 3 der letzten 7 Tage'),

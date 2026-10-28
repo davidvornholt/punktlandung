@@ -33,6 +33,7 @@
       "includes": [
         "apps/web/vite.config.ts",
         "apps/web/playwright.config.ts",
+        "apps/web/playwright-stories.config.ts",
         "apps/web/drizzle.config.ts"
       ],
       "linter": {

@@ -1,6 +1,4 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
-
-import { GewichtungFieldStory } from './gewichtung-field.ct-story.tsx';
+import { expect, test as it } from '@playwright/test';
 
 const listeErklaerung = /ergibt sich aus der Zahl der Noten/u;
 const verhaeltnisErklaerung = /egal, wie viele Noten es jeweils gibt/u;
@@ -8,7 +6,9 @@ const verhaeltnisErklaerung = /egal, wie viele Noten es jeweils gibt/u;
 it('erklärt beide Aufteilungen als Beschreibung ihres Radiofelds', async ({
   mount,
 }) => {
-  const component = await mount(<GewichtungFieldStory />);
+  const component = await mount(
+    'features/faecher/ui/gewichtung-field/Standardgewichtung',
+  );
   const liste = component.getByRole('radio', {
     name: 'Alle Noten in einer Liste',
   });
@@ -25,7 +25,9 @@ it('erklärt beide Aufteilungen als Beschreibung ihres Radiofelds', async ({
 it('zeigt die Anteile erst unter dem gewählten Verhältnis', async ({
   mount,
 }) => {
-  const component = await mount(<GewichtungFieldStory />);
+  const component = await mount(
+    'features/faecher/ui/gewichtung-field/Standardgewichtung',
+  );
 
   await component
     .getByRole('radio', { name: 'Festes Verhältnis schriftlich : mündlich' })

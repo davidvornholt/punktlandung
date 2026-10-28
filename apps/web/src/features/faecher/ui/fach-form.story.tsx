@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { FachForm } from './fach-form.tsx';
-export const PendingFormStory = () => {
+export const PendingForm = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);

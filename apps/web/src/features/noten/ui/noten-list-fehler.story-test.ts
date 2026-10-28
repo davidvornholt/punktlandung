@@ -1,4 +1,4 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
+import { expect, test as it } from '@playwright/test';
 
 import {
   cancel,
@@ -10,8 +10,7 @@ import {
   save,
   secondRow,
   settle,
-} from './noten-list.ct-locators.ts';
-import { NotenListStory } from './noten-list.ct-story.tsx';
+} from './noten-list.story-locators.ts';
 
 /**
  * Die Liste teilt sich eine Änderungsmutation über alle Zeilen. Ohne die
@@ -21,7 +20,7 @@ import { NotenListStory } from './noten-list.ct-story.tsx';
 it('hält den Fehler bei der gescheiterten Note und nimmt ihn beim erneuten Öffnen zurück', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await save(component);
   await settle(component, 'fail');
@@ -47,7 +46,7 @@ it('hält den Fehler bei der gescheiterten Note und nimmt ihn beim erneuten Öff
 it('zeigt im Formular einer anderen Note deren eigenen Stand', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await save(component);
   await settle(component, 'fail');
@@ -69,7 +68,7 @@ it('zeigt im Formular einer anderen Note deren eigenen Stand', async ({
 it('nimmt den Fehler zurück, sobald dieselbe Note erneut gespeichert wird', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await noteField(component).fill('1');
   await save(component);

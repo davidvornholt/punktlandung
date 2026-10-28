@@ -1,32 +1,7 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
-import { TrendChart } from './trend-chart';
+import { expect, test as it } from '@playwright/test';
 
-const entries = [
-  {
-    datum: '2026-09-14',
-    fachKuerzel: 'M',
-    fachName: 'Mathematik',
-    punkte: 11,
-    schnitt: 11,
-    notenwert: 11,
-    notensystem: 'punkte',
-    leistungsart: 'klausur',
-    klassenstufe: 'J1',
-    half: 1,
-  },
-  {
-    datum: '2026-09-21',
-    fachKuerzel: 'D',
-    fachName: 'Deutsch',
-    punkte: 7,
-    schnitt: 9,
-    notenwert: 7,
-    notensystem: 'punkte',
-    leistungsart: 'gfs',
-    klassenstufe: 'J1',
-    half: 1,
-  },
-] as const;
+import { trendEntries } from './trend-chart.story-fixtures.ts';
+
 it.use({
   hasTouch: true,
   isMobile: true,
@@ -38,15 +13,11 @@ it('a normal tap pins the intended point, outside taps and Escape dismiss it, an
   page,
 }, testInfo) => {
   const component = await mount(
-    <div className="min-h-[1600px] p-6">
-      <h1>Notenverlauf</h1>
-      <TrendChart entries={entries} />
-      <button type="button">Außerhalb</button>
-    </div>,
+    'features/noten/ui/trend-chart/OnScrollablePage',
   );
   await page.addStyleTag({ content: 'body { min-height: 1600px; }' });
   const dots = component.locator('.recharts-line-dot');
-  await expect(dots).toHaveCount(entries.length);
+  await expect(dots).toHaveCount(trendEntries.length);
   await dots.nth(1).tap();
   const selected = component.getByRole('complementary', {
     name: 'Ausgewählte Note',

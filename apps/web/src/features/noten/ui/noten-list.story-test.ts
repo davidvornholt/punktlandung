@@ -1,4 +1,4 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
+import { expect, test as it } from '@playwright/test';
 
 import {
   editForm,
@@ -10,13 +10,12 @@ import {
   save,
   secondRow,
   settle,
-} from './noten-list.ct-locators.ts';
-import { NotenListStory } from './noten-list.ct-story.tsx';
+} from './noten-list.story-locators.ts';
 
 it('speichert die Änderung unter der Kennung der bearbeiteten Note', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await noteField(component).fill('1');
   await save(component);
@@ -33,7 +32,7 @@ it('speichert die Änderung unter der Kennung der bearbeiteten Note', async ({
  * weshalb der Fokus ohne das Auffangziel der Liste auf <body> fiele.
  */
 it('trägt eine Note in das gewählte Fach um', async ({ mount }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await editForm(component)
     .getByRole('combobox', { name: 'Fach' })
@@ -59,7 +58,7 @@ it('trägt eine Note in das gewählte Fach um', async ({ mount }) => {
 it('gibt den Fokus nach dem Abbrechen an den Zeilenknopf zurück', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   const row = secondRow(component);
   await openEditor(row);
   await editForm(component).getByRole('button', { name: 'Abbrechen' }).click();
@@ -76,7 +75,7 @@ it('gibt den Fokus nach dem Abbrechen an den Zeilenknopf zurück', async ({
 it('lässt eine Note auch dann korrigieren, wenn kein Fach mehr wählbar ist', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory scenario="ohne-fach" />);
+  const component = await mount('features/noten/ui/noten-list/OhneFach');
   await expect(
     component.getByRole('form', { name: 'Note eintragen' }),
   ).toHaveCount(0);
@@ -94,7 +93,7 @@ it('lässt eine Note auch dann korrigieren, wenn kein Fach mehr wählbar ist', a
  * der Liste fiele der Fokus auf <body>.
  */
 it('gibt den Fokus nach dem Löschen an die Notenliste', async ({ mount }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await firstRow(component).getByRole('button', { name: 'Löschen' }).click();
   await settle(component, 'complete');
 
@@ -111,7 +110,7 @@ it('gibt den Fokus nach dem Löschen an die Notenliste', async ({ mount }) => {
 it('meldet nur die gespeicherte Note als beschäftigt und lässt die andere offen', async ({
   mount,
 }) => {
-  const component = await mount(<NotenListStory />);
+  const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await noteField(component).fill('1');
   await save(component);
@@ -146,7 +145,7 @@ it('meldet nur die gespeicherte Note als beschäftigt und lässt die andere offe
  * fiele auf <body>.
  */
 it('hält den Fokus, wenn die letzte Note gelöscht wird', async ({ mount }) => {
-  const component = await mount(<NotenListStory scenario="letzte-note" />);
+  const component = await mount('features/noten/ui/noten-list/LetzteNote');
   await firstRow(component).getByRole('button', { name: 'Löschen' }).click();
   await settle(component, 'complete');
 
@@ -164,7 +163,7 @@ it('verweist ohne wählbares Fach nicht auf die Eintragsleiste', async ({
   mount,
 }) => {
   const component = await mount(
-    <NotenListStory scenario="ohne-fach-ohne-note" />,
+    'features/noten/ui/noten-list/OhneFachOhneNote',
   );
 
   const liste = component.getByRole('region', { name: 'Notenliste' });

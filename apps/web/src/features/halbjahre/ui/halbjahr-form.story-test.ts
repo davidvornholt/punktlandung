@@ -1,14 +1,11 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
-import {
-  KlassenstufeConflictStory,
-  KlassenstufeCorrectionStory,
-  PendingFormStory,
-} from './halbjahr-form.ct-story.tsx';
+import { expect, test as it } from '@playwright/test';
 
 it('retains submit focus and blocks duplicate saves and cancellation while pending', async ({
   mount,
 }) => {
-  const component = await mount(<PendingFormStory />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahr-form/PendingForm',
+  );
 
   const submit = component.getByRole('button', { name: 'Halbjahr speichern' });
   await submit.focus();
@@ -31,7 +28,9 @@ it('retains submit focus and blocks duplicate saves and cancellation while pendi
 it('names the Klassenstufe of the other Halbjahr and blocks saving a different one', async ({
   mount,
 }) => {
-  const component = await mount(<KlassenstufeConflictStory />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahr-form/KlassenstufeConflict',
+  );
   const klassenstufe = component.getByRole('combobox', {
     name: 'Klassenstufe',
   });
@@ -61,7 +60,9 @@ it('names the Klassenstufe of the other Halbjahr and blocks saving a different o
 it('announces that a corrected Klassenstufe also applies to the other Halbjahr and saves it', async ({
   mount,
 }) => {
-  const component = await mount(<KlassenstufeCorrectionStory />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahr-form/KlassenstufeCorrection',
+  );
   const klassenstufe = component.getByRole('combobox', {
     name: 'Klassenstufe',
   });

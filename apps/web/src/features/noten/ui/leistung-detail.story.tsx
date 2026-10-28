@@ -18,7 +18,10 @@ import type {
   Leistung,
 } from '../services/noten-service.ts';
 import { defaultPreparationTemplate } from '../services/preparation-template-service.ts';
-import { gleichartigeThemen, themen } from './leistung-detail.ct-fixtures.ts';
+import {
+  gleichartigeThemen,
+  themen,
+} from './leistung-detail.story-fixtures.ts';
 import { LeistungDetail } from './leistung-detail.tsx';
 import type { LeistungOperations } from './leistung-operations.ts';
 import type { NotenOperations } from './noten-operations.ts';
@@ -97,19 +100,8 @@ const LerntagStub = () => {
 const noSaveDelays: ReadonlyArray<number> = [];
 const noFailedSaves: ReadonlyArray<number> = [];
 
-/**
- * Die Detailseite mit erfundenen Serveraufrufen. Der Verlauf der Aufrufe
- * steht in einer Liste im DOM, damit ein Test prüfen kann, welcher Quelltext
- * gespeichert wurde.
- */
-export const LeistungDetailStory = ({
-  scenario = 'mit-themen',
-  refreshFails = false,
-  saveDelays = noSaveDelays,
-  failedSaves = noFailedSaves,
-  templateFailures = 0,
-}: {
-  readonly scenario?: Scenario;
+/** Wie sich der erfundene Server verhält. Ohne Angaben gelingt jeder Aufruf sofort. */
+type ServerBehaviour = {
   /** Nach dem ersten Laden scheitert jedes weitere, wie bei einem Verbindungsabbruch. */
   readonly refreshFails?: boolean;
   /**
@@ -120,7 +112,20 @@ export const LeistungDetailStory = ({
   readonly failedSaves?: ReadonlyArray<number>;
   /** Wie viele der ersten Aufrufe für die Vorlagen scheitern. */
   readonly templateFailures?: number;
-}) => {
+};
+
+/**
+ * Die Detailseite mit erfundenen Serveraufrufen. Der Verlauf der Aufrufe
+ * steht in einer Liste im DOM, damit ein Test prüfen kann, welcher Quelltext
+ * gespeichert wurde.
+ */
+const LeistungDetailScenario = ({
+  scenario,
+  refreshFails = false,
+  saveDelays = noSaveDelays,
+  failedSaves = noFailedSaves,
+  templateFailures = 0,
+}: ServerBehaviour & { readonly scenario: Scenario }) => {
   const leistungRef = useRef<Leistung>(initialLeistung(scenario));
   const loadsRef = useRef(0);
   const savesRef = useRef(0);
@@ -229,3 +234,19 @@ export const LeistungDetailStory = ({
     </>
   );
 };
+
+export const MitThemen = (props: ServerBehaviour) => (
+  <LeistungDetailScenario {...props} scenario="mit-themen" />
+);
+
+export const GleichartigeThemen = (props: ServerBehaviour) => (
+  <LeistungDetailScenario {...props} scenario="gleichartige-themen" />
+);
+
+export const OhneVorbereitung = (props: ServerBehaviour) => (
+  <LeistungDetailScenario {...props} scenario="ohne-vorbereitung" />
+);
+
+export const Benotet = (props: ServerBehaviour) => (
+  <LeistungDetailScenario {...props} scenario="benotet" />
+);
