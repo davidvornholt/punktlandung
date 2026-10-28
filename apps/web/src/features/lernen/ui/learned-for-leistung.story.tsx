@@ -17,10 +17,10 @@ const recency = (scenario: Scenario): StudyRecency => {
 };
 
 /** Der Lerntag-Baustein mit erfundenem Serveraufruf; der letzte Aufruf steht im DOM. */
-export const LearnedForLeistungStory = ({
-  scenario = 'vor-tagen',
+const LearnedForLeistungScenario = ({
+  scenario,
 }: {
-  readonly scenario?: Scenario;
+  readonly scenario: Scenario;
 }) => {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { mutations: { retry: false } } }),
@@ -45,3 +45,14 @@ export const LearnedForLeistungStory = ({
     </QueryClientProvider>
   );
 };
+
+/** Für diese Leistung wurde noch nie gelernt. */
+export const Nie = () => <LearnedForLeistungScenario scenario="nie" />;
+
+/** Heute wurde schon dafür gelernt. */
+export const Heute = () => <LearnedForLeistungScenario scenario="heute" />;
+
+/** Zuletzt wurde vor vier Tagen dafür gelernt. */
+export const VorTagen = () => (
+  <LearnedForLeistungScenario scenario="vor-tagen" />
+);

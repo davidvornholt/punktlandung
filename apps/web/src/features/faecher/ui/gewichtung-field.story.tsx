@@ -6,7 +6,7 @@ import { GewichtungField } from './gewichtung-field.tsx';
 import { gewichtungReducer, gewichtungStateFrom } from './gewichtung-model.ts';
 
 /** Das Gewichtungsfeld mit eigenem Zustand, wie es das Fachformular hält. */
-export const GewichtungFieldStory = ({
+export const Standardgewichtung = ({
   system = 'punkte',
 }: {
   readonly system?: Notensystem;

@@ -1,14 +1,10 @@
-import type { MountResult } from '@playwright/experimental-ct-react';
-import { expect, test as it } from '@playwright/experimental-ct-react';
+import type * as playwright from '@playwright/test';
+import { expect, test as it } from '@playwright/test';
 
-import { HalbjahreManagementStory } from './halbjahre-management.ct-story.tsx';
-
-type ComponentLocator = ReturnType<MountResult['getByRole']>;
-
-const rowNamed = (component: ComponentLocator, name: string) =>
+const rowNamed = (component: playwright.Locator, name: string) =>
   component.getByRole('listitem').filter({ hasText: name });
 
-const confirmDeletion = async (row: ComponentLocator) => {
+const confirmDeletion = async (row: playwright.Locator) => {
   await row.getByRole('button', { name: 'Löschen' }).click();
   await expect(row).toContainText('Das leere Halbjahr wird entfernt.');
   await row.getByRole('button', { name: 'Wirklich löschen' }).click();
@@ -17,14 +13,16 @@ const confirmDeletion = async (row: ComponentLocator) => {
   ).toBeDisabled();
 };
 
-const completeDeletion = (component: ComponentLocator) =>
+const completeDeletion = (component: playwright.Locator) =>
   component.getByTestId('complete-deletion').dispatchEvent('click');
 
 it('confirms twice, disables natively, removes and reorders, then announces success', async ({
   mount,
   page,
 }) => {
-  const component = await mount(<HalbjahreManagementStory scenario="next" />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahre-management/Next',
+  );
   const targetRow = rowNamed(component, '10.1');
 
   await targetRow.getByRole('button', { name: 'Löschen' }).click();
@@ -62,7 +60,7 @@ it('falls back to the previous row when the final row is removed', async ({
   mount,
 }) => {
   const component = await mount(
-    <HalbjahreManagementStory scenario="previous" />,
+    'features/halbjahre/ui/halbjahre-management/Previous',
   );
 
   await confirmDeletion(rowNamed(component, '10.1'));
@@ -74,7 +72,9 @@ it('falls back to the previous row when the final row is removed', async ({
 });
 
 it('falls back to create after the last row is removed', async ({ mount }) => {
-  const component = await mount(<HalbjahreManagementStory scenario="single" />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahre-management/Single',
+  );
 
   await confirmDeletion(rowNamed(component, '10.1'));
   await completeDeletion(component);
@@ -88,7 +88,9 @@ it('falls back to create after the last row is removed', async ({ mount }) => {
 it('preserves an open create form and uses its first control as fallback', async ({
   mount,
 }) => {
-  const component = await mount(<HalbjahreManagementStory scenario="single" />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahre-management/Single',
+  );
   await component.getByRole('button', { name: 'Halbjahr anlegen' }).click();
   await component
     .getByRole('button', { name: 'Zeitraum abweichend festlegen' })

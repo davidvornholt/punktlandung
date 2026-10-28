@@ -1,10 +1,9 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
-import { PendingFormStory } from './fach-form.ct-story.tsx';
+import { expect, test as it } from '@playwright/test';
 
 it('retains submit focus and blocks duplicate saves and cancellation while pending', async ({
   mount,
 }) => {
-  const component = await mount(<PendingFormStory />);
+  const component = await mount('features/faecher/ui/fach-form/PendingForm');
   await component
     .getByRole('textbox', { name: 'Name', exact: true })
     .fill('Latein');

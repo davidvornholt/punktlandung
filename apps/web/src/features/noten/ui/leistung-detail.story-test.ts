@@ -1,7 +1,13 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
-
-import { gleichartigeThemen, themen } from './leistung-detail.ct-fixtures.ts';
-import { LeistungDetailStory } from './leistung-detail.ct-story.tsx';
+import { expect, test as it } from '@playwright/test';
+import type {
+  GleichartigeThemen,
+  MitThemen,
+  OhneVorbereitung,
+} from './leistung-detail.story.tsx';
+import {
+  gleichartigeThemen,
+  themen,
+} from './leistung-detail.story-fixtures.ts';
 
 const themenHeading = /## Themen/u;
 const placeholderTopic = /- \[ \] Erstes Thema/u;
@@ -9,7 +15,7 @@ const placeholderTopic = /- \[ \] Erstes Thema/u;
 it('zeigt die Fakten und die Themenliste mit ihrem Stand', async ({
   mount,
 }) => {
-  const component = await mount(<LeistungDetailStory scenario="mit-themen" />);
+  const component = await mount('features/noten/ui/leistung-detail/MitThemen');
 
   await expect(
     component.getByRole('heading', { level: 1, name: 'Klausur Mathematik' }),
@@ -34,7 +40,7 @@ it('benennt gleichartige Themenkästchen nach ihrem Thema', async ({
   mount,
 }) => {
   const component = await mount(
-    <LeistungDetailStory scenario="gleichartige-themen" />,
+    'features/noten/ui/leistung-detail/GleichartigeThemen',
   );
 
   await expect(
@@ -49,7 +55,7 @@ it('hakt ein Thema ab, indem es die Quelltextzeile umschreibt', async ({
   mount,
   page,
 }) => {
-  const component = await mount(<LeistungDetailStory scenario="mit-themen" />);
+  const component = await mount('features/noten/ui/leistung-detail/MitThemen');
 
   await component
     .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
@@ -83,11 +89,9 @@ it('speichert schnell gesetzte Haken in ihrer Reihenfolge', async ({
   page,
 }) => {
   // Der erste Aufruf braucht länger als der zweite.
-  const component = await mount(
-    <LeistungDetailStory
-      saveDelays={[langsam]}
-      scenario="gleichartige-themen"
-    />,
+  const component = await mount<typeof GleichartigeThemen>(
+    'features/noten/ui/leistung-detail/GleichartigeThemen',
+    { saveDelays: [langsam] },
   );
 
   await component
@@ -111,11 +115,9 @@ it('behält einen Haken, solange er noch gespeichert wird', async ({
   mount,
   page,
 }) => {
-  const component = await mount(
-    <LeistungDetailStory
-      saveDelays={[langsam, langsamer]}
-      scenario="gleichartige-themen"
-    />,
+  const component = await mount<typeof GleichartigeThemen>(
+    'features/noten/ui/leistung-detail/GleichartigeThemen',
+    { saveDelays: [langsam, langsamer] },
   );
 
   await component
@@ -155,12 +157,9 @@ it('nimmt ungespeicherte Haken zurück, wenn alle Aufrufe scheitern', async ({
   mount,
   page,
 }) => {
-  const component = await mount(
-    <LeistungDetailStory
-      failedSaves={[0, 1]}
-      saveDelays={[langsam]}
-      scenario="gleichartige-themen"
-    />,
+  const component = await mount<typeof GleichartigeThemen>(
+    'features/noten/ui/leistung-detail/GleichartigeThemen',
+    { failedSaves: [0, 1], saveDelays: [langsam] },
   );
 
   await component
@@ -191,7 +190,7 @@ it('beginnt eine neue Vorbereitung mit der Vorlage der Leistungsart', async ({
   mount,
 }) => {
   const component = await mount(
-    <LeistungDetailStory scenario="ohne-vorbereitung" />,
+    'features/noten/ui/leistung-detail/OhneVorbereitung',
   );
 
   await expect(component.getByText('Noch keine Vorbereitung.')).toBeVisible();
@@ -207,8 +206,9 @@ it('beginnt eine neue Vorbereitung mit der Vorlage der Leistungsart', async ({
 it('meldet eine Vorlage, die nicht lädt, und lädt sie erneut', async ({
   mount,
 }) => {
-  const component = await mount(
-    <LeistungDetailStory scenario="ohne-vorbereitung" templateFailures={1} />,
+  const component = await mount<typeof OhneVorbereitung>(
+    'features/noten/ui/leistung-detail/OhneVorbereitung',
+    { templateFailures: 1 },
   );
 
   await component.getByRole('button', { name: 'Vorbereitung anlegen' }).click();
@@ -225,8 +225,9 @@ it('meldet eine Vorlage, die nicht lädt, und lädt sie erneut', async ({
 });
 
 it('kehrt zurück, wenn die Vorlage nicht lädt', async ({ mount }) => {
-  const component = await mount(
-    <LeistungDetailStory scenario="ohne-vorbereitung" templateFailures={1} />,
+  const component = await mount<typeof OhneVorbereitung>(
+    'features/noten/ui/leistung-detail/OhneVorbereitung',
+    { templateFailures: 1 },
   );
 
   await component.getByRole('button', { name: 'Vorbereitung anlegen' }).click();
@@ -240,7 +241,7 @@ it('kehrt zurück, wenn die Vorlage nicht lädt', async ({ mount }) => {
 it('öffnet das Notenformular, um die ausstehende Klausur zu benoten', async ({
   mount,
 }) => {
-  const component = await mount(<LeistungDetailStory scenario="mit-themen" />);
+  const component = await mount('features/noten/ui/leistung-detail/MitThemen');
 
   await component.getByRole('button', { name: 'Note eintragen' }).click();
   const form = component.getByRole('form', { name: 'Note bearbeiten' });
@@ -259,7 +260,7 @@ it('öffnet das Notenformular, um die ausstehende Klausur zu benoten', async ({
 it('zeigt eine benotete Leistung mit ihrer Note und behält die Vorbereitung', async ({
   mount,
 }) => {
-  const component = await mount(<LeistungDetailStory scenario="benotet" />);
+  const component = await mount('features/noten/ui/leistung-detail/Benotet');
 
   await expect(component.getByText('11 P.', { exact: true })).toBeVisible();
   await expect(component.getByText('1 von 2 Themen sicher')).toBeVisible();
@@ -268,8 +269,9 @@ it('zeigt eine benotete Leistung mit ihrer Note und behält die Vorbereitung', a
 it('behält einen ungespeicherten Entwurf, wenn das Neuladen scheitert', async ({
   mount,
 }) => {
-  const component = await mount(
-    <LeistungDetailStory refreshFails={true} scenario="mit-themen" />,
+  const component = await mount<typeof MitThemen>(
+    'features/noten/ui/leistung-detail/MitThemen',
+    { refreshFails: true },
   );
 
   await component.getByRole('button', { name: 'Text bearbeiten' }).click();

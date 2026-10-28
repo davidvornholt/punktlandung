@@ -13,7 +13,6 @@ import { NotenList } from './noten-list.tsx';
 import type { NotenOperations } from './noten-operations.ts';
 
 type Outcome = 'failure' | 'success';
-/** `ohne-fach…`: jedes Fach des Schuljahrs ist archiviert. */
 type Scenario =
   | 'letzte-note'
   | 'ohne-fach-ohne-note'
@@ -87,11 +86,7 @@ const waehlbareFaecher = (scenario: Scenario) =>
  * den verborgenen Knöpfen, damit ein Test den Zustand während des laufenden
  * Vorgangs prüfen und den Ausgang selbst bestimmen kann.
  */
-export const NotenListStory = ({
-  scenario = 'standard',
-}: {
-  readonly scenario?: Scenario;
-}) => {
+const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
   const notenRef = useRef<ReadonlyArray<Leistung>>(initialNoten(scenario));
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
   const pendingByIdRef = useRef(new Map<string, (outcome: Outcome) => void>());
@@ -202,3 +197,20 @@ export const NotenListStory = ({
   );
   return <RouterProvider router={router} />;
 };
+
+/** Zwei Noten in Latein, Latein und Mathematik sind wählbar. */
+export const Standard = () => <NotenListScenario scenario="standard" />;
+
+/** Nur noch eine Note im Halbjahr. */
+export const LetzteNote = () => <NotenListScenario scenario="letzte-note" />;
+
+/** Zwei Noten, aber jedes Fach des Schuljahrs ist archiviert. */
+export const OhneFach = () => <NotenListScenario scenario="ohne-fach" />;
+
+/** Keine Note, und jedes Fach des Schuljahrs ist archiviert. */
+export const OhneFachOhneNote = () => (
+  <NotenListScenario scenario="ohne-fach-ohne-note" />
+);
+
+/** Das erste Laden der Liste scheitert, jedes weitere gelingt. */
+export const Retry = () => <NotenListScenario scenario="retry" />;

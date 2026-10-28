@@ -1,6 +1,4 @@
-import { expect, test as it } from '@playwright/experimental-ct-react';
-
-import { UpcomingBlockStory } from './upcoming-block.ct-story.tsx';
+import { expect, test as it } from '@playwright/test';
 
 /** Die Geschichte liefert drei bevorstehende Leistungen. */
 const upcomingCount = 3;
@@ -8,7 +6,7 @@ const upcomingCount = 3;
 it('zeigt die Leistungen in der gelieferten Reihenfolge mit Termin und Schnitt', async ({
   mount,
 }) => {
-  const component = await mount(<UpcomingBlockStory scenario="anstehend" />);
+  const component = await mount('features/noten/ui/upcoming-block/Anstehend');
   const block = component.getByRole('region', { name: 'Anstehend' });
   const rows = block.getByRole('listitem');
 
@@ -35,7 +33,7 @@ it('fragt nach der fehlenden Note einer verstrichenen Leistung', async ({
   mount,
 }) => {
   const component = await mount(
-    <UpcomingBlockStory scenario="mit-ueberfaelligem" />,
+    'features/noten/ui/upcoming-block/MitUeberfaelligem',
   );
   const nag = component.getByRole('region', { name: 'Eine Note fehlt noch' });
 
@@ -51,7 +49,7 @@ it('fragt nach der fehlenden Note einer verstrichenen Leistung', async ({
 it('erklärt ohne Termine, wie eine Leistung hierher kommt', async ({
   mount,
 }) => {
-  const component = await mount(<UpcomingBlockStory scenario="leer" />);
+  const component = await mount('features/noten/ui/upcoming-block/Leer');
 
   await expect(component.getByText('Nichts angekündigt.')).toBeVisible();
   await expect(component.getByRole('link', { name: 'Noten' })).toHaveAttribute(

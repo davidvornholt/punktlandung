@@ -87,10 +87,10 @@ const data = (scenario: Scenario): Upcoming => {
  * Der Anstehend-Block mit erfundenen Daten. Der Verweis „Note eintragen" ist
  * ein Router-Link und braucht einen Router; ein Speicherverlauf reicht.
  */
-export const UpcomingBlockStory = ({
-  scenario = 'anstehend',
+const UpcomingBlockScenario = ({
+  scenario,
 }: {
-  readonly scenario?: Scenario;
+  readonly scenario: Scenario;
 }) => {
   const [queryClient] = useState(
     () =>
@@ -114,3 +114,14 @@ export const UpcomingBlockStory = ({
   );
   return <RouterProvider router={router} />;
 };
+
+/** Drei bevorstehende Leistungen, keine verstrichene. */
+export const Anstehend = () => <UpcomingBlockScenario scenario="anstehend" />;
+
+/** Dazu eine verstrichene Klausur, deren Note noch fehlt. */
+export const MitUeberfaelligem = () => (
+  <UpcomingBlockScenario scenario="mit-ueberfaelligem" />
+);
+
+/** Nichts angekündigt. */
+export const Leer = () => <UpcomingBlockScenario scenario="leer" />;

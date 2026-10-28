@@ -6,7 +6,7 @@ import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import type { HalbjahrOperations } from './halbjahr-operations.ts';
 import { HalbjahreManagementBoundary } from './halbjahre-management-boundary.tsx';
 
-type Scenario = 'next' | 'previous' | 'same-row' | 'single' | 'stale';
+type Scenario = 'next' | 'previous' | 'single' | 'stale';
 type DeletionOutcome = 'stale' | 'success';
 const fourDigitYearLength = 4;
 
@@ -66,7 +66,7 @@ const initialHalbjahre = (
   if (scenario === 'previous') {
     return [neighbor, laterNeighbor, target];
   }
-  if (scenario === 'next' || scenario === 'same-row') {
+  if (scenario === 'next') {
     return [target, neighbor, laterNeighbor];
   }
   if (scenario === 'stale') {
@@ -75,7 +75,7 @@ const initialHalbjahre = (
   return [target];
 };
 
-export const HalbjahreManagementStory = ({
+const HalbjahreManagementScenario = ({
   scenario,
 }: {
   readonly scenario: Scenario;
@@ -143,3 +143,17 @@ export const HalbjahreManagementStory = ({
     </QueryClientProvider>
   );
 };
+
+/** Auf das gelöschte Halbjahr folgen zwei weitere Zeilen. */
+export const Next = () => <HalbjahreManagementScenario scenario="next" />;
+
+/** Das gelöschte Halbjahr steht als letzte Zeile unter zwei anderen. */
+export const Previous = () => (
+  <HalbjahreManagementScenario scenario="previous" />
+);
+
+/** Das gelöschte Halbjahr ist das einzige. */
+export const Single = () => <HalbjahreManagementScenario scenario="single" />;
+
+/** Das Geschwisterhalbjahr verschwindet, während die Löschung läuft. */
+export const Stale = () => <HalbjahreManagementScenario scenario="stale" />;

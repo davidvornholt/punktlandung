@@ -1,14 +1,10 @@
-import type { MountResult } from '@playwright/experimental-ct-react';
-import { expect, test as it } from '@playwright/experimental-ct-react';
+import type * as playwright from '@playwright/test';
+import { expect, test as it } from '@playwright/test';
 
-import { HalbjahreManagementStory } from './halbjahre-management.ct-story.tsx';
-
-type ComponentLocator = ReturnType<MountResult['getByRole']>;
-
-const rowNamed = (component: ComponentLocator, name: string) =>
+const rowNamed = (component: playwright.Locator, name: string) =>
   component.getByRole('listitem').filter({ hasText: name });
 
-const startDeletion = async (row: ComponentLocator) => {
+const startDeletion = async (row: playwright.Locator) => {
   await row.getByRole('button', { name: 'Löschen' }).click();
   await row.getByRole('button', { name: 'Wirklich löschen' }).click();
   await expect(
@@ -16,14 +12,14 @@ const startDeletion = async (row: ComponentLocator) => {
   ).toBeDisabled();
 };
 
-const completeDeletion = (component: ComponentLocator) =>
+const completeDeletion = (component: playwright.Locator) =>
   component.getByTestId('complete-deletion').dispatchEvent('click');
 
 it('closes a same-row editor before restoring deletion focus', async ({
   mount,
 }) => {
   const component = await mount(
-    <HalbjahreManagementStory scenario="same-row" />,
+    'features/halbjahre/ui/halbjahre-management/Next',
   );
   const targetRow = rowNamed(component, '10.1');
   await targetRow.getByRole('button', { name: 'Bearbeiten' }).click();
@@ -45,7 +41,9 @@ it('closes a same-row editor before restoring deletion focus', async ({
 it('preserves an edited value when the user moves focus during deletion', async ({
   mount,
 }) => {
-  const component = await mount(<HalbjahreManagementStory scenario="next" />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahre-management/Next',
+  );
   await startDeletion(rowNamed(component, '10.1'));
   await rowNamed(component, 'J1.1')
     .getByRole('button', { name: 'Bearbeiten' })
@@ -64,7 +62,9 @@ it('preserves an edited value when the user moves focus during deletion', async 
 it('refreshes a stale consequence and requires confirmation again', async ({
   mount,
 }) => {
-  const component = await mount(<HalbjahreManagementStory scenario="stale" />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahre-management/Stale',
+  );
   const targetRow = rowNamed(component, '10.1');
   await startDeletion(targetRow);
   await component.getByTestId('reject-stale-deletion').dispatchEvent('click');
@@ -85,7 +85,9 @@ it('reflows the destructive confirmation at 320 CSS pixels', async ({
   page,
 }) => {
   await page.setViewportSize({ height: 720, width: 320 });
-  const component = await mount(<HalbjahreManagementStory scenario="single" />);
+  const component = await mount(
+    'features/halbjahre/ui/halbjahre-management/Single',
+  );
   await rowNamed(component, '10.1')
     .getByRole('button', { name: 'Löschen' })
     .click();
