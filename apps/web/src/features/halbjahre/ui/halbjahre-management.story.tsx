@@ -144,16 +144,12 @@ const HalbjahreManagementScenario = ({
   );
 };
 
-/** Auf das gelöschte Halbjahr folgen zwei weitere Zeilen. */
 export const Next = () => <HalbjahreManagementScenario scenario="next" />;
 
-/** Das gelöschte Halbjahr steht als letzte Zeile unter zwei anderen. */
 export const Previous = () => (
   <HalbjahreManagementScenario scenario="previous" />
 );
 
-/** Das gelöschte Halbjahr ist das einzige. */
 export const Single = () => <HalbjahreManagementScenario scenario="single" />;
 
-/** Das Geschwisterhalbjahr verschwindet, während die Löschung läuft. */
 export const Stale = () => <HalbjahreManagementScenario scenario="stale" />;

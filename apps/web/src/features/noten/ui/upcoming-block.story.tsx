@@ -115,13 +115,10 @@ const UpcomingBlockScenario = ({
   return <RouterProvider router={router} />;
 };
 
-/** Drei bevorstehende Leistungen, keine verstrichene. */
 export const Anstehend = () => <UpcomingBlockScenario scenario="anstehend" />;
 
-/** Dazu eine verstrichene Klausur, deren Note noch fehlt. */
 export const MitUeberfaelligem = () => (
   <UpcomingBlockScenario scenario="mit-ueberfaelligem" />
 );
 
-/** Nichts angekündigt. */
 export const Leer = () => <UpcomingBlockScenario scenario="leer" />;

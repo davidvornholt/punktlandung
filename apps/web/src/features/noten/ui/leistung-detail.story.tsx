@@ -235,22 +235,18 @@ const LeistungDetailScenario = ({
   );
 };
 
-/** Eine geplante Klausur mit einem offenen und einem sicheren Thema. */
 export const MitThemen = (props: ServerBehaviour) => (
   <LeistungDetailScenario {...props} scenario="mit-themen" />
 );
 
-/** Eine geplante Klausur mit zwei offenen Themen. */
 export const GleichartigeThemen = (props: ServerBehaviour) => (
   <LeistungDetailScenario {...props} scenario="gleichartige-themen" />
 );
 
-/** Eine geplante Klausur, für die noch keine Vorbereitung gespeichert ist. */
 export const OhneVorbereitung = (props: ServerBehaviour) => (
   <LeistungDetailScenario {...props} scenario="ohne-vorbereitung" />
 );
 
-/** Eine bereits benotete Klausur. */
 export const Benotet = (props: ServerBehaviour) => (
   <LeistungDetailScenario {...props} scenario="benotet" />
 );

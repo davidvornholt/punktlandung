@@ -15,11 +15,9 @@ const storyModules = import.meta.glob<StoryModule>('../../src/**/*.story.tsx');
 const sourcePrefix = /^(?:\.\.\/)+src\//u;
 const storyExtension = /\.story\.tsx$/u;
 
-/** `../../src/features/noten/ui/noten-list.story.tsx` → `features/noten/ui/noten-list` */
 const storyPath = (file: string) =>
   file.replace(sourcePrefix, '').replace(storyExtension, '');
 
-/** Matches the full path under src, or else a unique trailing part of it. */
 const storyFile = (path: string) => {
   const files = Object.keys(storyModules);
   const exact = files.find((file) => storyPath(file) === path);

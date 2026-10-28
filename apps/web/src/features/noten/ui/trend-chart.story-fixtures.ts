@@ -1,6 +1,5 @@
 import type { TrendEntry } from '../services/trend-calculation.ts';
 
-/** Eine Klausur und eine GFS der J1.1, eine Woche auseinander. */
 export const trendEntries: ReadonlyArray<TrendEntry> = [
   {
     datum: '2026-09-14',

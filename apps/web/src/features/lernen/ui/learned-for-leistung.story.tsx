@@ -46,13 +46,10 @@ const LearnedForLeistungScenario = ({
   );
 };
 
-/** Für diese Leistung wurde noch nie gelernt. */
 export const Nie = () => <LearnedForLeistungScenario scenario="nie" />;
 
-/** Heute wurde schon dafür gelernt. */
 export const Heute = () => <LearnedForLeistungScenario scenario="heute" />;
 
-/** Zuletzt wurde vor vier Tagen dafür gelernt. */
 export const VorTagen = () => (
   <LearnedForLeistungScenario scenario="vor-tagen" />
 );
