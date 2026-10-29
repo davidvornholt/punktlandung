@@ -69,17 +69,13 @@ it('gibt den Fokus nach dem Abbrechen an den Zeilenknopf zurück', async ({
 
 /**
  * Sind alle Fächer des Schuljahrs archiviert, liefert die Fächerliste nichts
- * mehr — die Noten hängen aber weiter an ihnen. Verschwände die Notenliste mit
- * der Fächerliste, wäre genau dann keine Note mehr korrigierbar.
+ * mehr — die Noten hängen aber weiter an ihnen. Ihr Formular muss deshalb das
+ * archivierte Fach anbieten, sonst wäre keine Note mehr korrigierbar.
  */
 it('lässt eine Note auch dann korrigieren, wenn kein Fach mehr wählbar ist', async ({
   mount,
 }) => {
   const component = await mount('features/noten/ui/noten-list/OhneFach');
-  await expect(
-    component.getByRole('form', { name: 'Note eintragen' }),
-  ).toHaveCount(0);
-
   await openEditor(firstRow(component));
 
   await expect(

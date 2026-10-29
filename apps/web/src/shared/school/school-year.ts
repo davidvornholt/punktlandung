@@ -11,9 +11,6 @@ export const schoolYearPattern = /^\d{4}\/\d{2}$/u;
 const yearLength = 4;
 const century = 100;
 
-export const isSchoolYear = (value: string): boolean =>
-  schoolYearPattern.test(value);
-
 /** Kalenderjahr, in dem das Schuljahr beginnt: 2026 für "2026/27". */
 export const schoolYearStartYear = (schoolYear: string): number =>
   Number(schoolYear.slice(0, yearLength));
