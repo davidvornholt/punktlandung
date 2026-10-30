@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
-import type { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
+import type { SqlClient } from 'effect/sql/SqlClient';
 import {
   createHalbjahr,
   listHalbjahre,
   updateHalbjahr,
 } from '#/features/halbjahre/services/halbjahr-service.ts';
+import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
   postgresTestLayer,

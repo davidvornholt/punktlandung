@@ -14,7 +14,7 @@ import {
 
 export const logLerntagFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(StudyDayInput))
+  .inputValidator(Schema.toStandardSchemaV1(StudyDayInput))
   .handler(({ data }) => runServerEffect(logStudyDay(data)));
 
 export const lernStatistikFn = createServerFn({ method: 'GET' })

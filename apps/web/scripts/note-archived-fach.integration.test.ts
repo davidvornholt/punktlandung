@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import type { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
+import type { SqlClient } from 'effect/sql/SqlClient';
 import type { Pool } from 'pg';
-
 import {
   createNote,
   updateNote,
 } from '#/features/noten/services/noten-service.ts';
 import { migrateDatabase } from '#/shared/db/migrate.ts';
+import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import {
   postgresTestLayer,

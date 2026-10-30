@@ -11,7 +11,7 @@ const lockWaitTimeoutMs = 5000;
 const testTimeoutMs = 15_000;
 
 const runMigration = (pool: Pool) =>
-  Effect.runPromise(Effect.either(migrateDatabase(pool)));
+  Effect.runPromise(Effect.result(migrateDatabase(pool)));
 
 const waitForWaitingLock = (
   pool: Pool,
@@ -210,12 +210,14 @@ describe('Datenbankmigrationen unter konkurrierenden Schreibzugriffen', () => {
               relation: 'subject',
               mode: 'AccessExclusiveLock',
             },
-            result: 'Left',
+            result: 'Failure',
           });
-          if (result._tag === 'Right') {
+          if (result._tag === 'Success') {
             throw new Error('Die Migration hätte abbrechen müssen.');
           }
-          expect(queryErrorMessage(result.left.cause)).toContain('race-test');
+          expect(queryErrorMessage(result.failure.cause)).toContain(
+            'race-test',
+          );
           expect(await schemaState(pool)).toEqual(columnsBefore);
           expect(await migrationState(pool)).toEqual(migrationsBefore);
           const racingGrade = await pool.query<{

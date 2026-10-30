@@ -41,7 +41,7 @@ it('sperrt auch ein nach Beginn der Korrektur angelegtes Halbjahr vor der Notenp
           ...firstHalbjahr,
           id: first.id,
           klassenstufe: 'J1',
-        }).pipe(Effect.either),
+        }).pipe(Effect.result),
       );
       await waitForLifecycleLocks(pool, 1);
       await provided(createHalbjahr(secondHalbjahr));
@@ -71,8 +71,8 @@ it('sperrt auch ein nach Beginn der Korrektur angelegtes Halbjahr vor der Notenp
       await gradeGate.query('COMMIT');
       await note;
       expect(await correction).toMatchObject({
-        _tag: 'Left',
-        left: { _tag: 'KlassenstufeCorrectionBlockedByNoten' },
+        _tag: 'Failure',
+        failure: { _tag: 'KlassenstufeCorrectionBlockedByNoten' },
       });
       expect(
         (await provided(listHalbjahre)).map(({ system }) => system),
@@ -104,7 +104,7 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
                 deleteHalbjahr({
                   expectedFinalInSchoolYear: false,
                   id,
-                }).pipe(Effect.either),
+                }).pipe(Effect.result),
               ).then(() => undefined),
         ),
       );
@@ -134,7 +134,7 @@ describe('Schuljahr-Fachstand-Lifecycle unter Nebenläufigkeit', () => {
             deleteHalbjahr({
               expectedFinalInSchoolYear: true,
               id: existing.id,
-            }).pipe(Effect.either),
+            }).pipe(Effect.result),
           ).then(() => undefined),
         () => provided(createHalbjahr(secondHalbjahr)),
       ]);

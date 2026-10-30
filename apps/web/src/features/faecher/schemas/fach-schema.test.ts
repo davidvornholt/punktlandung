@@ -43,8 +43,8 @@ const inputWithTestGewichtung = (
 });
 
 const results = (input: ReturnType<typeof inputWithTestGewichtung>) => [
-  Schema.decodeUnknownEither(FachInput)(input)._tag,
-  Schema.decodeUnknownEither(FachUpdate)({
+  Schema.decodeUnknownResult(FachInput)(input)._tag,
+  Schema.decodeUnknownResult(FachUpdate)({
     ...input,
     id: 'mathematik',
   })._tag,
@@ -57,13 +57,13 @@ describe('Fach-Eingabegrenzen', () => {
     it(`lassen gesammelt für ${kind} weder beim Anlegen noch beim Ändern zur Persistenz durch`, () => {
       const input = inputWithCollectedKind(kind);
 
-      expect(Schema.decodeUnknownEither(FachInput)(input)._tag).toBe('Left');
+      expect(Schema.decodeUnknownResult(FachInput)(input)._tag).toBe('Failure');
       expect(
-        Schema.decodeUnknownEither(FachUpdate)({
+        Schema.decodeUnknownResult(FachUpdate)({
           ...input,
           id: 'mathematik',
         })._tag,
-      ).toBe('Left');
+      ).toBe('Failure');
     });
   }
 });
@@ -72,8 +72,8 @@ describe('Testgewicht an Fach-Eingabegrenzen', () => {
   it('weist abweichende gesammelte Gewichte beim Anlegen und Ändern zurück', () => {
     for (const gewicht of arbitraryGewichtungen) {
       expect(results(inputWithTestGewichtung(gewicht, 'gesammelt'))).toEqual([
-        'Left',
-        'Left',
+        'Failure',
+        'Failure',
       ]);
     }
   });
@@ -81,8 +81,8 @@ describe('Testgewicht an Fach-Eingabegrenzen', () => {
   it('akzeptiert beliebige einzelne Gewichte beim Anlegen und Ändern', () => {
     for (const gewicht of arbitraryGewichtungen) {
       expect(results(inputWithTestGewichtung(gewicht, 'einzeln'))).toEqual([
-        'Right',
-        'Right',
+        'Success',
+        'Success',
       ]);
     }
   });
@@ -91,7 +91,7 @@ describe('Testgewicht an Fach-Eingabegrenzen', () => {
     for (const gewicht of arbitraryGewichtungen) {
       expect(
         results(inputWithTestGewichtung(gewicht, 'gesammelt', gewicht)),
-      ).toEqual(['Right', 'Right']);
+      ).toEqual(['Success', 'Success']);
     }
   });
 });

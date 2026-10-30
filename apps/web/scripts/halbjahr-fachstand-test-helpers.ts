@@ -1,7 +1,7 @@
-import { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
+import { SqlClient } from 'effect/sql/SqlClient';
 import type { Pool } from 'pg';
+import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { lockSchoolYearLifecycle } from '#/shared/noten/school-year-fach-lifecycle.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';

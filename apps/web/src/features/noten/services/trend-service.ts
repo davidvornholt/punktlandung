@@ -1,6 +1,6 @@
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { asc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
 import { isGraded } from '#/shared/noten/graded-rows.ts';

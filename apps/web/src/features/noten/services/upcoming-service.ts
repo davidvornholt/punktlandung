@@ -1,8 +1,7 @@
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import {
   halbjahrTable,
   noteTable,

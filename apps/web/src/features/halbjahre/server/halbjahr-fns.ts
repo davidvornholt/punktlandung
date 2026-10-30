@@ -22,17 +22,17 @@ export const listHalbjahreFn = createServerFn({ method: 'GET' })
 
 export const createHalbjahrFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(HalbjahrInput))
+  .inputValidator(Schema.toStandardSchemaV1(HalbjahrInput))
   .handler(({ data }) => runServerEffect(createHalbjahr(data)));
 
 export const updateHalbjahrFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(HalbjahrUpdate))
+  .inputValidator(Schema.toStandardSchemaV1(HalbjahrUpdate))
   .handler(({ data }) => runServerEffect(updateHalbjahr(data)));
 
 export const deleteHalbjahrFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(HalbjahrDeletionInput))
+  .inputValidator(Schema.toStandardSchemaV1(HalbjahrDeletionInput))
   .handler(({ data }) => runServerEffect(deleteHalbjahr(data)));
 
 export const halbjahreQueryOptions = queryOptions({

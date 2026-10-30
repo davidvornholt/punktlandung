@@ -10,7 +10,7 @@ import { loadZeugnis } from '../services/zeugnis-service.ts';
 
 export const zeugnisFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(ZeugnisQuery))
+  .inputValidator(Schema.toStandardSchemaV1(ZeugnisQuery))
   .handler(({ data }) => runServerEffect(loadZeugnis(data.termId)));
 
 export const zeugnisQueryOptions = (termId: string) =>

@@ -5,7 +5,7 @@ import { schoolYearPattern } from '#/shared/school/school-year.ts';
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
-const IsoDate = Schema.String.pipe(Schema.pattern(isoDatePattern));
+const IsoDate = Schema.String.check(Schema.isPattern(isoDatePattern));
 
 const dateRangeValid = (dateRange: {
   readonly startsOn: string;
@@ -21,22 +21,24 @@ const dateRangeValid = (dateRange: {
  */
 const HalbjahrFields = Schema.Struct({
   /** Klassenstufe, z. B. "10" oder "J1". */
-  klassenstufe: Schema.Literal(...klassenstufen),
+  klassenstufe: Schema.Literals(klassenstufen),
   /** Schuljahr, z. B. "2026/27". */
-  schoolYear: Schema.String.pipe(Schema.pattern(schoolYearPattern)),
-  half: Schema.Literal(1, 2),
+  schoolYear: Schema.String.check(Schema.isPattern(schoolYearPattern)),
+  half: Schema.Literals([1, 2]),
   startsOn: IsoDate,
   endsOn: IsoDate,
 });
 
-export const HalbjahrInput = HalbjahrFields.pipe(Schema.filter(dateRangeValid));
+export const HalbjahrInput = HalbjahrFields.check(
+  Schema.makeFilter(dateRangeValid),
+);
 
 export type HalbjahrInput = typeof HalbjahrInput.Type;
 
 export const HalbjahrUpdate = Schema.Struct({
   id: Schema.String,
   ...HalbjahrFields.fields,
-}).pipe(Schema.filter(dateRangeValid));
+}).check(Schema.makeFilter(dateRangeValid));
 
 export type HalbjahrUpdate = typeof HalbjahrUpdate.Type;
 

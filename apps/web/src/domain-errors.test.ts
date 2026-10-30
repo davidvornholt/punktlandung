@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { SqlError } from '@effect/sql/SqlError';
 import { file, Glob } from 'bun';
-import { Cause, Runtime } from 'effect';
+import { Cause } from 'effect';
+import { ConnectionError, SqlError } from 'effect/sql/SqlError';
 
 import {
   FachNotFound,
@@ -28,6 +28,7 @@ import {
   NoteOutsideHalbjahr,
 } from '#/features/noten/errors/noten-errors.ts';
 import { ZeugnisHalbjahrNotFound } from '#/features/zeugnis/errors/zeugnis-errors.ts';
+import { UnexpectedFailure } from '#/shared/exit-failure.ts';
 import { GewichtungInvalid } from '#/shared/noten/fach-gewichtung.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { DomainError, domainErrorAdapter } from './domain-errors.ts';
@@ -155,8 +156,13 @@ describe('domain error transport', () => {
 
   it('leaves infrastructure errors and defects to the generic text', () => {
     const infrastructure = [
-      new SqlError({ message: 'connection terminated', cause: null }),
-      Runtime.makeFiberFailure(Cause.die(new Error('kaputt'))),
+      new SqlError({
+        reason: new ConnectionError({
+          cause: null,
+          message: 'connection terminated',
+        }),
+      }),
+      new UnexpectedFailure(Cause.die(new Error('kaputt'))),
       new TypeError('fetch failed'),
     ];
 

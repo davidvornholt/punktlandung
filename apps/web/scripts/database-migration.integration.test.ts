@@ -144,13 +144,13 @@ describe('Datenbankmigrationen', () => {
       `);
 
       const result = await Effect.runPromise(
-        Effect.either(migrateDatabase(pool)),
+        Effect.result(migrateDatabase(pool)),
       );
-      expect(result._tag).toBe('Left');
-      if (result._tag === 'Right') {
+      expect(result._tag).toBe('Failure');
+      if (result._tag === 'Success') {
         throw new Error('Die Migration hätte abgebrochen werden müssen.');
       }
-      const migrationCause = result.left.cause;
+      const migrationCause = result.failure.cause;
       if (!(migrationCause instanceof Error)) {
         throw new Error('Die Migration lieferte keinen Error als Ursache.');
       }

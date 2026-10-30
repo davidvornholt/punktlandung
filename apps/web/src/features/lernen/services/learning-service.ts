@@ -1,7 +1,7 @@
-import { SqlClient } from '@effect/sql/SqlClient';
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { desc, sql as drizzleSql } from 'drizzle-orm';
 import { Effect } from 'effect';
+import { SqlClient } from 'effect/sql/SqlClient';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 
 import { studyDayGradeTable, studyDayTable } from '#/shared/db/schema.ts';
 import type { StudyDayInput } from '../schemas/study-day-schema.ts';
@@ -36,8 +36,10 @@ export const logStudyDay = (input: StudyDayInput) =>
           })
           .returning({ id: studyDayTable.id });
         if (studyDay === undefined) {
-          return yield* Effect.dieMessage(
-            'Der Lerntag konnte nach dem Speichern nicht gelesen werden.',
+          return yield* Effect.die(
+            new Error(
+              'Der Lerntag konnte nach dem Speichern nicht gelesen werden.',
+            ),
           );
         }
         if (input.gradeId !== null) {

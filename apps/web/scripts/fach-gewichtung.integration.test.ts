@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect, Schema } from 'effect';
-
+import type { SqlClient } from 'effect/sql/SqlClient';
 import {
   FachInput,
   FachUpdate,
@@ -12,6 +10,7 @@ import {
   updateFach,
 } from '#/features/faecher/services/fach-service.ts';
 import { migrateDatabase } from '#/shared/db/migrate.ts';
+import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import {
   gewichtungLimits,
   standardgewichtung,
@@ -42,10 +41,10 @@ const withTestGewichtung = (gewichtung: number) => ({
 });
 
 const createValidatedFach = (raw: unknown) =>
-  Schema.decodeUnknown(FachInput)(raw).pipe(Effect.flatMap(createFach));
+  Schema.decodeUnknownEffect(FachInput)(raw).pipe(Effect.flatMap(createFach));
 
 const updateValidatedFach = (raw: unknown) =>
-  Schema.decodeUnknown(FachUpdate)(raw).pipe(Effect.flatMap(updateFach));
+  Schema.decodeUnknownEffect(FachUpdate)(raw).pipe(Effect.flatMap(updateFach));
 
 describe('Fachgewichtung an der Persistenzgrenze', () => {
   it('schreibt ungültige gesammelte Testgewichte in keine Gewichtungsspalte', () =>

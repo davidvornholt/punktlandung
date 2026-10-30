@@ -1,8 +1,7 @@
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-
 import { isIsoDateInRange } from '#/shared/date/date-range.ts';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import { halbjahrTable } from '#/shared/db/schema.ts';
 import type { Leistungsart, Notensystem } from '#/shared/noten/notenwert.ts';
 import { isPlanbar } from '#/shared/noten/notenwert.ts';

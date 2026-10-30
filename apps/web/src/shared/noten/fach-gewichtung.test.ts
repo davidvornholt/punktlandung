@@ -36,21 +36,21 @@ const beliebigeGewichte = [0.25, 3.75, 10] as const;
 describe('FachgewichtungSchema', () => {
   for (const kind of ['klausur', 'gfs', 'muendlich', 'sonstige'] as const) {
     it(`weist gesammelt für ${kind} zurück`, () => {
-      const result = Schema.decodeUnknownEither(FachgewichtungSchema)(
+      const result = Schema.decodeUnknownResult(FachgewichtungSchema)(
         mitSammlung(kind, 'gesammelt'),
       );
 
-      expect(result._tag).toBe('Left');
+      expect(result._tag).toBe('Failure');
     });
   }
 
   it('weist gesammelte Tests mit einem anderen Gewicht als die Klausur zurück', () => {
     for (const gewicht of beliebigeGewichte) {
-      const result = Schema.decodeUnknownEither(FachgewichtungSchema)(
+      const result = Schema.decodeUnknownResult(FachgewichtungSchema)(
         mitTestgewicht(gewicht, 'gesammelt', 1),
       );
 
-      expect(result._tag).toBe('Left');
+      expect(result._tag).toBe('Failure');
     }
   });
 

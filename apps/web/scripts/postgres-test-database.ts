@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
-import { layer as pgDrizzleLayer } from '@effect/sql-drizzle/Pg';
-import { PgClient } from '@effect/sql-pg';
-import { Effect, Layer } from 'effect';
 import pg, { type Pool } from 'pg';
+import { databaseLayer } from '../src/shared/db/database-layer.ts';
 import { preservePostgresDates } from '../src/shared/db/postgres-date.ts';
 
 type JournalEntry = { readonly tag: string; readonly when: number };
@@ -51,10 +49,16 @@ export const withPostgresTestDatabase = async <Value>(
   }
 };
 
-/** SqlClient- und Drizzle-Schicht auf einer Testdatenbank, wie im Betrieb. */
+/**
+ * SqlClient- und Drizzle-Schicht auf der Testdatenbank des Pools, wie im
+ * Betrieb. Der Effect-Client öffnet eigene Verbindungen zu derselben URL.
+ */
 export const postgresTestLayer = (pool: Pool) => {
-  const sql = PgClient.layerFromPool({ acquire: Effect.succeed(pool) });
-  return Layer.merge(sql, pgDrizzleLayer.pipe(Layer.provide(sql)));
+  const { connectionString } = pool.options;
+  if (connectionString === undefined) {
+    throw new Error('Der Testpool kennt seine Verbindungs-URL nicht.');
+  }
+  return databaseLayer(connectionString);
 };
 
 const executeStatements = async (

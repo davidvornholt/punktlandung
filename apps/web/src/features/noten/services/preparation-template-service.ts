@@ -1,5 +1,5 @@
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 
 import { preparationTemplateTable } from '#/shared/db/schema.ts';
 import type { PlanbareLeistungsart } from '#/shared/noten/notenwert.ts';

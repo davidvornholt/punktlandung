@@ -9,23 +9,23 @@ export const gewichtungLimits = {
   maxShare: 100,
 } as const;
 
-const Gewichtung = Schema.Number.pipe(
-  Schema.positive(),
-  Schema.lessThanOrEqualTo(gewichtungLimits.maxGewichtung),
+const Gewichtung = Schema.Number.check(
+  Schema.isGreaterThan(0),
+  Schema.isLessThanOrEqualTo(gewichtungLimits.maxGewichtung),
 );
 
-const Share = Schema.Number.pipe(
-  Schema.greaterThanOrEqualTo(0),
-  Schema.lessThanOrEqualTo(gewichtungLimits.maxShare),
+const Share = Schema.Number.check(
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(gewichtungLimits.maxShare),
 );
 
 const ArtgewichtungSchema = Schema.Struct({
   gewicht: Gewichtung,
-  sammlung: Schema.Literal('einzeln', 'gesammelt'),
+  sammlung: Schema.Literals(['einzeln', 'gesammelt']),
 });
 
-const IndividualArtgewichtungSchema = ArtgewichtungSchema.pipe(
-  Schema.filter(
+const IndividualArtgewichtungSchema = ArtgewichtungSchema.check(
+  Schema.makeFilter(
     (art) =>
       art.sammlung === 'einzeln' ||
       'Nur Tests dürfen als Sammlung gewichtet werden.',
@@ -35,8 +35,8 @@ const IndividualArtgewichtungSchema = ArtgewichtungSchema.pipe(
 const BereichsverhaeltnisSchema = Schema.Struct({
   schriftlich: Share,
   muendlich: Share,
-}).pipe(
-  Schema.filter(
+}).check(
+  Schema.makeFilter(
     (verhaeltnis) =>
       verhaeltnis.schriftlich + verhaeltnis.muendlich > 0 ||
       'Mindestens ein Bereich muss zählen.',
@@ -57,8 +57,8 @@ export const FachgewichtungSchema = Schema.Struct({
     muendlich: IndividualArtgewichtungSchema,
     sonstige: IndividualArtgewichtungSchema,
   }),
-}).pipe(
-  Schema.filter(
+}).check(
+  Schema.makeFilter(
     ({ arten }) =>
       arten.test.sammlung === 'einzeln' ||
       arten.test.gewicht === arten.klausur.gewicht ||
@@ -83,7 +83,7 @@ export const decodeGewichtung = (
   raw: unknown,
   fachId: string,
 ): Effect.Effect<Fachgewichtung, GewichtungInvalid> =>
-  Schema.decodeUnknown(FachgewichtungSchema)(raw).pipe(
+  Schema.decodeUnknownEffect(FachgewichtungSchema)(raw).pipe(
     Effect.mapError(() => new GewichtungInvalid({ fachId })),
   );
 

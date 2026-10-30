@@ -1,6 +1,6 @@
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { and, asc, desc, eq, lt, min, ne } from 'drizzle-orm';
 import { Effect } from 'effect';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 
 import {
   fachTable,
