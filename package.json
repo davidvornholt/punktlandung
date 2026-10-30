@@ -29,7 +29,7 @@
   "packageManager": "bun@1.4.3",
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "@davidvornholt/standards": "0.31.0",
+    "@davidvornholt/standards": "0.32.0",
     "turbo": "^2.11.7",
     "typescript": "7.0.2"
   }
