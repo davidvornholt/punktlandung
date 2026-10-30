@@ -21,6 +21,7 @@ import { ZeugnisHalbjahrNotFound } from '../errors/zeugnis-errors.ts';
 export type ZeugnisRow = {
   readonly fachId: string;
   readonly fachName: string;
+  readonly archived: boolean;
   readonly anzeige: string | null;
   readonly anzahlNoten: number;
 };
@@ -28,6 +29,7 @@ export type ZeugnisRow = {
 export type JahresvorschauRow = {
   readonly fachId: string;
   readonly fachName: string;
+  readonly archived: boolean;
   readonly note: number;
   readonly grenzfall: boolean;
 };
@@ -63,7 +65,11 @@ const groupNotenByFach = (noten: ReadonlyArray<NoteRow>) => {
 const displayFor = (halbnote: number, system: Notensystem): string =>
   system === 'punkte' ? `${halbnote} P.` : formatHalbnote(halbnote);
 
-/** Nicht bindende Ganznoten-Vorschau aus allen Leistungen des Schuljahrs. */
+/**
+ * Nicht bindende Ganznoten-Vorschau aus allen Leistungen des Schuljahrs. Ein
+ * Fach ohne Noten fällt heraus; ein archiviertes mit Noten zählt wie im
+ * Verlauf mit.
+ */
 export const calculateJahresvorschau = (
   noten: ReadonlyArray<NoteRow>,
   faecher: ReadonlyArray<SchoolYearFach>,
@@ -82,6 +88,7 @@ export const calculateJahresvorschau = (
       {
         fachId: fach.id,
         fachName: fach.name,
+        archived: fach.archived,
         note: preview.note,
         grenzfall: preview.grenzfall,
       },
@@ -108,12 +115,18 @@ export const loadZeugnis = (termId: string) =>
       return yield* Effect.fail(new ZeugnisHalbjahrNotFound({ termId }));
     }
     const fachSnapshot = yield* loadSchoolYearFachSnapshot(halbjahr.schoolYear);
-    const faecher = fachSnapshot.filter((fach) => !fach.archived);
     const rows = yield* db
       .select()
       .from(noteTable)
       .where(eq(noteTable.termId, termId));
     const groups = groupNotenByFach(rows.filter(isGraded));
+    /*
+     * Ein archiviertes Fach bleibt drin, solange es in diesem Halbjahr Noten
+     * hat — wie im Verlauf und in der Notenliste. Ohne Noten fällt es heraus.
+     */
+    const faecher = fachSnapshot.filter(
+      (fach) => !fach.archived || groups.has(fach.id),
+    );
 
     const halbnoten: Array<number> = [];
     const zeilen = faecher.map((fach): ZeugnisRow => {
@@ -127,6 +140,7 @@ export const loadZeugnis = (termId: string) =>
       return {
         fachId: fach.id,
         fachName: fach.name,
+        archived: fach.archived,
         anzeige:
           halbnote === null ? null : displayFor(halbnote, halbjahr.system),
         anzahlNoten: fachNoten.length,
@@ -161,7 +175,7 @@ export const loadZeugnis = (termId: string) =>
           )
       : [];
     const jahresvorschau = completeYear
-      ? calculateJahresvorschau(jahresnoten.filter(isGraded), faecher)
+      ? calculateJahresvorschau(jahresnoten.filter(isGraded), fachSnapshot)
       : null;
 
     const gesamtschnitt =

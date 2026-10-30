@@ -136,11 +136,12 @@ describe('server response wire contract', () => {
       expect(keys(required(zeugnis.zeilen[0], 'Zeugniszeile'))).toEqual([
         'anzahlNoten',
         'anzeige',
+        'archived',
         'fachId',
         'fachName',
       ]);
       expect(
         keys(required(zeugnis.jahresvorschau?.[0], 'Jahresvorschauzeile')),
-      ).toEqual(['fachId', 'fachName', 'grenzfall', 'note']);
+      ).toEqual(['archived', 'fachId', 'fachName', 'grenzfall', 'note']);
     }));
 });
