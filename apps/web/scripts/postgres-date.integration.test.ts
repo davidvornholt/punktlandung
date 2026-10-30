@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
+import type { SqlClient } from 'effect/sql/SqlClient';
 import { currentHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
 import {
   listHalbjahre,
@@ -12,6 +11,7 @@ import {
   createNote,
   updateNote,
 } from '#/features/noten/services/noten-service.ts';
+import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {

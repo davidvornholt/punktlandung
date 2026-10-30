@@ -1,8 +1,8 @@
-import { SqlClient } from '@effect/sql/SqlClient';
-import type { SqlError } from '@effect/sql/SqlError';
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { count, desc, eq, getTableColumns, inArray, or } from 'drizzle-orm';
 import { Effect } from 'effect';
+import { SqlClient } from 'effect/sql/SqlClient';
+import type { SqlError } from 'effect/sql/SqlError';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
 import {

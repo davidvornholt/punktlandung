@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import type { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
-
+import type { SqlClient } from 'effect/sql/SqlClient';
 import { listFaecher } from '#/features/faecher/services/fach-service.ts';
 import { listHalbjahre } from '#/features/halbjahre/services/halbjahr-service.ts';
 import { loadLearningStatistics } from '#/features/lernen/services/learning-service.ts';
 import { listNoten } from '#/features/noten/services/noten-service.ts';
 import { loadTrend } from '#/features/noten/services/trend-service.ts';
 import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
+import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import {
   postgresTestLayer,

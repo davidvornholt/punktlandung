@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { Exit, Runtime, Schema } from 'effect';
+import { Exit, Schema } from 'effect';
 
-import { throwExitFailure } from './exit-failure.ts';
+import { throwExitFailure, UnexpectedFailure } from './exit-failure.ts';
 
 class Expected extends Schema.TaggedError<Expected>()('Expected', {
   message: Schema.String,
@@ -27,10 +27,10 @@ describe('throwExitFailure', () => {
     expect(thrownBy(Exit.fail(failure))).toBe(failure);
   });
 
-  it('keeps defects inside a FiberFailure', () => {
+  it('keeps defects inside an UnexpectedFailure', () => {
     const thrown = thrownBy(Exit.die(new Error('kaputt')));
 
-    expect(Runtime.isFiberFailure(thrown)).toBe(true);
+    expect(thrown instanceof UnexpectedFailure).toBe(true);
   });
 
   it('wraps failures without an Error prototype', () => {
@@ -38,6 +38,6 @@ describe('throwExitFailure', () => {
       Exit.fail({ _tag: 'MissingData', message: 'DATABASE_URL fehlt' }),
     );
 
-    expect(Runtime.isFiberFailure(thrown)).toBe(true);
+    expect(thrown instanceof UnexpectedFailure).toBe(true);
   });
 });

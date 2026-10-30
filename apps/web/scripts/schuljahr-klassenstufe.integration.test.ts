@@ -111,11 +111,11 @@ const seedTerms = async (
 
 /** Führt die Migration aus, die scheitern muss, und liefert die Postgres-Meldung. */
 const migrationFailure = async (pool: Pool): Promise<string> => {
-  const result = await Effect.runPromise(Effect.either(migrateDatabase(pool)));
-  if (result._tag === 'Right') {
+  const result = await Effect.runPromise(Effect.result(migrateDatabase(pool)));
+  if (result._tag === 'Success') {
     throw new Error('Die Migration hätte abgebrochen werden müssen.');
   }
-  const migrationCause = result.left.cause;
+  const migrationCause = result.failure.cause;
   if (!(migrationCause instanceof Error)) {
     throw new Error('Die Migration lieferte keinen Error als Ursache.');
   }

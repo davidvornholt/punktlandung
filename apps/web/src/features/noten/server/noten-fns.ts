@@ -31,22 +31,22 @@ import { loadUpcoming } from '../services/upcoming-service.ts';
 
 export const listNotenFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(NotenQuery))
+  .inputValidator(Schema.toStandardSchemaV1(NotenQuery))
   .handler(({ data }) => runServerEffect(listNoten(data.termId)));
 
 export const createNoteFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(NoteInput))
+  .inputValidator(Schema.toStandardSchemaV1(NoteInput))
   .handler(({ data }) => runServerEffect(createNote(data)));
 
 export const updateNoteFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(NoteUpdate))
+  .inputValidator(Schema.toStandardSchemaV1(NoteUpdate))
   .handler(({ data }) => runServerEffect(updateNote(data)));
 
 export const deleteNoteFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(NoteId))
+  .inputValidator(Schema.toStandardSchemaV1(NoteId))
   .handler(({ data }) => runServerEffect(deleteNote(data.id)));
 
 export const verlaufFn = createServerFn({ method: 'GET' })
@@ -64,14 +64,14 @@ export const upcomingFn = createServerFn({ method: 'GET' })
 
 export const leistungFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(NoteId))
+  .inputValidator(Schema.toStandardSchemaV1(NoteId))
   .handler(({ data }) =>
     runServerEffect(loadLeistung(data.id, berlinCalendarDate())),
   );
 
 export const updatePreparationFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(PreparationUpdate))
+  .inputValidator(Schema.toStandardSchemaV1(PreparationUpdate))
   .handler(({ data }) => runServerEffect(updatePreparation(data)));
 
 export const preparationTemplatesFn = createServerFn({ method: 'GET' })
@@ -80,5 +80,5 @@ export const preparationTemplatesFn = createServerFn({ method: 'GET' })
 
 export const savePreparationTemplateFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.standardSchemaV1(PreparationTemplateInput))
+  .inputValidator(Schema.toStandardSchemaV1(PreparationTemplateInput))
   .handler(({ data }) => runServerEffect(savePreparationTemplate(data)));

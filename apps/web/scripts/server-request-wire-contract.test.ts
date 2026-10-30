@@ -59,7 +59,7 @@ const noteInput = {
 };
 
 const cases: ReadonlyArray<
-  readonly [name: string, schema: Schema.Schema.AnyNoContext, payload: unknown]
+  readonly [name: string, schema: Schema.Decoder<unknown>, payload: unknown]
 > = [
   ['Fächer query', FaecherQuery, { schoolYear: '2026/27' }],
   ['Fach create', FachInput, fachInput],
@@ -88,7 +88,7 @@ const cases: ReadonlyArray<
 describe('server request wire contract', () => {
   for (const [name, schema, payload] of cases) {
     it(`accepts the pre-rename ${name} payload`, async () => {
-      const validator = Schema.standardSchemaV1(schema);
+      const validator = Schema.toStandardSchemaV1(schema);
       const result = await validator['~standard'].validate(payload);
       expect(result).toHaveProperty('value');
       expect(result).not.toHaveProperty('issues');

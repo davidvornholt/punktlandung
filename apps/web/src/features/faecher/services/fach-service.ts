@@ -1,7 +1,7 @@
-import { SqlClient } from '@effect/sql/SqlClient';
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { and, eq, max } from 'drizzle-orm';
 import { Effect } from 'effect';
+import { SqlClient } from 'effect/sql/SqlClient';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 
 import {
   fachTable,

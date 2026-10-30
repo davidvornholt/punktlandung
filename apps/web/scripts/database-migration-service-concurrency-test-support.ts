@@ -1,7 +1,7 @@
-import type { SqlClient } from '@effect/sql/SqlClient';
-import type { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { Effect } from 'effect';
+import type { SqlClient } from 'effect/sql/SqlClient';
 import type { Pool, PoolClient } from 'pg';
+import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
 import { postgresTestLayer } from './postgres-test-database.ts';

@@ -10,7 +10,7 @@ import { throwExitFailure } from '#/shared/exit-failure.ts';
  */
 export const runtime = ManagedRuntime.make(DatabaseLive);
 
-type RuntimeContext = ManagedRuntime.ManagedRuntime.Context<typeof runtime>;
+type RuntimeContext = ManagedRuntime.ManagedRuntime.Services<typeof runtime>;
 
 /** Führt das Effect-Programm einer Serverfunktion aus. */
 export const runServerEffect = <A, E>(

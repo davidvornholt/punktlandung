@@ -7,15 +7,15 @@ export const learningLimits = {
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
 export const StudyDayInput = Schema.Struct({
-  day: Schema.String.pipe(Schema.pattern(isoDatePattern)),
+  day: Schema.String.check(Schema.isPattern(isoDatePattern)),
   /** Optional einem Fach zugeordnet; null = allgemeiner Lerntag. */
   subjectId: Schema.NullOr(Schema.String),
   /** Optional einer Leistung dieses Fachs gewidmet: „heute dafür gelernt". */
   gradeId: Schema.NullOr(Schema.String),
   minutes: Schema.NullOr(
-    Schema.Int.pipe(
-      Schema.positive(),
-      Schema.lessThanOrEqualTo(learningLimits.maxMinutes),
+    Schema.Int.check(
+      Schema.isGreaterThan(0),
+      Schema.isLessThanOrEqualTo(learningLimits.maxMinutes),
     ),
   ),
   notiz: Schema.NullOr(Schema.String),

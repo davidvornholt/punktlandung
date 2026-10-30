@@ -23,7 +23,7 @@ export class NoteNotFound extends Schema.TaggedError<NoteNotFound>()(
 
 export class InvalidNotenwert extends Schema.TaggedError<InvalidNotenwert>()(
   'UngueltigerNotenwert',
-  { wert: Schema.Number, system: Schema.Literal(...notensysteme) },
+  { wert: Schema.Number, system: Schema.Literals(notensysteme) },
 ) {
   override get message(): string {
     return this.system === 'punkte'
@@ -34,7 +34,7 @@ export class InvalidNotenwert extends Schema.TaggedError<InvalidNotenwert>()(
 
 export class NotenwertRequired extends Schema.TaggedError<NotenwertRequired>()(
   'NotenwertErforderlich',
-  { kind: Schema.Literal(...leistungsarten) },
+  { kind: Schema.Literals(leistungsarten) },
 ) {
   override get message(): string {
     return `${leistungsartLabel[this.kind]} hat keinen Termin und kann nicht ausstehen. Trage die Note ein oder wähle Klausur, Test oder GFS.`;

@@ -1,6 +1,6 @@
-import { PgDrizzle } from '@effect/sql-drizzle/Pg';
 import { and, eq, inArray } from 'drizzle-orm';
 import { Effect } from 'effect';
+import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 
 import { halbjahrTable, noteTable } from '#/shared/db/schema.ts';
 import { fachAverage } from '#/shared/noten/fach-aggregation.ts';

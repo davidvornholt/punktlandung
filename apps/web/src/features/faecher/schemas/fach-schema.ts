@@ -9,13 +9,13 @@ export const fachLimits = {
 } as const;
 
 export const FachFields = Schema.Struct({
-  name: Schema.String.pipe(
-    Schema.minLength(1),
-    Schema.maxLength(fachLimits.nameMax),
+  name: Schema.String.check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(fachLimits.nameMax),
   ),
-  shortName: Schema.String.pipe(
-    Schema.minLength(1),
-    Schema.maxLength(fachLimits.maxShortName),
+  shortName: Schema.String.check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(fachLimits.maxShortName),
   ),
   gewichtung: FachgewichtungSchema,
 });

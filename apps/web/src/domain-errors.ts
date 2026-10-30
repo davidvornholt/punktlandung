@@ -33,7 +33,7 @@ import { GewichtungInvalid } from '#/shared/noten/fach-gewichtung.ts';
  * bewusst: Von ihnen kommt nur die Meldung ohne `_tag` an, und die Oberfläche
  * zeigt ihren allgemeinen Text.
  */
-export const DomainError = Schema.Union(
+export const DomainError = Schema.Union([
   FachNotFound,
   FachSchoolYearNotFound,
   GewichtungInvalid,
@@ -53,7 +53,7 @@ export const DomainError = Schema.Union(
   NoteOutsideHalbjahr,
   NotenwertRequired,
   ZeugnisHalbjahrNotFound,
-);
+]);
 
 export type DomainError = typeof DomainError.Type;
 

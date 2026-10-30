@@ -7,8 +7,8 @@ import {
   klassenstufeText,
 } from '#/shared/school/klassenstufe.ts';
 
-const Half = Schema.Literal(1, 2);
-const Notensystem = Schema.Literal(...notensysteme);
+const Half = Schema.Literals([1, 2]);
+const Notensystem = Schema.Literals(notensysteme);
 
 export class HalbjahrAlreadyExists extends Schema.TaggedError<HalbjahrAlreadyExists>()(
   'HalbjahrBelegungDoppelt',
@@ -22,7 +22,7 @@ export class HalbjahrAlreadyExists extends Schema.TaggedError<HalbjahrAlreadyExi
 const OtherHalbjahr = Schema.Struct({
   schoolYear: Schema.String,
   half: Half,
-  klassenstufe: Schema.Literal(...klassenstufen),
+  klassenstufe: Schema.Literals(klassenstufen),
 });
 
 /** Gemeinsamer Text für die Formularprüfung und die Ablehnung beim Speichern. */

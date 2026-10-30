@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { Effect, Either } from 'effect';
+import { Effect, Result } from 'effect';
 import {
   createHalbjahr,
   listHalbjahre,
@@ -26,33 +26,33 @@ describe('Halbjahr-Belegung unter Nebenläufigkeit', () => {
       if (source === undefined) {
         throw new Error('Zu verschiebendes Halbjahr fehlt.');
       }
-      const outcomes: Array<Either.Either<void, unknown>> = [];
+      const outcomes: Array<Result.Result<void, unknown>> = [];
 
       await behindLifecycleBarrier(pool, provided, firstHalbjahr.schoolYear, [
         () =>
           provided(
             updateHalbjahr({ ...firstHalbjahr, id: source.id }).pipe(
-              Effect.either,
+              Effect.result,
             ),
           ).then((outcome) => {
             outcomes.push(outcome);
           }),
         () =>
-          provided(createHalbjahr(firstHalbjahr).pipe(Effect.either)).then(
+          provided(createHalbjahr(firstHalbjahr).pipe(Effect.result)).then(
             (outcome) => {
               outcomes.push(outcome);
             },
           ),
       ]);
 
-      expect(outcomes.filter(Either.isLeft)).toHaveLength(1);
-      expect(outcomes.filter(Either.isRight)).toHaveLength(1);
-      const failure = outcomes.find(Either.isLeft);
+      expect(outcomes.filter(Result.isFailure)).toHaveLength(1);
+      expect(outcomes.filter(Result.isSuccess)).toHaveLength(1);
+      const failure = outcomes.find(Result.isFailure);
       expect(
-        typeof failure?.left === 'object' &&
-          failure.left !== null &&
-          '_tag' in failure.left
-          ? failure.left._tag
+        typeof failure?.failure === 'object' &&
+          failure.failure !== null &&
+          '_tag' in failure.failure
+          ? failure.failure._tag
           : null,
       ).toBe('HalbjahrBelegungDoppelt');
       expect(await countRows(pool, 'term', firstHalbjahr.schoolYear)).toBe(1);

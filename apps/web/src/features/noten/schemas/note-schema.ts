@@ -15,7 +15,7 @@ export const notenLimits = {
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
-const Leistungsart = Schema.Literal(...leistungsarten);
+const Leistungsart = Schema.Literals(leistungsarten);
 
 export const NotenFields = Schema.Struct({
   subjectId: Schema.String,
@@ -26,11 +26,11 @@ export const NotenFields = Schema.Struct({
    * das nur für planbare Leistungsarten zu.
    */
   wert: Schema.NullOr(Schema.Number),
-  gewicht: Schema.Number.pipe(
-    Schema.positive(),
-    Schema.lessThanOrEqualTo(notenLimits.maxGewichtung),
+  gewicht: Schema.Number.check(
+    Schema.isGreaterThan(0),
+    Schema.isLessThanOrEqualTo(notenLimits.maxGewichtung),
   ),
-  datum: Schema.String.pipe(Schema.pattern(isoDatePattern)),
+  datum: Schema.String.check(Schema.isPattern(isoDatePattern)),
   notiz: Schema.NullOr(Schema.String),
 });
 
@@ -63,8 +63,8 @@ export const preparationLimits = {
   maxLength: 20_000,
 } as const;
 
-const PreparationText = Schema.String.pipe(
-  Schema.maxLength(preparationLimits.maxLength),
+const PreparationText = Schema.String.check(
+  Schema.isMaxLength(preparationLimits.maxLength),
 );
 
 export const PreparationUpdate = Schema.Struct({
@@ -75,7 +75,7 @@ export const PreparationUpdate = Schema.Struct({
 
 export type PreparationUpdate = typeof PreparationUpdate.Type;
 
-const PlanbareLeistungsart = Schema.Literal(...planbareLeistungsarten);
+const PlanbareLeistungsart = Schema.Literals(planbareLeistungsarten);
 
 export const PreparationTemplateInput = Schema.Struct({
   kind: PlanbareLeistungsart,

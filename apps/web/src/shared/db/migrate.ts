@@ -6,7 +6,7 @@ import { reconcileLegacyData } from './legacy-reconciliation.ts';
 
 export class DatabaseMigrationError extends Schema.TaggedError<DatabaseMigrationError>()(
   'DatabaseMigrationError',
-  { message: Schema.String, cause: Schema.Defect },
+  { message: Schema.String, cause: Schema.Defect() },
 ) {}
 
 export const migrationFolder = decodeURIComponent(
