@@ -1,9 +1,9 @@
 import { Cause, Exit, Option } from 'effect';
 
 /**
- * Hülle für alles, was kein erwarteter `Error` ist. Sie trägt nur die Meldung
- * des ersten Fehlers im Cause und keine seiner Felder, damit kein `_tag` und
- * keine Datenbankdetails zur Oberfläche gelangen.
+ * Hülle für alles, was kein erwarteter `Error` ist. Sie übernimmt die Meldung
+ * des ersten Fehlers im Cause unverändert, aber keines seiner Felder, damit
+ * kein `_tag` zur Oberfläche gelangt.
  */
 export class UnexpectedFailure extends Error {
   readonly failureCause: Cause.Cause<unknown>;

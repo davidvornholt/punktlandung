@@ -14,7 +14,7 @@ Punktlandung is a single-user Noten tracker for a Baden-Württemberg Gymnasium. 
 ## Architecture decisions
 
 - The database is app-private. Its schema, migrations, and config stay in `apps/web/src/shared/db`, not in a `packages/db` package.
-- Better Auth is the one non-Effect boundary, because it calls its glue itself and awaits plain promises. It owns `src/shared/auth` and shares the pg pool from `src/shared/db/pool.ts`.
+- Better Auth is the one non-Effect boundary, because it calls its glue itself and awaits plain promises. It owns `src/shared/auth` and uses the pg pool from `src/shared/db/pool.ts`, which the Effect layer doesn't share.
 - Sign-in is GitHub-only and admits a single immutable numeric account ID (`GITHUB_ALLOWED_ACCOUNT_ID`). Don't add user management.
 
 ## Known gaps
