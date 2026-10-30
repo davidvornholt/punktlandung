@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { zeugnisQueryOptions } from '../server/zeugnis-fns.ts';
 import type { Zeugnis } from '../services/zeugnis-service.ts';
+import { fachLabel } from './zeugnis-text.ts';
 
 const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
   zeugnis.jahresvorschau === null ? null : (
@@ -39,7 +40,7 @@ const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
                 className="py-2 pr-3 text-left font-normal text-ink"
                 scope="row"
               >
-                {row.fachName}
+                {fachLabel(row)}
               </th>
               <td className="py-2">
                 <span className="font-display text-ink text-xl">
@@ -125,7 +126,7 @@ export const Zeugnisblatt = ({
                 className="py-2 pr-3 text-left font-normal text-ink"
                 scope="row"
               >
-                {row.fachName}
+                {fachLabel(row)}
               </th>
               <td className="py-2 pr-3 text-ink-muted text-sm">
                 {row.anzahlNoten}

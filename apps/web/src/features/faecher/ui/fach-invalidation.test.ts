@@ -6,9 +6,9 @@ import { invalidateFachQueries } from './fach-invalidation.ts';
 describe('invalidateFachQueries', () => {
   /**
    * Die Gewichtung eines Fachs geht in jeden Fachschnitt ein, die
-   * Archivierung nimmt es aus der Zeugnisvorschau: beides muss über die
-   * Halbjahre hinweg neu geladen werden, deren Kennungen die Fachverwaltung
-   * nicht kennt.
+   * Archivierung nimmt es aus der Zeugnisvorschau oder markiert es dort:
+   * beides muss über die Halbjahre hinweg neu geladen werden, deren Kennungen
+   * die Fachverwaltung nicht kennt.
    */
   it('entwertet die Ansichten aller Halbjahre, nicht nur die Fächerliste', async () => {
     const queryClient = new QueryClient();

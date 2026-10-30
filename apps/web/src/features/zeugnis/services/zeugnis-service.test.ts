@@ -45,6 +45,7 @@ describe('Jahresvorschau', () => {
       {
         fachId: fach.id,
         fachName: fach.name,
+        archived: false,
         note: 3,
         grenzfall: false,
       },

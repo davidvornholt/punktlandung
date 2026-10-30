@@ -10,8 +10,9 @@ import {
 /**
  * Was ein geschriebenes Fach veralten lässt. Name, Kürzel und Gewichtung eines
  * Fachs gehen in jeden Fachschnitt ein, und die Archivierung nimmt ein Fach
- * aus der Zeugnisvorschau: eine Fachänderung verändert deshalb die Notenliste,
- * die Zeugnisvorschau und den Verlauf mit — nicht nur die Fächerliste selbst.
+ * ohne Noten aus der Zeugnisvorschau und markiert eines mit Noten: eine
+ * Fachänderung verändert deshalb die Notenliste, die Zeugnisvorschau und den
+ * Verlauf mit — nicht nur die Fächerliste selbst.
  *
  * Noten und Zeugnis trifft der Präfixschlüssel, weil die Fachverwaltung mit
  * dem Schuljahr arbeitet und die Kennungen seiner Halbjahre nicht kennt.
