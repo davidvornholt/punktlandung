@@ -2,10 +2,6 @@
 // aufgefordert hat.
 export const drainTimeoutMs = 5000;
 
-/**
- * Nimmt keine Verbindungen mehr an und gibt laufenden Anfragen bis zu drainMs
- * Zeit, bevor die übrigen geschlossen werden.
- */
 export const shutdown = async (
   server: Pick<Bun.Server<undefined>, 'stop'>,
   drainMs: number,

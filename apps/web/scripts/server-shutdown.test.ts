@@ -7,11 +7,14 @@ import { shutdown } from './server-shutdown.ts';
 
 const drainMs = 5000;
 const appDir = join(import.meta.dir, '..');
-// The environment name the server reads its port from.
 const portVariable = 'PORT';
 // Bun.env's type carries Vite's boolean DEV, PROD and SSR flags; a child's
 // environment is strings.
 const parentEnv = Bun.env as Record<string, string | undefined>;
+// Larger than the socket buffers, so the server is still writing it to a
+// client that has stopped reading.
+const largeFileBytes = 64 * 1024 * 1024;
+const settleMs = 200;
 
 let sandbox = '';
 
@@ -62,7 +65,11 @@ describe('shutdown', () => {
 });
 
 describe('the server process', () => {
-  it('exits cleanly on SIGTERM', async () => {
+  it('finishes the response in flight when stopped twice', async () => {
+    await Bun.write(
+      join(sandbox, 'dist', 'client', 'large.bin'),
+      new Uint8Array(largeFileBytes),
+    );
     const probe = Bun.serve({ port: 0, fetch: () => new Response() });
     const { port } = probe.url;
     await probe.stop(true);
@@ -71,13 +78,31 @@ describe('the server process', () => {
       stdout: 'pipe',
       stderr: 'pipe',
     });
-    const reader = child.stdout.getReader();
-    const { value } = await reader.read();
-    reader.releaseLock();
-    expect(new TextDecoder().decode(value)).toContain('Punktlandung läuft');
+    let client: Bun.Socket | undefined;
+    try {
+      const reader = child.stdout.getReader();
+      const { value } = await reader.read();
+      reader.releaseLock();
+      expect(new TextDecoder().decode(value)).toContain('Punktlandung läuft');
+      client = await Bun.connect({
+        hostname: '127.0.0.1',
+        port: Number(port),
+        socket: { data: () => undefined },
+      });
+      client.pause();
+      client.write('GET /large.bin HTTP/1.1\r\nhost: 127.0.0.1\r\n\r\n');
+      await Bun.sleep(settleMs);
 
-    child.kill('SIGTERM');
+      child.kill('SIGTERM');
+      await Bun.sleep(settleMs);
+      child.kill('SIGTERM');
+      await Bun.sleep(settleMs);
+      client.end();
 
-    expect(await child.exited).toBe(0);
+      expect(await child.exited).toBe(0);
+    } finally {
+      client?.terminate();
+      child.kill('SIGKILL');
+    }
   });
 });
