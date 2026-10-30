@@ -3,12 +3,18 @@ import { Layer, Redacted } from 'effect';
 
 import { PgDrizzle } from './pg-drizzle.ts';
 
-/**
- * Verbindungen des Effect-Clients. Zusammen mit den vier des `pg`-Pools
- * (`pool.ts`) bleibt ein Prozess bei den zehn Verbindungen, die früher der
- * gemeinsame Pool belegen durfte.
+/*
+ * Der Effect-Client und der pg-Pool für Better Auth (`pool.ts`) halten
+ * getrennte Verbindungen, die einander nicht aushelfen. Zusammen bleiben sie
+ * beim Limit der App-Rolle in den Preview-Datenbanken (vier Verbindungen);
+ * weitere Abfragen warten in ihrem Pool, statt am Limit zu scheitern.
  */
-export const effectPoolSize = 6;
+
+/** Verbindungen des Effect-Clients. */
+export const effectPoolSize = 2;
+
+/** Verbindungen des pg-Pools für Better Auth. */
+export const pgPoolSize = 2;
 
 /**
  * SqlClient und Drizzle-Zugriff auf `connectionString`. Der Client spricht das
