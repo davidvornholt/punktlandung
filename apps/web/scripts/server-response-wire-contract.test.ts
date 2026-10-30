@@ -5,10 +5,7 @@ import { Effect } from 'effect';
 
 import { listFaecher } from '#/features/faecher/services/fach-service.ts';
 import { listHalbjahre } from '#/features/halbjahre/services/halbjahr-service.ts';
-import {
-  listStudyDays,
-  loadLearningStatistics,
-} from '#/features/lernen/services/learning-service.ts';
+import { loadLearningStatistics } from '#/features/lernen/services/learning-service.ts';
 import { listNoten } from '#/features/noten/services/noten-service.ts';
 import { loadTrend } from '#/features/noten/services/trend-service.ts';
 import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
@@ -74,10 +71,6 @@ describe('server response wire contract', () => {
         'Fach',
       );
       const halbjahr = required((await provided(listHalbjahre))[0], 'Halbjahr');
-      const studyDay = required(
-        (await provided(listStudyDays()))[0],
-        'Lerntag',
-      );
       const statistics = await provided(loadLearningStatistics('2026-10-02'));
       const note = required(
         (await provided(listNoten('halbjahr-1')))[0],
@@ -102,15 +95,6 @@ describe('server response wire contract', () => {
         'schoolYear',
         'startsOn',
         'system',
-      ]);
-      expect(keys(studyDay)).toEqual([
-        'createdAt',
-        'day',
-        'gradeIds',
-        'id',
-        'minutes',
-        'note',
-        'subjectId',
       ]);
       expect(keys(statistics)).toEqual(['serie', 'tageDiesenMonat']);
       expect(keys(note)).toEqual([

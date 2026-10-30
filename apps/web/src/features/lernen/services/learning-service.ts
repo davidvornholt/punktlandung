@@ -50,35 +50,6 @@ export const logStudyDay = (input: StudyDayInput) =>
     );
   });
 
-const standardLimit = 30;
-
-export const listStudyDays = (limit: number = standardLimit) =>
-  Effect.gen(function* () {
-    const db = yield* PgDrizzle;
-    const studyDays = yield* db
-      .select()
-      .from(studyDayTable)
-      .orderBy(desc(studyDayTable.day))
-      .limit(limit);
-    const associations = yield* db
-      .select({
-        studyDayId: studyDayGradeTable.studyDayId,
-        gradeId: studyDayGradeTable.gradeId,
-      })
-      .from(studyDayGradeTable);
-    const gradeIdsByStudyDay = new Map<string, Array<string>>();
-    for (const { studyDayId, gradeId } of associations) {
-      gradeIdsByStudyDay.set(studyDayId, [
-        ...(gradeIdsByStudyDay.get(studyDayId) ?? []),
-        gradeId,
-      ]);
-    }
-    return studyDays.map((studyDay) => ({
-      ...studyDay,
-      gradeIds: gradeIdsByStudyDay.get(studyDay.id) ?? [],
-    }));
-  });
-
 /** Lerntage diesen Monat und aktuelle Serie, bezogen auf `heute`. */
 export const loadLearningStatistics = (today: string) =>
   Effect.gen(function* () {
