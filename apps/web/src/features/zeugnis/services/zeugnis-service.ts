@@ -21,7 +21,6 @@ import { ZeugnisHalbjahrNotFound } from '../errors/zeugnis-errors.ts';
 export type ZeugnisRow = {
   readonly fachId: string;
   readonly fachName: string;
-  /** Archiviert, aber mit Noten im Halbjahr: zählt mit und wird markiert. */
   readonly archived: boolean;
   readonly anzeige: string | null;
   readonly anzahlNoten: number;

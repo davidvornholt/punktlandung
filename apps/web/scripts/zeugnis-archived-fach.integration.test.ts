@@ -16,10 +16,6 @@ const schoolYear = '2026/27';
 const ersterTermId = 'hj-1';
 const zweiterTermId = 'hj-2';
 
-/**
- * Zwei geführte und drei archivierte Fächer: Latein hat Noten im ersten
- * Halbjahr, Spanisch nur im zweiten, Geschichte nur eine ausstehende Klausur.
- */
 const faecher = [
   { id: 'mathe', name: 'Mathematik', archived: false },
   { id: 'deutsch', name: 'Deutsch', archived: false },
@@ -101,13 +97,6 @@ const withSeededDatabase = <Value>(
   });
 
 describe('Archivierte Fächer im Zeugnis', () => {
-  /**
-   * Latein ist archiviert, hat im ersten Halbjahr aber zwei Klausuren: es
-   * steht markiert im Zeugnis, seine Viertelnote zählt in den Schnitt aller
-   * Halbjahresnoten. Geschichte hat dort nur eine ausstehende Klausur und
-   * Spanisch gar nichts — beide fallen heraus. Die geführten Fächer stehen
-   * wie bisher da, Deutsch auch ohne Note.
-   */
   it('führt ein archiviertes Fach mit Noten im Halbjahr und lässt eines ohne Noten weg', () =>
     withSeededDatabase(async (provided) => {
       const zeugnis = await provided(loadZeugnis(ersterTermId));
@@ -152,10 +141,6 @@ describe('Archivierte Fächer im Zeugnis', () => {
       expect(zeugnis.gesamtschnitt).toBe('3');
     }));
 
-  /**
-   * Die Jahresvorschau rechnet über beide Halbjahre: ein archiviertes Fach
-   * mit Noten in einem davon zählt in beiden Zeugnissen gleich mit.
-   */
   it('rechnet archivierte Fächer mit Noten im Schuljahr in die Jahresvorschau', () =>
     withSeededDatabase(async (provided) => {
       const erstes = await provided(loadZeugnis(ersterTermId));
