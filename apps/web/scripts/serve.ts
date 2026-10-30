@@ -20,6 +20,27 @@ const serverEntryUrl = new URL('../dist/server/server.js', import.meta.url);
 const clientDirUrl = new URL('../dist/client/', import.meta.url);
 const port = parsePort(Bun.env.PORT);
 
+// Der Container startet diesen Server über `bun run start`, das Podmans
+// SIGTERM weiterreicht. Ohne Handler beendet das Signal diesen Prozess, und
+// `bun run` stürzt als PID 1 beim Versuch ab, am selben Signal zu sterben:
+// Exit 139, den die systemd-Unit des Slots als Fehlschlag wertet. Die Handler
+// stehen deshalb vor dem Laden des SSR-Bundles und bleiben bestehen, damit
+// weder ein Stopp beim Start noch ein zweites Signal das Abarbeiten abbricht.
+let server: Bun.Server<undefined> | undefined;
+let stopping = false;
+const stop = async () => {
+  if (stopping) {
+    return;
+  }
+  stopping = true;
+  if (server) {
+    await shutdown(server, drainTimeoutMs);
+  }
+  process.exit(0);
+};
+process.on('SIGTERM', stop);
+process.on('SIGINT', stop);
+
 const { default: startServer } = (await import(
   serverEntryUrl.href
 )) as StartServerEntry;
@@ -41,7 +62,7 @@ const serveStatic = async (pathname: string): Promise<Response | null> => {
   return new Response(file, { headers });
 };
 
-const server = Bun.serve({
+server = Bun.serve({
   port,
   hostname: '0.0.0.0',
   fetch: async (request) => {
@@ -52,20 +73,3 @@ const server = Bun.serve({
 });
 
 await Bun.write(Bun.stdout, `Punktlandung läuft auf ${server.url}\n`);
-
-// Der Container startet diesen Server über `bun run start`, das Podmans
-// SIGTERM weiterreicht. Ohne Handler beendet das Signal diesen Prozess, und
-// `bun run` stürzt als PID 1 beim Versuch ab, am selben Signal zu sterben:
-// Exit 139, den die systemd-Unit des Slots als Fehlschlag wertet. Die Handler
-// bleiben bestehen, damit ein zweites Signal das Abarbeiten nicht abbricht.
-let stopping = false;
-const stop = async () => {
-  if (stopping) {
-    return;
-  }
-  stopping = true;
-  await shutdown(server, drainTimeoutMs);
-  process.exit(0);
-};
-process.on('SIGTERM', stop);
-process.on('SIGINT', stop);

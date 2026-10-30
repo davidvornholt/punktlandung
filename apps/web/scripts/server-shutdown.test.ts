@@ -15,6 +15,8 @@ const parentEnv = Bun.env as Record<string, string | undefined>;
 // client that has stopped reading.
 const largeFileBytes = 64 * 1024 * 1024;
 const settleMs = 200;
+// Makes the stand-in build stall while it loads, as a large SSR bundle does.
+const slowBootVariable = 'SLOW_BOOT';
 
 let sandbox = '';
 
@@ -25,7 +27,12 @@ beforeAll(async () => {
   await mkdir(join(sandbox, 'dist', 'client'), { recursive: true });
   await Bun.write(
     join(sandbox, 'dist', 'server', 'server.js'),
-    "export default { fetch: () => new Response('ssr') };\n",
+    `if (Bun.env.${slowBootVariable}) {
+  await Bun.write(Bun.stdout, 'loading\\n');
+  await Bun.sleep(60_000);
+}
+export default { fetch: () => new Response('ssr') };
+`,
   );
   await Promise.all(
     ['serve.ts', 'server-config.ts', 'server-shutdown.ts'].map((script) =>
@@ -65,6 +72,26 @@ describe('shutdown', () => {
 });
 
 describe('the server process', () => {
+  it('exits cleanly when stopped while it loads', async () => {
+    const child = Bun.spawn(['bun', join(sandbox, 'scripts', 'serve.ts')], {
+      env: { ...parentEnv, [slowBootVariable]: '1' },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    try {
+      const reader = child.stdout.getReader();
+      const { value } = await reader.read();
+      reader.releaseLock();
+      expect(new TextDecoder().decode(value)).toContain('loading');
+
+      child.kill('SIGTERM');
+
+      expect(await child.exited).toBe(0);
+    } finally {
+      child.kill('SIGKILL');
+    }
+  });
+
   it('finishes the response in flight when stopped twice', async () => {
     await Bun.write(
       join(sandbox, 'dist', 'client', 'large.bin'),
