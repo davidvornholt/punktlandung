@@ -76,7 +76,6 @@ export type SeedResult =
   | { readonly status: 'skipped'; readonly tables: ReadonlyArray<string> }
   | { readonly status: 'seeded'; readonly counts: SeedCounts };
 
-/** App-Tabellen, die schon Zeilen haben. */
 const tablesWithRows = Effect.gen(function* () {
   const sql = yield* SqlClient;
   const tables = yield* sql<{ readonly tableName: string }>`
@@ -180,7 +179,6 @@ const createLeistungen = (plan: SamplePlan, ids: PlanIds) =>
     { discard: true },
   );
 
-/** Die IDs der angelegten Leistungen nach ihrem Schlüssel im Plan. */
 const loadLeistungIds = (
   halbjahre: ReadonlyArray<{
     readonly id: string;
@@ -298,7 +296,6 @@ const applyPlan = (plan: SamplePlan) =>
     } satisfies SeedCounts;
   });
 
-/** Legt die Beispieldaten für `today` an, sofern die Datenbank keine App-Daten hält. */
 export const seedPreview = (today: string) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;

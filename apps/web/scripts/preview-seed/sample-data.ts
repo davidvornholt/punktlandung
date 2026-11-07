@@ -297,7 +297,6 @@ const withReviewedPreparation = (
   );
 };
 
-/** Die belegten Fächer nach den Wechseln aller `years`. */
 const faecherAfter = (
   years: ReadonlyArray<SampleSchoolYear>,
 ): ReadonlyArray<SampleFach> =>
