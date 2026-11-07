@@ -52,7 +52,8 @@ COPY --chown=bun:bun --from=builder /app/apps/web/dist ./dist
 COPY --chown=bun:bun --from=builder /app/apps/web/scripts ./scripts
 COPY --chown=bun:bun --from=builder /app/apps/web/package.json ./package.json
 # Migration inputs: the deploy host runs `bun run db:migrate:deploy`
-# in this image as a oneshot before starting the server.
+# in this image as a oneshot before starting the server. Pull request previews
+# then run `bun run db:seed:preview`, which needs only the bundle in dist.
 COPY --chown=bun:bun --from=builder /app/apps/web/drizzle ./drizzle
 COPY --chown=bun:bun --from=builder /app/apps/web/src/shared/db ./src/shared/db
 

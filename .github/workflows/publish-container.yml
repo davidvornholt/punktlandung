@@ -145,6 +145,21 @@ jobs:
               bun run db:migrate:deploy
           done
 
+          # The preview host seeds sample data with only DATABASE_URL and HOME,
+          # on a read-only root. The second run must leave the data alone.
+          seed_env="$RUNNER_TEMP/punktlandung-seed.env"
+          grep '^DATABASE_URL=' "$env_file" >"$seed_env"
+          printf 'HOME=/tmp\n' >>"$seed_env"
+          for expected in 'Beispieldaten angelegt' 'bereits App-Daten'; do
+            output=$(docker run --rm --network host \
+              --read-only --tmpfs /tmp:rw,nosuid,nodev,noexec,size=64m \
+              --cap-drop ALL --security-opt no-new-privileges \
+              --env-file "$seed_env" punktlandung:pull-request \
+              bun run db:seed:preview)
+            printf '%s\n' "$output"
+            grep --quiet --fixed-strings "$expected" <<<"$output"
+          done
+
           container=punktlandung-pull-request-smoke
           trap 'docker rm --force "$container" >/dev/null 2>&1 || true' EXIT
           docker run --detach --rm --name "$container" --network host \
