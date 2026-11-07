@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
-    "build": "vite build",
+    "build": "vite build && bun run build:preview-seed",
+    "build:preview-seed": "bun build scripts/seed-preview.ts --target=bun --packages=external --outfile=dist/preview-seed/seed-preview.js",
     "start": "bun run scripts/serve.ts",
     "check-types": "tsc --noEmit",
     "test": "bun test && bun run test:stories",
@@ -18,6 +19,7 @@
     "db:generate": "bun --env-file=.env.local run drizzle-kit generate",
     "db:migrate": "bun --env-file=.env.local run scripts/migrate.ts",
     "db:migrate:deploy": "bun run scripts/migrate.ts",
+    "db:seed:preview": "bun run dist/preview-seed/seed-preview.js",
     "db:push": "bun --env-file=.env.local run drizzle-kit push",
     "db:studio": "bun --env-file=.env.local run drizzle-kit studio"
   },
