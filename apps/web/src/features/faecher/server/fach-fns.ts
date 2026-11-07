@@ -20,22 +20,22 @@ import {
 
 export const listFaecherFn = createServerFn({ method: 'GET' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.toStandardSchemaV1(FaecherQuery))
+  .validator(Schema.toStandardSchemaV1(FaecherQuery))
   .handler(({ data }) => runServerEffect(listFaecher(data.schoolYear)));
 
 export const createFachFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.toStandardSchemaV1(FachInput))
+  .validator(Schema.toStandardSchemaV1(FachInput))
   .handler(({ data }) => runServerEffect(createFach(data)));
 
 export const updateFachFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.toStandardSchemaV1(FachUpdate))
+  .validator(Schema.toStandardSchemaV1(FachUpdate))
   .handler(({ data }) => runServerEffect(updateFach(data)));
 
 export const archiveFachFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .inputValidator(Schema.toStandardSchemaV1(FachId))
+  .validator(Schema.toStandardSchemaV1(FachId))
   .handler(({ data }) =>
     runServerEffect(archiveFach(data.id, data.schoolYear)),
   );
