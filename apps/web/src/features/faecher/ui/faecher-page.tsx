@@ -8,7 +8,6 @@ import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import type { FachOperations } from './fach-operations.ts';
 import { FaecherManagement } from './faecher-management.tsx';
 
-/** Was die Fachverwaltung von einem Halbjahr braucht. */
 type SchuljahrMitNotensystem = {
   readonly schoolYear: string;
   readonly system: Notensystem;
@@ -20,7 +19,6 @@ export type FaecherPageOperations = FachOperations & {
 
 const heading = 'font-display text-3xl text-ink tracking-tight';
 
-/** Die Seite „Fächer“: die Schuljahre der Halbjahre und je Schuljahr die Fächer. */
 export const FaecherPage = ({
   operations,
 }: {

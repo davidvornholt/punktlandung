@@ -29,10 +29,6 @@ export const QueryError = ({
   </div>
 );
 
-/**
- * Lade- und Fehlerhinweise einer Liste. Scheitert erst das Neuladen, bleibt
- * die Liste stehen und der Fehler erscheint als Hinweis darüber.
- */
 export const ListQueryHints = ({
   errorText,
   isError,
