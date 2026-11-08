@@ -212,7 +212,6 @@ export const PreparationPanel = ({
               leistung: { ...previous.leistung, preparation: markdown },
             },
       );
-      setEditing(false);
     },
     onSettled: async () => {
       if (queryClient.isMutating({ mutationKey: saveKey }) === 1) {
@@ -271,7 +270,11 @@ export const PreparationPanel = ({
         }}
         onSave={(markdown) => {
           saveMutation.reset();
-          saveMutation.mutate(markdown.trim() === '' ? null : markdown);
+          // Nur das Speichern des Editors schließt ihn; ein Haken, der noch
+          // unterwegs war, als der Editor aufging, ließe sonst den Entwurf fallen.
+          saveMutation.mutate(markdown.trim() === '' ? null : markdown, {
+            onSuccess: () => setEditing(false),
+          });
         }}
         pending={saveMutation.isPending}
       />
