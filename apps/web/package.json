@@ -9,8 +9,9 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
-    "build": "vite build && bun run build:preview-seed",
+    "build": "vite build && bun run build:preview-seed && bun run build:cli",
     "build:preview-seed": "bun build scripts/seed-preview.ts --target=bun --packages=external --outfile=dist/preview-seed/seed-preview.js",
+    "build:cli": "bun build scripts/cli.ts --target=bun --packages=external --outfile=dist/cli/punktlandung.js",
     "start": "bun run scripts/serve.ts",
     "check-types": "tsc --noEmit",
     "test": "bun test && bun run test:stories",
@@ -20,10 +21,12 @@
     "db:migrate": "bun --env-file=.env.local run scripts/migrate.ts",
     "db:migrate:deploy": "bun run scripts/migrate.ts",
     "db:seed:preview": "bun run dist/preview-seed/seed-preview.js",
+    "cli": "bun run dist/cli/punktlandung.js",
     "db:push": "bun --env-file=.env.local run drizzle-kit push",
     "db:studio": "bun --env-file=.env.local run drizzle-kit studio"
   },
   "dependencies": {
+    "@effect/platform-bun": "4.1.2",
     "@effect/sql-pg": "4.1.2",
     "@fontsource-variable/hanken-grotesk": "^5.3.0",
     "@fontsource/spectral": "^5.3.0",
