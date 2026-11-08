@@ -16,6 +16,7 @@ Punktlandung is a single-user Noten tracker for a Baden-Württemberg Gymnasium. 
 - The database is app-private. Its schema, migrations, and config stay in `apps/web/src/shared/db`, not in a `packages/db` package.
 - Better Auth is the one non-Effect boundary, because it calls its glue itself and awaits plain promises. It owns `src/shared/auth` and uses the pg pool from `src/shared/db/pool.ts`, which the Effect layer doesn't share.
 - Sign-in is GitHub-only and admits a single immutable numeric account ID (`GITHUB_ALLOWED_ACCOUNT_ID`). Don't add user management.
+- Agents read the data only through the `punktlandung` command (`apps/web/scripts/cli.ts`, described for them in `apps/web/skills/punktlandung/SKILL.md`). On prod-1 it runs over a forced-command SSH key as the database role `punktlandung_agent`, which may only SELECT the tables granted in a migration. When a query the command uses starts reading another table, grant it in a new migration; the integration tests run as that role and fail until you do.
 
 ## Known gaps
 

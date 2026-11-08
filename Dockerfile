@@ -48,6 +48,8 @@ COPY --chown=bun:bun --from=prod-deps /app/node_modules /app/node_modules
 COPY --chown=bun:bun --from=prod-deps /app/apps/web/node_modules ./node_modules
 # The @punktlandung/ui workspace link must resolve at runtime.
 COPY --chown=bun:bun --from=builder /app/packages/ui /app/packages/ui
+# dist also holds the bundled `punktlandung` agent command, which
+# personal-infra's SSH door runs in this image as `bun run --silent cli`.
 COPY --chown=bun:bun --from=builder /app/apps/web/dist ./dist
 COPY --chown=bun:bun --from=builder /app/apps/web/scripts ./scripts
 COPY --chown=bun:bun --from=builder /app/apps/web/package.json ./package.json
