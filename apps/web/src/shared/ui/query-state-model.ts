@@ -14,7 +14,10 @@ export const determineQueryState = <T>({
   if (isPending) {
     return 'pending';
   }
-  if (isError) {
+  // Scheitert ein Neuladen im Hintergrund, behält die Abfrage ihre Daten. Dann
+  // bleibt der zuletzt geladene Stand stehen, und der Fehler erscheint als
+  // Hinweis darüber statt an seiner Stelle.
+  if (isError && data === undefined) {
     return 'error';
   }
   if (data === undefined || isEmpty(data)) {

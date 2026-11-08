@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import { zeugnisQueryOptions } from '../server/zeugnis-fns.ts';
 import type { Zeugnis } from '../services/zeugnis-service.ts';
 import { fachLabel } from './zeugnis-text.ts';
@@ -67,6 +69,7 @@ export const Zeugnisblatt = ({
 }) => {
   const zeugnisQuery = useQuery(zeugnisQueryOptions(halbjahrId));
   const zeugnis = zeugnisQuery.data;
+  const articleRef = useRef<HTMLElement>(null);
 
   if (zeugnisQuery.isPending) {
     return (
@@ -75,11 +78,13 @@ export const Zeugnisblatt = ({
       </div>
     );
   }
-  if (zeugnisQuery.isError || zeugnis === undefined) {
+  const retry = retryWithFocus(() => zeugnisQuery.refetch(), articleRef);
+  // Scheitert nur ein Neuladen, bleibt die zuletzt berechnete Vorschau stehen.
+  if (zeugnis === undefined) {
     return (
       <div className="mt-6">
         <QueryError
-          onRetry={() => zeugnisQuery.refetch()}
+          onRetry={retry}
           text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>
@@ -87,73 +92,88 @@ export const Zeugnisblatt = ({
   }
 
   return (
-    <article className="mt-6 border border-border-strong bg-surface p-6 shadow-featured sm:p-8">
-      <header className="border-border-strong border-b pb-4 text-center">
-        <p className="text-ink-faint text-xs uppercase tracking-widest">
-          Zeugnisvorschau
-        </p>
-        <h2 className="mt-1 font-display text-2xl text-ink tracking-tight">
-          Halbjahr {zeugnis.label} · {zeugnis.schoolYear}
-        </h2>
-      </header>
-      <table className="mt-4 w-full border-collapse">
-        <thead>
-          <tr className="border-border border-b text-left">
-            <th
-              className="py-2 pr-3 text-ink-faint text-xs uppercase tracking-widest"
-              scope="col"
-            >
-              Fach
-            </th>
-            <th
-              className="py-2 pr-3 text-ink-faint text-xs uppercase tracking-widest"
-              scope="col"
-            >
-              Noten
-            </th>
-            <th
-              className="py-2 text-ink-faint text-xs uppercase tracking-widest"
-              scope="col"
-            >
-              Halbjahresnote
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {zeugnis.zeilen.map((row) => (
-            <tr className="border-border border-b" key={row.fachId}>
-              <th
-                className="py-2 pr-3 text-left font-normal text-ink"
-                scope="row"
-              >
-                {fachLabel(row)}
-              </th>
-              <td className="py-2 pr-3 text-ink-muted text-sm">
-                {row.anzahlNoten}
-              </td>
-              <td className="py-2 font-display text-ink text-xl">
-                {row.anzeige ?? '—'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="mt-6 flex items-baseline justify-between">
-        <span className="text-ink-faint text-xs uppercase tracking-widest">
-          Schnitt aller Halbjahresnoten
-        </span>
-        <span className="font-display text-4xl text-ink tracking-tight">
-          {zeugnis.gesamtschnitt ?? '—'}
-        </span>
-      </p>
-      {zeugnis.zeilen.length === 0 ? (
-        <div className="mt-4 border border-border bg-surface-sunken p-4">
-          <p className="text-ink-muted">
-            Ohne Fächer bleibt das Zeugnisblatt leer. Lege zuerst Fächer an.
-          </p>
+    <>
+      {zeugnisQuery.isError ? (
+        <div className="mt-6">
+          <QueryError
+            onRetry={retry}
+            text="Das Zeugnis konnte nicht aktualisiert werden. Angezeigt wird die zuletzt berechnete Vorschau; prüfe die Verbindung und versuche es erneut."
+          />
         </div>
       ) : null}
-      <Jahresvorschau zeugnis={zeugnis} />
-    </article>
+      <article
+        aria-label="Zeugnisvorschau"
+        className="mt-6 border border-border-strong bg-surface p-6 shadow-featured sm:p-8"
+        ref={articleRef}
+        tabIndex={-1}
+      >
+        <header className="border-border-strong border-b pb-4 text-center">
+          <p className="text-ink-faint text-xs uppercase tracking-widest">
+            Zeugnisvorschau
+          </p>
+          <h2 className="mt-1 font-display text-2xl text-ink tracking-tight">
+            Halbjahr {zeugnis.label} · {zeugnis.schoolYear}
+          </h2>
+        </header>
+        <table className="mt-4 w-full border-collapse">
+          <thead>
+            <tr className="border-border border-b text-left">
+              <th
+                className="py-2 pr-3 text-ink-faint text-xs uppercase tracking-widest"
+                scope="col"
+              >
+                Fach
+              </th>
+              <th
+                className="py-2 pr-3 text-ink-faint text-xs uppercase tracking-widest"
+                scope="col"
+              >
+                Noten
+              </th>
+              <th
+                className="py-2 text-ink-faint text-xs uppercase tracking-widest"
+                scope="col"
+              >
+                Halbjahresnote
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {zeugnis.zeilen.map((row) => (
+              <tr className="border-border border-b" key={row.fachId}>
+                <th
+                  className="py-2 pr-3 text-left font-normal text-ink"
+                  scope="row"
+                >
+                  {fachLabel(row)}
+                </th>
+                <td className="py-2 pr-3 text-ink-muted text-sm">
+                  {row.anzahlNoten}
+                </td>
+                <td className="py-2 font-display text-ink text-xl">
+                  {row.anzeige ?? '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-6 flex items-baseline justify-between">
+          <span className="text-ink-faint text-xs uppercase tracking-widest">
+            Schnitt aller Halbjahresnoten
+          </span>
+          <span className="font-display text-4xl text-ink tracking-tight">
+            {zeugnis.gesamtschnitt ?? '—'}
+          </span>
+        </p>
+        {zeugnis.zeilen.length === 0 ? (
+          <div className="mt-4 border border-border bg-surface-sunken p-4">
+            <p className="text-ink-muted">
+              Ohne Fächer bleibt das Zeugnisblatt leer. Lege zuerst Fächer an.
+            </p>
+          </div>
+        ) : null}
+        <Jahresvorschau zeugnis={zeugnis} />
+      </article>
+    </>
   );
 };

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { halbjahreKey } from '#/shared/query/query-keys.ts';
 
 import {
   type HalbjahrDeletionRequest,
@@ -25,7 +26,7 @@ export const halbjahrMutationOptions = ({
 }) => {
   const closeAfterSuccess = () => {
     onEditorClose();
-    return queryClient.invalidateQueries({ queryKey: ['halbjahre'] });
+    return queryClient.invalidateQueries({ queryKey: halbjahreKey });
   };
   return {
     create: {
@@ -41,13 +42,13 @@ export const halbjahrMutationOptions = ({
       onError: (error: unknown, request: HalbjahrDeletionRequest) => {
         request.focusOwnership.release();
         return isProtectedHalbjahrDeletionError(error)
-          ? queryClient.invalidateQueries({ queryKey: ['halbjahre'] })
+          ? queryClient.invalidateQueries({ queryKey: halbjahreKey })
           : undefined;
       },
       onSuccess: (_result: unknown, request: HalbjahrDeletionRequest) => {
         onDeleted(request);
         return Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['halbjahre'] }),
+          queryClient.invalidateQueries({ queryKey: halbjahreKey }),
           queryClient.invalidateQueries({ queryKey: ['faecher'] }),
         ]);
       },
