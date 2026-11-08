@@ -94,6 +94,7 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
   const pendingByIdRef = useRef(new Map<string, (outcome: Outcome) => void>());
   const readsRef = useRef(0);
+  const finishReadRef = useRef<(() => void) | null>(null);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -129,6 +130,11 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
           (scenario === 'neuladen-scheitert' && read === 1)
         ) {
           return Promise.reject(new Error('Verbindung weg'));
+        }
+        if (scenario === 'neuladen-scheitert' && read === 2) {
+          return new Promise((resolve) => {
+            finishReadRef.current = () => resolve(notenRef.current);
+          });
         }
         return Promise.resolve(notenRef.current);
       },
@@ -194,6 +200,12 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
                 aria-label="Fail save"
                 data-testid="fail"
                 onClick={() => settleRef.current?.('failure')}
+                type="button"
+              />
+              <button
+                aria-label="Finish list read"
+                data-testid="finish-read"
+                onClick={() => finishReadRef.current?.()}
                 type="button"
               />
               <button

@@ -91,8 +91,26 @@ it('returns focus to the list after a successful refresh retry', async ({
   const retry = component.getByRole('button', { name: 'Erneut versuchen' });
   await retry.focus();
   await retry.press('Enter');
+  await component.getByTestId('finish-read').dispatchEvent('click');
   await expect(component.getByRole('alert')).toHaveCount(0);
   await expect(
     component.getByRole('region', { name: 'Notenliste' }),
   ).toBeFocused();
+});
+
+it('keeps focus in the edit form when a refresh retry finishes later', async ({
+  mount,
+}) => {
+  const component = await mount(
+    'features/noten/ui/noten-list/NeuladenScheitert',
+  );
+  await openEditor(firstRow(component));
+  await component.getByTestId('refetch').dispatchEvent('click');
+  const retry = component.getByRole('button', { name: 'Erneut versuchen' });
+  await retry.focus();
+  await retry.press('Enter');
+  await noteField(component).focus();
+  await component.getByTestId('finish-read').dispatchEvent('click');
+  await expect(component.getByRole('alert')).toHaveCount(0);
+  await expect(noteField(component)).toBeFocused();
 });

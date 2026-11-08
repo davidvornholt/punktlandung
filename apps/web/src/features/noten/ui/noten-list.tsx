@@ -69,6 +69,17 @@ const RefreshError = ({
     </div>
   ) : null;
 
+// Wer während des Neuladens anderswo weitergetippt hat, behält seinen Fokus.
+const focusUnlessMoved = (
+  origin: Element | null,
+  target: HTMLElement | null,
+) => {
+  const active = document.activeElement;
+  if (active === origin || active === document.body) {
+    target?.focus();
+  }
+};
+
 export const NotenList = ({
   halbjahr,
   faecher,
@@ -143,14 +154,14 @@ export const NotenList = ({
       </div>,
     );
   }
-  // Ein erfolgreicher Neuversuch nimmt seinen Knopf mit; der Fokus geht an
-  // die Liste.
-  const retry = () =>
-    notenQuery.refetch().then((result) => {
+  const retry = () => {
+    const origin = document.activeElement;
+    return notenQuery.refetch().then((result) => {
       if (result.isSuccess) {
-        focus.fallbackTriggerRef.current?.focus();
+        focusUnlessMoved(origin, focus.fallbackTriggerRef.current);
       }
     });
+  };
   if (noten === undefined) {
     return shell(
       <div className="mt-6">
