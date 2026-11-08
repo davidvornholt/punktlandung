@@ -93,7 +93,7 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
   const notenRef = useRef<ReadonlyArray<Leistung>>(initialNoten(scenario));
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
   const pendingByIdRef = useRef(new Map<string, (outcome: Outcome) => void>());
-  const firstReadRef = useRef(true);
+  const readsRef = useRef(0);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -122,11 +122,11 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
         notenRef.current = notenRef.current.filter((entry) => entry.id !== id);
       },
       list: () => {
-        const firstRead = firstReadRef.current;
-        firstReadRef.current = false;
+        const read = readsRef.current;
+        readsRef.current += 1;
         if (
-          (scenario === 'retry' && firstRead) ||
-          (scenario === 'neuladen-scheitert' && !firstRead)
+          (scenario === 'retry' && read === 0) ||
+          (scenario === 'neuladen-scheitert' && read === 1)
         ) {
           return Promise.reject(new Error('Verbindung weg'));
         }
