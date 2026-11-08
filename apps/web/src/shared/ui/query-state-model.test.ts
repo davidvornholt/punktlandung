@@ -50,4 +50,23 @@ describe('determineQueryState', () => {
       }),
     ).not.toBe('empty');
   });
+
+  it('behält nach einem gescheiterten Neuladen den zuletzt geladenen Stand', () => {
+    expect(
+      determineQueryState({
+        data: ['wert'],
+        isError: true,
+        isPending: false,
+        isEmpty,
+      }),
+    ).toBe('success');
+    expect(
+      determineQueryState({
+        data: [],
+        isError: true,
+        isPending: false,
+        isEmpty,
+      }),
+    ).toBe('empty');
+  });
 });

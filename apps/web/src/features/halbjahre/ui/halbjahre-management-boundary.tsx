@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-
+import { useRef, useState } from 'react';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
+import { halbjahreKey } from '#/shared/query/query-keys.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
-import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { ListQueryHints } from '#/shared/ui/query-state.tsx';
 import { determineQueryState } from '#/shared/ui/query-state-model.ts';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import {
   useHalbjahrDeletionCompletion,
@@ -50,13 +51,14 @@ export const HalbjahreManagementBoundary = ({
 }) => {
   const halbjahreQuery = useQuery({
     queryFn: operations.list,
-    queryKey: ['halbjahre'],
+    queryKey: halbjahreKey,
   });
   const [editTarget, setEditTarget] = useState<
     HalbjahrWithNotenCount | 'create' | null
   >(null);
   const formKey = editKey(editTarget);
   const focus = useFormFocus(formKey);
+  const sectionRef = useRef<HTMLElement>(null);
   const deletionCompletion = useHalbjahrDeletionCompletion(
     focus.formRef,
     focus.fallbackTriggerRef,
@@ -88,9 +90,10 @@ export const HalbjahreManagementBoundary = ({
     isEmpty: (values) => values.length === 0,
   });
   const formError = halbjahrFormError(createMutation, updateMutation);
+  const retry = retryWithFocus(() => halbjahreQuery.refetch(), sectionRef);
 
   return (
-    <section>
+    <section aria-label="Halbjahre" ref={sectionRef} tabIndex={-1}>
       <p className="sr-only" role="status">
         {deletionCompletion.message}
       </p>
@@ -140,19 +143,14 @@ export const HalbjahreManagementBoundary = ({
           />
         </div>
       )}
-      {queryState === 'pending' ? (
-        <div className="mt-4">
-          <LoadingHint text="Halbjahre werden geladen …" />
-        </div>
-      ) : null}
-      {queryState === 'error' ? (
-        <div className="mt-4">
-          <QueryError
-            onRetry={() => halbjahreQuery.refetch()}
-            text="Die Halbjahre konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
-          />
-        </div>
-      ) : null}
+      <ListQueryHints
+        errorText="Die Halbjahre konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+        isError={halbjahreQuery.isError}
+        onRetry={retry}
+        pendingText="Halbjahre werden geladen …"
+        refreshErrorText="Die Halbjahre konnten nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
+        state={queryState}
+      />
       {queryState === 'success' && halbjahre !== undefined ? (
         <HalbjahrList
           halbjahre={halbjahre}

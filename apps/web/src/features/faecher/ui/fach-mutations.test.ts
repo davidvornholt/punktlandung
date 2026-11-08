@@ -6,6 +6,7 @@ import type { FachOperations } from './fach-operations.ts';
 
 const operations: FachOperations = {
   archive: mock(() => Promise.resolve()),
+  list: mock(() => Promise.resolve([])),
   create: mock(() => Promise.resolve()),
   update: mock(() => Promise.resolve()),
 };

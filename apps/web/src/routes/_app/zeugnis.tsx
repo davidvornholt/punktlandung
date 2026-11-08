@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
 import { defaultHalbjahr } from '#/features/halbjahre/services/current-halbjahr.ts';
@@ -9,33 +9,42 @@ import { Zeugnisblatt } from '#/features/zeugnis/ui/zeugnisblatt.tsx';
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 
 const ZeugnisPage = () => {
   const halbjahreQuery = useQuery(halbjahreQueryOptions);
   const halbjahre = halbjahreQuery.data;
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const title = (
+    <h1
+      className="font-display text-3xl text-ink tracking-tight"
+      ref={headingRef}
+      tabIndex={-1}
+    >
+      Zeugnis
+    </h1>
+  );
 
   if (halbjahreQuery.isPending) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Zeugnis
-        </h1>
+        {title}
         <div className="mt-6">
           <LoadingHint text="Zeugnis wird geladen …" />
         </div>
       </>
     );
   }
-  if (halbjahreQuery.isError || halbjahre === undefined) {
+  const retry = retryWithFocus(() => halbjahreQuery.refetch(), headingRef);
+  // Scheitert nur ein Neuladen, bleibt das zuletzt geladene Zeugnis stehen.
+  if (halbjahre === undefined) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Zeugnis
-        </h1>
+        {title}
         <div className="mt-6">
           <QueryError
-            onRetry={() => halbjahreQuery.refetch()}
+            onRetry={retry}
             text="Die Halbjahre für das Zeugnis konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
@@ -49,7 +58,15 @@ const ZeugnisPage = () => {
 
   return (
     <>
-      <h1 className="font-display text-3xl text-ink tracking-tight">Zeugnis</h1>
+      {title}
+      {halbjahreQuery.isError ? (
+        <div className="mt-6">
+          <QueryError
+            onRetry={retry}
+            text="Die Halbjahre für das Zeugnis konnten nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
+          />
+        </div>
+      ) : null}
       {halbjahr === null ? (
         <div className="mt-6 border border-border bg-surface-sunken p-8">
           <p className="text-ink">Noch kein Halbjahr, noch kein Zeugnis.</p>

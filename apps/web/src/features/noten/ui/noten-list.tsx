@@ -9,6 +9,7 @@ import { notenKey } from '#/shared/query/query-keys.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { iconButtonClass, iconSize, iconStroke } from '#/shared/ui/icon.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import type { Leistung } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
 import type { PreparationLinkRenderer } from './note-row.tsx';
@@ -48,6 +49,26 @@ const preparationLink: PreparationLinkRenderer = (note, label) => (
     <ListChecks aria-hidden={true} size={iconSize} strokeWidth={iconStroke} />
   </Link>
 );
+
+/**
+ * A failed refresh keeps the list already shown, so an open edit stays mounted
+ * with its unsaved input; this banner says the list may be out of date.
+ */
+const RefreshError = ({
+  show,
+  onRetry,
+}: {
+  readonly show: boolean;
+  readonly onRetry: () => Promise<unknown>;
+}) =>
+  show ? (
+    <div className="mt-6">
+      <QueryError
+        onRetry={onRetry}
+        text="Die Notenliste konnte nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
+      />
+    </div>
+  ) : null;
 
 export const NotenList = ({
   halbjahr,
@@ -123,74 +144,73 @@ export const NotenList = ({
       </div>,
     );
   }
-  if (notenQuery.isError || noten === undefined) {
+  const retry = retryWithFocus(
+    () => notenQuery.refetch(),
+    focus.fallbackTriggerRef,
+  );
+  if (noten === undefined) {
     return shell(
       <div className="mt-6">
         <QueryError
-          onRetry={() =>
-            notenQuery.refetch().then((result) => {
-              if (result.isSuccess) {
-                focus.fallbackTriggerRef.current?.focus();
-              }
-            })
-          }
+          onRetry={retry}
           text="Die Notenliste konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>,
     );
   }
-  if (noten.length === 0) {
-    return shell(
-      <div className="mt-6 border border-border bg-surface-sunken p-6">
-        <p className="text-ink-muted">{emptyNotenHint(faecher.length > 0)}</p>
-      </div>,
-    );
-  }
-
   return shell(
-    <NotenCards
-      deleteErrors={deleteErrors}
-      deleteMutation={deleteMutation}
-      editNoteId={editTarget?.id ?? null}
-      editPending={editPending}
-      form={
-        editTarget === null ? null : (
-          <NoteForm
-            error={updateErrorText(updateErrors.get(editTarget.id))}
-            faecher={faecher}
-            formRef={focus.formRef}
-            halbjahr={halbjahr}
-            key={editTarget.id}
-            note={editTarget}
-            onCancel={() => setEditTarget(null)}
-            onSave={(values) => {
-              forgetUpdateError(editTarget.id);
-              updateMutation.mutate({ ...values, id: editTarget.id });
-            }}
-            pending={editPending}
-          />
-        )
-      }
-      noten={noten}
-      onDelete={(id) => {
-        setDeleteErrors((errors) => withoutNote(errors, id));
-        deleteMutation.mutate(id);
-      }}
-      onEdit={(note, trigger) => {
-        focus.rememberTrigger(trigger);
-        /*
-         * Wer eine gescheiterte Note erneut öffnet, hat den Fehler gesehen;
-         * er darf weder das frische Formular noch die wieder geschlossene
-         * Zeile weiter behaupten.
-         */
-        if (note !== null) {
-          forgetUpdateError(note.id);
-        }
-        setEditTarget(note);
-      }}
-      preparationLink={preparationLink}
-      system={halbjahr.system}
-      updateErrors={updateErrors}
-    />,
+    <>
+      <RefreshError onRetry={retry} show={notenQuery.isError} />
+      {noten.length === 0 ? (
+        <div className="mt-6 border border-border bg-surface-sunken p-6">
+          <p className="text-ink-muted">{emptyNotenHint(faecher.length > 0)}</p>
+        </div>
+      ) : (
+        <NotenCards
+          deleteErrors={deleteErrors}
+          deleteMutation={deleteMutation}
+          editNoteId={editTarget?.id ?? null}
+          editPending={editPending}
+          form={
+            editTarget === null ? null : (
+              <NoteForm
+                error={updateErrorText(updateErrors.get(editTarget.id))}
+                faecher={faecher}
+                formRef={focus.formRef}
+                halbjahr={halbjahr}
+                key={editTarget.id}
+                note={editTarget}
+                onCancel={() => setEditTarget(null)}
+                onSave={(values) => {
+                  forgetUpdateError(editTarget.id);
+                  updateMutation.mutate({ ...values, id: editTarget.id });
+                }}
+                pending={editPending}
+              />
+            )
+          }
+          noten={noten}
+          onDelete={(id) => {
+            setDeleteErrors((errors) => withoutNote(errors, id));
+            deleteMutation.mutate(id);
+          }}
+          onEdit={(note, trigger) => {
+            focus.rememberTrigger(trigger);
+            /*
+             * Wer eine gescheiterte Note erneut öffnet, hat den Fehler gesehen;
+             * er darf weder das frische Formular noch die wieder geschlossene
+             * Zeile weiter behaupten.
+             */
+            if (note !== null) {
+              forgetUpdateError(note.id);
+            }
+            setEditTarget(note);
+          }}
+          preparationLink={preparationLink}
+          system={halbjahr.system}
+          updateErrors={updateErrors}
+        />
+      )}
+    </>,
   );
 };

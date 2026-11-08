@@ -1,12 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
+import { halbjahreKey } from '#/shared/query/query-keys.ts';
 
 import { HalbjahrDeletionConsequenceChanged } from '../errors/halbjahr-errors.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import type { HalbjahrOperations } from './halbjahr-operations.ts';
 import { HalbjahreManagementBoundary } from './halbjahre-management-boundary.tsx';
 
-type Scenario = 'next' | 'previous' | 'single' | 'stale';
+type Scenario = 'neuladen-scheitert' | 'next' | 'previous' | 'single' | 'stale';
 type DeletionOutcome = 'stale' | 'success';
 const fourDigitYearLength = 4;
 
@@ -81,6 +82,8 @@ const HalbjahreManagementScenario = ({
   readonly scenario: Scenario;
 }) => {
   const halbjahreRef = useRef(initialHalbjahre(scenario));
+  const readsRef = useRef(0);
+  const finishReadRef = useRef<(() => void) | null>(null);
   const settleDeletionRef = useRef<((outcome: DeletionOutcome) => void) | null>(
     null,
   );
@@ -115,10 +118,22 @@ const HalbjahreManagementScenario = ({
           (halbjahr) => halbjahr.id !== input.id,
         );
       },
-      list: () => Promise.resolve(halbjahreRef.current),
+      list: () => {
+        const read = readsRef.current;
+        readsRef.current += 1;
+        if (scenario === 'neuladen-scheitert' && read === 1) {
+          return Promise.reject(new Error('Verbindung weg'));
+        }
+        if (scenario === 'neuladen-scheitert' && read === 2) {
+          return new Promise((resolve) => {
+            finishReadRef.current = () => resolve(halbjahreRef.current);
+          });
+        }
+        return Promise.resolve(halbjahreRef.current);
+      },
       update: () => Promise.resolve(),
     }),
-    [],
+    [scenario],
   );
 
   return (
@@ -139,10 +154,26 @@ const HalbjahreManagementScenario = ({
           onClick={() => settleDeletionRef.current?.('stale')}
           type="button"
         />
+        <button
+          aria-label="Refetch list"
+          data-testid="refetch"
+          onClick={() => queryClient.refetchQueries({ queryKey: halbjahreKey })}
+          type="button"
+        />
+        <button
+          aria-label="Finish read"
+          data-testid="finish-read"
+          onClick={() => finishReadRef.current?.()}
+          type="button"
+        />
       </div>
     </QueryClientProvider>
   );
 };
+
+export const NeuladenScheitert = () => (
+  <HalbjahreManagementScenario scenario="neuladen-scheitert" />
+);
 
 export const Next = () => <HalbjahreManagementScenario scenario="next" />;
 

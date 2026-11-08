@@ -8,6 +8,7 @@ import {
 import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
+import { notenKey } from '#/shared/query/query-keys.ts';
 import type { Leistung } from '../services/noten-service.ts';
 import { NotenList } from './noten-list.tsx';
 import type { NotenOperations } from './noten-operations.ts';
@@ -16,6 +17,7 @@ type Outcome = 'failure' | 'success';
 /** `ohne-fach…`: jedes Fach des Schuljahrs ist archiviert. */
 type Scenario =
   | 'letzte-note'
+  | 'neuladen-scheitert'
   | 'ohne-fach-ohne-note'
   | 'ohne-fach'
   | 'standard'
@@ -91,7 +93,8 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
   const notenRef = useRef<ReadonlyArray<Leistung>>(initialNoten(scenario));
   const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
   const pendingByIdRef = useRef(new Map<string, (outcome: Outcome) => void>());
-  const firstReadRef = useRef(true);
+  const readsRef = useRef(0);
+  const finishReadRef = useRef<(() => void) | null>(null);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -120,9 +123,18 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
         notenRef.current = notenRef.current.filter((entry) => entry.id !== id);
       },
       list: () => {
-        if (scenario === 'retry' && firstReadRef.current) {
-          firstReadRef.current = false;
+        const read = readsRef.current;
+        readsRef.current += 1;
+        if (
+          (scenario === 'retry' && read === 0) ||
+          (scenario === 'neuladen-scheitert' && read === 1)
+        ) {
           return Promise.reject(new Error('Verbindung weg'));
+        }
+        if (scenario === 'neuladen-scheitert' && read === 2) {
+          return new Promise((resolve) => {
+            finishReadRef.current = () => resolve(notenRef.current);
+          });
         }
         return Promise.resolve(notenRef.current);
       },
@@ -190,6 +202,22 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
                 onClick={() => settleRef.current?.('failure')}
                 type="button"
               />
+              <button
+                aria-label="Finish list read"
+                data-testid="finish-read"
+                onClick={() => finishReadRef.current?.()}
+                type="button"
+              />
+              <button
+                aria-label="Refetch list"
+                data-testid="refetch"
+                onClick={() =>
+                  queryClient.refetchQueries({
+                    queryKey: notenKey(halbjahr.id),
+                  })
+                }
+                type="button"
+              />
             </div>
           </QueryClientProvider>
         ),
@@ -210,3 +238,7 @@ export const OhneFachOhneNote = () => (
 );
 
 export const Retry = () => <NotenListScenario scenario="retry" />;
+
+export const NeuladenScheitert = () => (
+  <NotenListScenario scenario="neuladen-scheitert" />
+);

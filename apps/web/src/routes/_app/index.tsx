@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useRef } from 'react';
 
 import { LearnedToday } from '#/features/lernen/ui/learned-today.tsx';
 import {
@@ -12,45 +13,60 @@ import { toSechser } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import { StatCard } from '#/shared/ui/stat-card.tsx';
 
 const Overview = () => {
   const trendQuery = useQuery(trendQueryOptions);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const title = (
+    <h1
+      className="font-display text-3xl text-ink tracking-tight"
+      ref={headingRef}
+      tabIndex={-1}
+    >
+      Übersicht
+    </h1>
+  );
   if (trendQuery.isPending) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Übersicht
-        </h1>
+        {title}
         <div className="mt-6">
           <LoadingHint text="Übersicht wird geladen …" />
         </div>
       </>
     );
   }
-  if (trendQuery.isError) {
+  const retry = retryWithFocus(() => trendQuery.refetch(), headingRef);
+  const trend = trendQuery.data;
+  // Scheitert nur ein Neuladen, bleibt die Übersicht samt Lerntag-Eingabe stehen.
+  if (trend === undefined) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Übersicht
-        </h1>
+        {title}
         <div className="mt-6">
           <QueryError
-            onRetry={() => trendQuery.refetch()}
+            onRetry={retry}
             text="Die Übersicht konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
       </>
     );
   }
-  const trend = trendQuery.data;
   const schnitt = trend.at(-1)?.schnitt ?? null;
 
   return (
     <>
-      <h1 className="font-display text-3xl text-ink tracking-tight">
-        Übersicht
-      </h1>
+      {title}
+      {trendQuery.isError ? (
+        <div className="mt-6">
+          <QueryError
+            onRetry={retry}
+            text="Die Übersicht konnte nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
+          />
+        </div>
+      ) : null}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           detail={
