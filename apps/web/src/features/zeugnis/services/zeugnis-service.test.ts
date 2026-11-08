@@ -52,6 +52,32 @@ describe('Jahresvorschau', () => {
     ]);
   });
 
+  it('rundet einen exakten Schnitt von 2,5 zur schlechteren Note', () => {
+    const dreiZuZwei: SchoolYearFach = {
+      ...fach,
+      gewichtung: {
+        ...fach.gewichtung,
+        verhaeltnis: { schriftlich: 3, muendlich: 2 },
+      },
+    };
+    // Schriftlich 2,8 und mündlich 2,05 ergeben bei 3:2 exakt 2,5.
+    const noten = [
+      { value: '2', weight: '1', kind: 'klausur' as const },
+      { value: '3', weight: '4', kind: 'klausur' as const },
+      { value: '2.25', weight: '1', kind: 'muendlich' as const },
+      { value: '2', weight: '4', kind: 'muendlich' as const },
+    ].map((note) => ({ ...note, subjectId: fach.id }));
+    expect(calculateJahresvorschau(noten, [dreiZuZwei])).toEqual([
+      {
+        fachId: fach.id,
+        fachName: fach.name,
+        archived: false,
+        note: 3,
+        grenzfall: true,
+      },
+    ]);
+  });
+
   it('verlangt ausdrücklich erstes und zweites Halbjahr', () => {
     expect(isCompleteSchoolYear([{ half: 1 }])).toBe(false);
     expect(isCompleteSchoolYear([{ half: 1 }, { half: 1 }])).toBe(false);

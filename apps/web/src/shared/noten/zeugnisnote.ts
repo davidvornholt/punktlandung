@@ -12,6 +12,15 @@ const halbeNote = 0.5;
 const grenzfallTolerance = 0.1;
 const grenzfallScale = 1_000_000;
 const roundingFactor = 100;
+const noisePrecision = 1_000_000_000;
+
+/**
+ * Rundet halb auf, nachdem es das Gleitkommarauschen der Gewichtung entfernt
+ * hat: Ein exakter Schnitt von 2,5 kommt oft als 2,4999999999999996 an und
+ * würde sonst abgerundet.
+ */
+const roundHalfUp = (value: number): number =>
+  Math.round(Math.round(value * noisePrecision) / noisePrecision);
 
 /**
  * Halbjahresnote in Viertelstufen (1; 1,25 = "1-"; 1,5 = "1-2"; 1,75 = "2+").
@@ -19,9 +28,9 @@ const roundingFactor = 100;
  */
 export const halbjahresnote = (average: number, system: Notensystem): number =>
   system === 'punkte'
-    ? clamp(Math.round(average), minNotenpunkte, maxNotenpunkte)
+    ? clamp(roundHalfUp(average), minNotenpunkte, maxNotenpunkte)
     : clamp(
-        Math.round(average * quarterStepsPerNote) / quarterStepsPerNote,
+        roundHalfUp(average * quarterStepsPerNote) / quarterStepsPerNote,
         bestNote,
         worstNote,
       );
@@ -37,7 +46,7 @@ export type Jahresnote = {
  * schlechteren Note und markiert den Grenzfall.
  */
 export const jahresnote = (average: number): Jahresnote => {
-  const note = clamp(Math.round(average), bestNote, worstNote);
+  const note = clamp(roundHalfUp(average), bestNote, worstNote);
   const scaled = Math.round(average * grenzfallScale);
   const rest = scaled % grenzfallScale;
   const distance = Math.abs(rest - halbeNote * grenzfallScale);

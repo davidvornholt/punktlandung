@@ -18,6 +18,12 @@ describe('halbjahresnote', () => {
     expect(halbjahresnote(10.6, 'punkte')).toBe(11);
     expect(halbjahresnote(15.4, 'punkte')).toBe(15);
   });
+
+  it('rundet einen exakten Grenzwert trotz Gleitkommarauschen', () => {
+    // So rechnet der Fachschnitt exakt 11,5 P. bzw. 1,375 aus (Bereiche 3:1).
+    expect(halbjahresnote(11.499_999_999_999_998, 'punkte')).toBe(12);
+    expect(halbjahresnote(1.374_999_999_999_999_8, 'sechser')).toBe(1.5);
+  });
 });
 
 describe('jahresnote', () => {
@@ -29,6 +35,13 @@ describe('jahresnote', () => {
   it('markiert ,5-Grenzfälle und rundet pessimistisch', () => {
     expect(jahresnote(2.5)).toEqual({ note: 3, grenzfall: true });
     expect(jahresnote(2.55)).toEqual({ note: 3, grenzfall: true });
+  });
+
+  it('rundet einen exakten ,5-Schnitt trotz Gleitkommarauschen pessimistisch', () => {
+    expect(jahresnote(2.499_999_999_999_999_6)).toEqual({
+      note: 3,
+      grenzfall: true,
+    });
   });
 
   it('behandelt beide Toleranz-Endpunkte dezimalsicher', () => {
