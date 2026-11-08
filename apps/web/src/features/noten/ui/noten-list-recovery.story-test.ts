@@ -2,6 +2,7 @@ import { expect, test as it } from '@playwright/test';
 import {
   editForm,
   firstRow,
+  noteField,
   openEditor,
   save,
   secondRow,
@@ -67,4 +68,15 @@ it('returns focus to the list after a successful retry', async ({ mount }) => {
   await expect(
     component.getByRole('region', { name: 'Notenliste' }),
   ).toBeFocused();
+});
+
+it('keeps an open edit when a background refresh fails', async ({ mount }) => {
+  const component = await mount(
+    'features/noten/ui/noten-list/NeuladenScheitert',
+  );
+  await openEditor(firstRow(component));
+  await noteField(component).fill('4');
+  await component.getByTestId('refetch').dispatchEvent('click');
+  await expect(component.getByRole('alert')).toBeVisible();
+  await expect(noteField(component)).toHaveValue('4');
 });

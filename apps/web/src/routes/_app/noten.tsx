@@ -42,27 +42,20 @@ const NotenPage = () => {
       </>
     );
   }
-  if (
-    halbjahreQuery.isError ||
-    faecherQuery.isError ||
-    halbjahre === undefined ||
-    (halbjahr !== null && faecher === undefined)
-  ) {
+  const retry = () =>
+    Promise.all([
+      halbjahreQuery.isError ? halbjahreQuery.refetch() : Promise.resolve(),
+      faecherQuery.isError ? faecherQuery.refetch() : Promise.resolve(),
+    ]);
+  // A failed refresh keeps the page already shown, so the note entry bar and
+  // an open edit in the list stay mounted with their unsaved input.
+  if (halbjahre === undefined || (halbjahr !== null && faecher === undefined)) {
     return (
       <>
         <h1 className="font-display text-3xl text-ink tracking-tight">Noten</h1>
         <div className="mt-6">
           <QueryError
-            onRetry={() =>
-              Promise.all([
-                halbjahreQuery.isError
-                  ? halbjahreQuery.refetch()
-                  : Promise.resolve(),
-                faecherQuery.isError
-                  ? faecherQuery.refetch()
-                  : Promise.resolve(),
-              ])
-            }
+            onRetry={retry}
             text="Halbjahre oder Fächer konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
           />
         </div>
@@ -73,6 +66,14 @@ const NotenPage = () => {
   return (
     <>
       <h1 className="font-display text-3xl text-ink tracking-tight">Noten</h1>
+      {halbjahreQuery.isError || faecherQuery.isError ? (
+        <div className="mt-6">
+          <QueryError
+            onRetry={retry}
+            text="Halbjahre oder Fächer konnten nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
+          />
+        </div>
+      ) : null}
       {halbjahr === null ? (
         <div className="mt-6 border border-border bg-surface-sunken p-8">
           <p className="text-ink">Es gibt noch kein Halbjahr.</p>
