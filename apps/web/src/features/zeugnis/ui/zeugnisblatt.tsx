@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { type ReactNode, useRef } from 'react';
 
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
@@ -69,29 +69,34 @@ export const Zeugnisblatt = ({
 }) => {
   const zeugnisQuery = useQuery(zeugnisQueryOptions(halbjahrId));
   const zeugnis = zeugnisQuery.data;
-  const articleRef = useRef<HTMLElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const shell = (children: ReactNode) => (
+    <section aria-label="Zeugnisvorschau" ref={sectionRef} tabIndex={-1}>
+      {children}
+    </section>
+  );
 
   if (zeugnisQuery.isPending) {
-    return (
+    return shell(
       <div className="mt-6">
         <LoadingHint text="Zeugnis wird berechnet …" />
-      </div>
+      </div>,
     );
   }
-  const retry = retryWithFocus(() => zeugnisQuery.refetch(), articleRef);
+  const retry = retryWithFocus(() => zeugnisQuery.refetch(), sectionRef);
   // Scheitert nur ein Neuladen, bleibt die zuletzt berechnete Vorschau stehen.
   if (zeugnis === undefined) {
-    return (
+    return shell(
       <div className="mt-6">
         <QueryError
           onRetry={retry}
           text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
         />
-      </div>
+      </div>,
     );
   }
 
-  return (
+  return shell(
     <>
       {zeugnisQuery.isError ? (
         <div className="mt-6">
@@ -101,12 +106,7 @@ export const Zeugnisblatt = ({
           />
         </div>
       ) : null}
-      <article
-        aria-label="Zeugnisvorschau"
-        className="mt-6 border border-border-strong bg-surface p-6 shadow-featured sm:p-8"
-        ref={articleRef}
-        tabIndex={-1}
-      >
+      <article className="mt-6 border border-border-strong bg-surface p-6 shadow-featured sm:p-8">
         <header className="border-border-strong border-b pb-4 text-center">
           <p className="text-ink-faint text-xs uppercase tracking-widest">
             Zeugnisvorschau
@@ -174,6 +174,6 @@ export const Zeugnisblatt = ({
         ) : null}
         <Jahresvorschau zeugnis={zeugnis} />
       </article>
-    </>
+    </>,
   );
 };

@@ -29,11 +29,19 @@ export const FaecherPage = ({
     queryKey: halbjahreKey,
   });
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // Die Überschrift steht in jedem Zustand an derselben Stelle, damit ein
+  // erfolgreicher neuer Versuch nach gescheitertem ersten Laden sie fokussieren
+  // kann.
+  const title = (
+    <h1 className={heading} ref={headingRef} tabIndex={-1}>
+      Fächer
+    </h1>
+  );
   const halbjahre = halbjahreQuery.data;
   if (halbjahreQuery.isPending) {
     return (
       <>
-        <h1 className={heading}>Fächer</h1>
+        {title}
         <div className="mt-6">
           <LoadingHint text="Fächer werden geladen …" />
         </div>
@@ -46,7 +54,7 @@ export const FaecherPage = ({
   if (halbjahre === undefined) {
     return (
       <>
-        <h1 className={heading}>Fächer</h1>
+        {title}
         <div className="mt-6">
           <QueryError
             onRetry={retry}
@@ -63,9 +71,7 @@ export const FaecherPage = ({
   );
   return (
     <>
-      <h1 className={heading} ref={headingRef} tabIndex={-1}>
-        Fächer
-      </h1>
+      {title}
       <p className="mt-2 text-ink-muted">
         Fächer samt Gewichtung, wie die Lehrkraft sie zu Schuljahresbeginn
         verkündet hat. Änderungen gelten nur für das gewählte Schuljahr.

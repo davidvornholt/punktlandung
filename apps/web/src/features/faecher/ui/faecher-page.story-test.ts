@@ -63,6 +63,20 @@ it('returns focus to the page heading after a successful Halbjahre retry', async
   ).toBeFocused();
 });
 
+it('focuses the page heading after a successful retry of the first load', async ({
+  mount,
+}) => {
+  const component = await mount(story('HalbjahreErstesLadenScheitert'));
+  const retry = component.getByRole('button', { name: 'Erneut versuchen' });
+  await retry.focus();
+  await retry.press('Enter');
+  await component.getByTestId('finish-read').dispatchEvent('click');
+  await expect(component.getByText('Mathematik')).toBeVisible();
+  await expect(
+    component.getByRole('heading', { level: 1, name: 'Fächer' }),
+  ).toBeFocused();
+});
+
 it('keeps focus in the draft when a refresh retry finishes later', async ({
   mount,
 }) => {

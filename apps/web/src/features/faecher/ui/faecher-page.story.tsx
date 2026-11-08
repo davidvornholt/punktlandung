@@ -6,8 +6,7 @@ import { faecherKey, halbjahreKey } from '#/shared/query/query-keys.ts';
 import type { Fach } from '../services/fach-service.ts';
 import { FaecherPage, type FaecherPageOperations } from './faecher-page.tsx';
 
-/** Welche Abfrage beim zweiten Lesen scheitert; das dritte Lesen wartet auf `finish-read`. */
-type Scenario = 'faecher' | 'halbjahre';
+type Scenario = 'faecher' | 'halbjahre' | 'halbjahre-erstes-laden';
 
 const schoolYear = '2026/27';
 const halbjahre = [{ schoolYear, system: 'sechser' }] as const;
@@ -34,16 +33,19 @@ const FaecherPageScenario = ({ scenario }: { readonly scenario: Scenario }) => {
       }),
   );
   const operations = useMemo<FaecherPageOperations>(() => {
+    const firstLoad = scenario === 'halbjahre-erstes-laden';
+    const failingQuery = firstLoad ? 'halbjahre' : scenario;
+    const failingRead = firstLoad ? 0 : 1;
     const read = <T,>(own: Scenario, value: T): Promise<T> => {
-      if (scenario !== own) {
+      if (own !== failingQuery) {
         return Promise.resolve(value);
       }
       const count = readsRef.current;
       readsRef.current += 1;
-      if (count === 1) {
+      if (count === failingRead) {
         return Promise.reject(new Error('Verbindung weg'));
       }
-      if (count === 2) {
+      if (count === failingRead + 1) {
         return new Promise((resolve) => {
           finishReadRef.current = () => resolve(value);
         });
@@ -93,4 +95,8 @@ export const FaecherNeuladenScheitert = () => (
 
 export const HalbjahreNeuladenScheitert = () => (
   <FaecherPageScenario scenario="halbjahre" />
+);
+
+export const HalbjahreErstesLadenScheitert = () => (
+  <FaecherPageScenario scenario="halbjahre-erstes-laden" />
 );

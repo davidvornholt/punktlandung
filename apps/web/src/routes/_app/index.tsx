@@ -19,12 +19,19 @@ import { StatCard } from '#/shared/ui/stat-card.tsx';
 const Overview = () => {
   const trendQuery = useQuery(trendQueryOptions);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const title = (
+    <h1
+      className="font-display text-3xl text-ink tracking-tight"
+      ref={headingRef}
+      tabIndex={-1}
+    >
+      Übersicht
+    </h1>
+  );
   if (trendQuery.isPending) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Übersicht
-        </h1>
+        {title}
         <div className="mt-6">
           <LoadingHint text="Übersicht wird geladen …" />
         </div>
@@ -37,9 +44,7 @@ const Overview = () => {
   if (trend === undefined) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Übersicht
-        </h1>
+        {title}
         <div className="mt-6">
           <QueryError
             onRetry={retry}
@@ -53,13 +58,7 @@ const Overview = () => {
 
   return (
     <>
-      <h1
-        className="font-display text-3xl text-ink tracking-tight"
-        ref={headingRef}
-        tabIndex={-1}
-      >
-        Übersicht
-      </h1>
+      {title}
       {trendQuery.isError ? (
         <div className="mt-6">
           <QueryError

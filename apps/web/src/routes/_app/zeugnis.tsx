@@ -16,13 +16,20 @@ const ZeugnisPage = () => {
   const halbjahre = halbjahreQuery.data;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const title = (
+    <h1
+      className="font-display text-3xl text-ink tracking-tight"
+      ref={headingRef}
+      tabIndex={-1}
+    >
+      Zeugnis
+    </h1>
+  );
 
   if (halbjahreQuery.isPending) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Zeugnis
-        </h1>
+        {title}
         <div className="mt-6">
           <LoadingHint text="Zeugnis wird geladen …" />
         </div>
@@ -34,9 +41,7 @@ const ZeugnisPage = () => {
   if (halbjahre === undefined) {
     return (
       <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Zeugnis
-        </h1>
+        {title}
         <div className="mt-6">
           <QueryError
             onRetry={retry}
@@ -53,13 +58,7 @@ const ZeugnisPage = () => {
 
   return (
     <>
-      <h1
-        className="font-display text-3xl text-ink tracking-tight"
-        ref={headingRef}
-        tabIndex={-1}
-      >
-        Zeugnis
-      </h1>
+      {title}
       {halbjahreQuery.isError ? (
         <div className="mt-6">
           <QueryError
