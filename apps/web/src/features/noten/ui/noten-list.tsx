@@ -69,7 +69,6 @@ const RefreshError = ({
     </div>
   ) : null;
 
-// Wer während des Neuladens anderswo weitergetippt hat, behält seinen Fokus.
 const focusUnlessMoved = (
   origin: Element | null,
   target: HTMLElement | null,
