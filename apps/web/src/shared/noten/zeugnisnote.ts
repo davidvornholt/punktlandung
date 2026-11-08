@@ -12,15 +12,14 @@ const halbeNote = 0.5;
 const grenzfallTolerance = 0.1;
 const grenzfallScale = 1_000_000;
 const roundingFactor = 100;
-const noisePrecision = 1_000_000_000;
-
-/**
- * Rundet halb auf, nachdem es das Gleitkommarauschen der Gewichtung entfernt
- * hat: Ein exakter Schnitt von 2,5 kommt oft als 2,4999999999999996 an und
- * würde sonst abgerundet.
+/*
+ * Liegt über dem Rechenfehler der Gewichtung (gemessen unter 10⁻¹³ bei Werten
+ * bis 24) und unter dem Abstand echter Schnitte zur Grenze: Gespeicherte Noten
+ * und Gewichte erreichen schon 3·10⁻¹¹.
  */
-const roundHalfUp = (value: number): number =>
-  Math.round(Math.round(value * noisePrecision) / noisePrecision);
+const floatNoise = 1e-12;
+
+const roundHalfUp = (value: number): number => Math.round(value + floatNoise);
 
 /**
  * Halbjahresnote in Viertelstufen (1; 1,25 = "1-"; 1,5 = "1-2"; 1,75 = "2+").

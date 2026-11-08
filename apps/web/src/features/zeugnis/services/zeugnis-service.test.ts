@@ -78,6 +78,38 @@ describe('Jahresvorschau', () => {
     ]);
   });
 
+  it('rundet einen Schnitt knapp unter 2,5 weiter zur besseren Note', () => {
+    const knappDarunter: SchoolYearFach = {
+      ...fach,
+      gewichtung: {
+        verhaeltnis: { schriftlich: 97, muendlich: 99 },
+        arten: {
+          klausur: { gewicht: 9.25, sammlung: 'einzeln' },
+          test: { gewicht: 9.25, sammlung: 'einzeln' },
+          muendlich: { gewicht: 9.5, sammlung: 'einzeln' },
+          gfs: { gewicht: 10, sammlung: 'einzeln' },
+          sonstige: { gewicht: 9.25, sammlung: 'einzeln' },
+        },
+      },
+    };
+    // Der exakte Schnitt liegt 6/176661973600 unter 2,5: echt, kein Rauschen.
+    const noten = [
+      { value: '4.55', weight: '9.75', kind: 'klausur' as const },
+      { value: '1.33', weight: '10', kind: 'gfs' as const },
+      { value: '2.56', weight: '9.75', kind: 'muendlich' as const },
+      { value: '1.74', weight: '10', kind: 'sonstige' as const },
+    ].map((note) => ({ ...note, subjectId: fach.id }));
+    expect(calculateJahresvorschau(noten, [knappDarunter])).toEqual([
+      {
+        fachId: fach.id,
+        fachName: fach.name,
+        archived: false,
+        note: 2,
+        grenzfall: true,
+      },
+    ]);
+  });
+
   it('verlangt ausdrücklich erstes und zweites Halbjahr', () => {
     expect(isCompleteSchoolYear([{ half: 1 }])).toBe(false);
     expect(isCompleteSchoolYear([{ half: 1 }, { half: 1 }])).toBe(false);
