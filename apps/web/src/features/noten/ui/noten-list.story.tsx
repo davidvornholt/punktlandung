@@ -14,10 +14,7 @@ import { NotenList } from './noten-list.tsx';
 import type { NotenOperations } from './noten-operations.ts';
 
 type Outcome = 'failure' | 'success';
-/**
- * `ohne-fach…`: jedes Fach des Schuljahrs ist archiviert.
- * `neuladen-scheitert`: nur der erste Abruf gelingt.
- */
+/** `ohne-fach…`: jedes Fach des Schuljahrs ist archiviert. */
 type Scenario =
   | 'letzte-note'
   | 'neuladen-scheitert'
