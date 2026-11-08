@@ -8,6 +8,7 @@ import {
 import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
+import { notenKey } from '#/shared/query/query-keys.ts';
 import type { Leistung } from '../services/noten-service.ts';
 import { NotenList } from './noten-list.tsx';
 import type { NotenOperations } from './noten-operations.ts';
@@ -16,6 +17,7 @@ type Outcome = 'failure' | 'success';
 /** `ohne-fach…`: jedes Fach des Schuljahrs ist archiviert. */
 type Scenario =
   | 'letzte-note'
+  | 'neuladen-scheitert'
   | 'ohne-fach-ohne-note'
   | 'ohne-fach'
   | 'standard'
@@ -120,8 +122,12 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
         notenRef.current = notenRef.current.filter((entry) => entry.id !== id);
       },
       list: () => {
-        if (scenario === 'retry' && firstReadRef.current) {
-          firstReadRef.current = false;
+        const firstRead = firstReadRef.current;
+        firstReadRef.current = false;
+        if (
+          (scenario === 'retry' && firstRead) ||
+          (scenario === 'neuladen-scheitert' && !firstRead)
+        ) {
           return Promise.reject(new Error('Verbindung weg'));
         }
         return Promise.resolve(notenRef.current);
@@ -190,6 +196,16 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
                 onClick={() => settleRef.current?.('failure')}
                 type="button"
               />
+              <button
+                aria-label="Refetch list"
+                data-testid="refetch"
+                onClick={() =>
+                  queryClient.refetchQueries({
+                    queryKey: notenKey(halbjahr.id),
+                  })
+                }
+                type="button"
+              />
             </div>
           </QueryClientProvider>
         ),
@@ -210,3 +226,7 @@ export const OhneFachOhneNote = () => (
 );
 
 export const Retry = () => <NotenListScenario scenario="retry" />;
+
+export const NeuladenScheitert = () => (
+  <NotenListScenario scenario="neuladen-scheitert" />
+);
