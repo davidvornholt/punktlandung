@@ -13,7 +13,7 @@ import { report } from './output.ts';
  * war: mit --help oder durch eine Befehlsgruppe ohne Unterbefehl. Alles andere,
  * etwa die Version, geht direkt durch. Ein Fehler in den Argumenten wird wie
  * jeder andere Fehler ein JSON-Objekt auf stderr, sodass Agenten nur eine Form
- * lesen. Übernommen aus Wordholds Befehl.
+ * lesen.
  */
 export const runCli = (
   words: ReadonlyArray<string> | UsageError,

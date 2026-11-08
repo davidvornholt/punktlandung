@@ -5,7 +5,7 @@ import { UsageError } from './errors/cli-errors.ts';
  * so gequotet, wie die Shell des Clients sie gequotet hätte. `splitShellWords`
  * zerlegt sie nach denselben Regeln: einfache und doppelte Anführungszeichen
  * und Backslashes. Eine Shell läuft dabei nie, und nichts davon wird einer
- * übergeben. Übernommen aus Postludes Befehl.
+ * übergeben.
  */
 
 /**

@@ -2,8 +2,8 @@ import process from 'node:process';
 import { Effect } from 'effect';
 
 /*
- * stdout trägt Punktlandungs Daten als JSON, stderr Fehler als JSON. Wie bei
- * Wordhold eingerückt nur am Terminal, damit Agenten kompakte Ausgabe lesen.
+ * stdout trägt Punktlandungs Daten als JSON, stderr Fehler als JSON. Eingerückt
+ * nur am Terminal, damit Agenten kompakte Ausgabe lesen.
  */
 
 const writeJson = (stream: NodeJS.WriteStream, value: unknown): void => {
