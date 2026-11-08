@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
+import { faecherKey } from '#/shared/query/query-keys.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import {
   inputClass,
@@ -9,14 +10,14 @@ import {
   primaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
-import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { ListQueryHints } from '#/shared/ui/query-state.tsx';
 import { determineQueryState } from '#/shared/ui/query-state-model.ts';
-import { faecherQueryOptions } from '../server/fach-fns.ts';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import type { Fach } from '../services/fach-service.ts';
 import { FachForm } from './fach-form.tsx';
 import { FachList } from './fach-list.tsx';
 import { fachMutationOptions } from './fach-mutations.ts';
-import { liveFachOperations } from './fach-operations.ts';
+import type { FachOperations } from './fach-operations.ts';
 import { changeSchoolYear } from './school-year-change.ts';
 
 const editKey = (editTarget: Fach | 'create' | null) => {
@@ -64,23 +65,27 @@ const NoHalbjahr = () => (
 /** Schuljahre, neuestes zuerst, mit dem Notensystem ihrer Halbjahre. */
 export const FaecherManagement = ({
   notensystemBySchoolYear,
+  operations,
 }: {
   readonly notensystemBySchoolYear: ReadonlyMap<string, Notensystem>;
+  readonly operations: FachOperations;
 }) => {
   const queryClient = useQueryClient();
   const schoolYears = [...notensystemBySchoolYear.keys()];
   const [schoolYear, setSchoolYear] = useState(schoolYears[0] ?? '');
   const faecherQuery = useQuery({
-    ...faecherQueryOptions(schoolYear),
     enabled: schoolYear !== '',
+    queryFn: () => operations.list(schoolYear),
+    queryKey: faecherKey(schoolYear),
   });
+  const sectionRef = useRef<HTMLElement>(null);
   const [editTarget, setEditTarget] = useState<Fach | 'create' | null>(null);
   const formKey = editKey(editTarget);
   const focus = useFormFocus(formKey);
 
   const mutationOptions = fachMutationOptions({
     onEditorClose: () => setEditTarget(null),
-    operations: liveFachOperations,
+    operations,
     queryClient,
     schoolYear,
   });
@@ -95,13 +100,14 @@ export const FaecherManagement = ({
     isEmpty: (values) => values.length === 0,
   });
   const formError = fachFormError(createMutation, updateMutation);
+  const retry = retryWithFocus(() => faecherQuery.refetch(), sectionRef);
 
   if (schoolYear === '') {
     return <NoHalbjahr />;
   }
 
   return (
-    <section>
+    <section aria-label="Fächer" ref={sectionRef} tabIndex={-1}>
       <div className="flex items-end justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl text-ink tracking-tight">
@@ -166,19 +172,14 @@ export const FaecherManagement = ({
           />
         </div>
       )}
-      {queryState === 'pending' ? (
-        <div className="mt-4">
-          <LoadingHint text="Fächer werden geladen …" />
-        </div>
-      ) : null}
-      {queryState === 'error' ? (
-        <div className="mt-4">
-          <QueryError
-            onRetry={() => faecherQuery.refetch()}
-            text="Die Fächer konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
-          />
-        </div>
-      ) : null}
+      <ListQueryHints
+        errorText="Die Fächer konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+        isError={faecherQuery.isError}
+        onRetry={retry}
+        pendingText="Fächer werden geladen …"
+        refreshErrorText="Die Fächer konnten nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
+        state={queryState}
+      />
       {queryState === 'success' && faecher !== undefined ? (
         <FachList
           archiveMutation={archiveMutation}

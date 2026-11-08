@@ -1,60 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { FaecherManagement } from '#/features/faecher/ui/faecher-management.tsx';
-import { halbjahreQueryOptions } from '#/features/halbjahre/server/halbjahr-fns.ts';
+import { liveFachOperations } from '#/features/faecher/ui/fach-operations.ts';
+import {
+  FaecherPage,
+  type FaecherPageOperations,
+} from '#/features/faecher/ui/faecher-page.tsx';
+import { liveHalbjahrOperations } from '#/features/halbjahre/ui/halbjahr-operations.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
-import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 
-const FaecherPage = () => {
-  const halbjahreQuery = useQuery(halbjahreQueryOptions);
-  const halbjahre = halbjahreQuery.data;
-  if (halbjahreQuery.isPending) {
-    return (
-      <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Fächer
-        </h1>
-        <div className="mt-6">
-          <LoadingHint text="Fächer werden geladen …" />
-        </div>
-      </>
-    );
-  }
-  if (halbjahreQuery.isError || halbjahre === undefined) {
-    return (
-      <>
-        <h1 className="font-display text-3xl text-ink tracking-tight">
-          Fächer
-        </h1>
-        <div className="mt-6">
-          <QueryError
-            onRetry={() => halbjahreQuery.refetch()}
-            text="Die Schuljahre für die Fachverwaltung konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
-          />
-        </div>
-      </>
-    );
-  }
-  // Die Datenbank erzwingt eine Klassenstufe je Schuljahr; alle Halbjahre
-  // eines Schuljahrs nennen also dasselbe Notensystem.
-  const notensystemBySchoolYear = new Map(
-    halbjahre.map((halbjahr) => [halbjahr.schoolYear, halbjahr.system]),
-  );
-  return (
-    <>
-      <h1 className="font-display text-3xl text-ink tracking-tight">Fächer</h1>
-      <p className="mt-2 text-ink-muted">
-        Fächer samt Gewichtung, wie die Lehrkraft sie zu Schuljahresbeginn
-        verkündet hat. Änderungen gelten nur für das gewählte Schuljahr.
-      </p>
-      <div className="mt-6">
-        <FaecherManagement notensystemBySchoolYear={notensystemBySchoolYear} />
-      </div>
-    </>
-  );
+const operations: FaecherPageOperations = {
+  ...liveFachOperations,
+  listHalbjahre: liveHalbjahrOperations.list,
 };
 
 export const Route = createFileRoute('/_app/faecher')({
-  component: FaecherPage,
+  component: () => <FaecherPage operations={operations} />,
   head: () => ({ meta: [{ title: pageTitle('Fächer') }] }),
 });

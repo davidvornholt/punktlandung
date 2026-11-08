@@ -1,8 +1,8 @@
 import { queryOptions } from '@tanstack/react-query';
 import { createServerFn } from '@tanstack/react-start';
 import { Schema } from 'effect';
-
 import { sessionRequired } from '#/shared/auth/auth-middleware.ts';
+import { halbjahreKey } from '#/shared/query/query-keys.ts';
 import { runServerEffect } from '#/shared/runtime.ts';
 import {
   HalbjahrDeletionInput,
@@ -36,6 +36,6 @@ export const deleteHalbjahrFn = createServerFn({ method: 'POST' })
   .handler(({ data }) => runServerEffect(deleteHalbjahr(data)));
 
 export const halbjahreQueryOptions = queryOptions({
-  queryKey: ['halbjahre'],
+  queryKey: halbjahreKey,
   queryFn: () => listHalbjahreFn(),
 });

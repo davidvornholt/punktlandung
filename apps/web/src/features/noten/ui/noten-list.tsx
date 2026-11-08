@@ -9,6 +9,7 @@ import { notenKey } from '#/shared/query/query-keys.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
 import { iconButtonClass, iconSize, iconStroke } from '#/shared/ui/icon.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import type { Leistung } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
 import type { PreparationLinkRenderer } from './note-row.tsx';
@@ -68,16 +69,6 @@ const RefreshError = ({
       />
     </div>
   ) : null;
-
-const focusUnlessMoved = (
-  origin: Element | null,
-  target: HTMLElement | null,
-) => {
-  const active = document.activeElement;
-  if (active === origin || active === document.body) {
-    target?.focus();
-  }
-};
 
 export const NotenList = ({
   halbjahr,
@@ -153,14 +144,10 @@ export const NotenList = ({
       </div>,
     );
   }
-  const retry = () => {
-    const origin = document.activeElement;
-    return notenQuery.refetch().then((result) => {
-      if (result.isSuccess) {
-        focusUnlessMoved(origin, focus.fallbackTriggerRef.current);
-      }
-    });
-  };
+  const retry = retryWithFocus(
+    () => notenQuery.refetch(),
+    focus.fallbackTriggerRef,
+  );
   if (noten === undefined) {
     return shell(
       <div className="mt-6">

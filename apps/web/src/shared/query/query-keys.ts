@@ -9,6 +9,12 @@
  * trifft über das Präfix jeden Eintrag darunter. Das brauchen Änderungen,
  * deren Wirkung über die eine Kennung hinausgeht, die sie kennen.
  */
+/**
+ * Alle Halbjahre. Die Fachverwaltung liest daraus die Schuljahre und ihr
+ * Notensystem, deshalb liegt der Schlüssel hier.
+ */
+export const halbjahreKey = ['halbjahre'] as const;
+
 export const notenKeyPrefix = ['noten'] as const;
 
 export const notenKey = (halbjahrId: string) =>
