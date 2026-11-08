@@ -69,6 +69,16 @@ const RefreshError = ({
     </div>
   ) : null;
 
+const focusUnlessMoved = (
+  origin: Element | null,
+  target: HTMLElement | null,
+) => {
+  const active = document.activeElement;
+  if (active === origin || active === document.body) {
+    target?.focus();
+  }
+};
+
 export const NotenList = ({
   halbjahr,
   faecher,
@@ -143,17 +153,19 @@ export const NotenList = ({
       </div>,
     );
   }
+  const retry = () => {
+    const origin = document.activeElement;
+    return notenQuery.refetch().then((result) => {
+      if (result.isSuccess) {
+        focusUnlessMoved(origin, focus.fallbackTriggerRef.current);
+      }
+    });
+  };
   if (noten === undefined) {
     return shell(
       <div className="mt-6">
         <QueryError
-          onRetry={() =>
-            notenQuery.refetch().then((result) => {
-              if (result.isSuccess) {
-                focus.fallbackTriggerRef.current?.focus();
-              }
-            })
-          }
+          onRetry={retry}
           text="Die Notenliste konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
         />
       </div>,
@@ -161,10 +173,7 @@ export const NotenList = ({
   }
   return shell(
     <>
-      <RefreshError
-        onRetry={() => notenQuery.refetch()}
-        show={notenQuery.isError}
-      />
+      <RefreshError onRetry={retry} show={notenQuery.isError} />
       {noten.length === 0 ? (
         <div className="mt-6 border border-border bg-surface-sunken p-6">
           <p className="text-ink-muted">{emptyNotenHint(faecher.length > 0)}</p>
