@@ -19,9 +19,6 @@ import { StatCard } from '#/shared/ui/stat-card.tsx';
 const Overview = () => {
   const trendQuery = useQuery(trendQueryOptions);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  // Die Überschrift steht in jedem Zustand an derselben Stelle, damit ein
-  // erfolgreicher neuer Versuch nach gescheitertem ersten Laden sie fokussieren
-  // kann.
   const title = (
     <h1
       className="font-display text-3xl text-ink tracking-tight"

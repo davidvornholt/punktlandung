@@ -70,8 +70,6 @@ export const Zeugnisblatt = ({
   const zeugnisQuery = useQuery(zeugnisQueryOptions(halbjahrId));
   const zeugnis = zeugnisQuery.data;
   const sectionRef = useRef<HTMLElement>(null);
-  // Der Abschnitt trägt jeden Zustand, damit ein erfolgreicher neuer Versuch
-  // nach gescheitertem ersten Laden ihn fokussieren kann.
   const shell = (children: ReactNode) => (
     <section aria-label="Zeugnisvorschau" ref={sectionRef} tabIndex={-1}>
       {children}

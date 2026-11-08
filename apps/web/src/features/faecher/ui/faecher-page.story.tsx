@@ -6,11 +6,6 @@ import { faecherKey, halbjahreKey } from '#/shared/query/query-keys.ts';
 import type { Fach } from '../services/fach-service.ts';
 import { FaecherPage, type FaecherPageOperations } from './faecher-page.tsx';
 
-/**
- * Welche Abfrage beim zweiten Lesen scheitert; das dritte Lesen wartet auf
- * `finish-read`. Bei `halbjahre-erstes-laden` scheitert schon das erste Lesen
- * der Halbjahre, und das zweite wartet.
- */
 type Scenario = 'faecher' | 'halbjahre' | 'halbjahre-erstes-laden';
 
 const schoolYear = '2026/27';
