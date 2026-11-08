@@ -153,6 +153,35 @@ it('behält einen Haken, solange er noch gespeichert wird', async ({
   await expect(component.getByText('1 von 2 Themen sicher')).toBeVisible();
 });
 
+it('behält einen Entwurf, den ein noch laufender Haken nicht schließt', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount<typeof GleichartigeThemen>(
+    'features/noten/ui/leistung-detail/GleichartigeThemen',
+    { saveDelays: [langsam] },
+  );
+
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
+    .click();
+  await component.getByRole('button', { name: 'Text bearbeiten' }).click();
+  const editor = component.getByRole('textbox', {
+    name: 'Vorbereitung als Markdown',
+  });
+  await editor.fill(`${integralSicher}\n- [ ] Kurvendiskussion`);
+
+  await expect(
+    page
+      .getByRole('list', {
+        includeHidden: true,
+        name: 'Gespeicherte Vorbereitungen',
+      })
+      .getByRole('listitem', { includeHidden: true }),
+  ).toHaveText([integralSicher]);
+  await expect(editor).toHaveValue(`${integralSicher}\n- [ ] Kurvendiskussion`);
+});
+
 it('nimmt ungespeicherte Haken zurück, wenn alle Aufrufe scheitern', async ({
   mount,
   page,
