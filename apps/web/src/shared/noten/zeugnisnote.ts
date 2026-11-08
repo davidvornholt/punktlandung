@@ -13,9 +13,10 @@ const grenzfallTolerance = 0.1;
 const grenzfallScale = 1_000_000;
 const roundingFactor = 100;
 /*
- * Liegt über dem Rechenfehler der Gewichtung (gemessen unter 10⁻¹³ bei Werten
- * bis 24) und unter dem Abstand echter Schnitte zur Grenze: Gespeicherte Noten
- * und Gewichte erreichen schon 3·10⁻¹¹.
+ * Gleicht den Rechenfehler der Gewichtung aus (gemessen unter 10⁻¹³ bei Werten
+ * bis 24). Ein echter Schnitt weniger als 10⁻¹² unter einer Grenze rundet
+ * ebenfalls auf; mit Formularwerten (ganze Anteile, Viertelgewichte) trat das
+ * in Stichproben nicht auf, mit Anteilen wie 0,999999999999 schon.
  */
 const floatNoise = 1e-12;
 
