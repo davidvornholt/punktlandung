@@ -21,6 +21,16 @@ export class NoteNotFound extends Schema.TaggedError<NoteNotFound>()(
   }
 }
 
+export class PreparationChanged extends Schema.TaggedError<PreparationChanged>()(
+  'VorbereitungGeaendert',
+  { noteId: Schema.String },
+) {
+  // biome-ignore lint/nursery/useThisInClassMethods: Die Meldung hängt von keinem Feld ab, muss aber wie bei jedem fachlichen Fehler als `message` ankommen.
+  override get message(): string {
+    return 'Die Vorbereitung wurde inzwischen an anderer Stelle geändert, etwa in einem anderen Tab. Damit der neuere Stand erhalten bleibt, wurde deine Änderung nicht gespeichert. Ein Entwurf im Textfeld bleibt stehen; nach „Abbrechen“ siehst du den neuen Stand.';
+  }
+}
+
 export class InvalidNotenwert extends Schema.TaggedError<InvalidNotenwert>()(
   'UngueltigerNotenwert',
   { wert: Schema.Number, system: Schema.Literals(notensysteme) },

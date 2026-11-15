@@ -153,23 +153,30 @@ it('behält einen Haken, solange er noch gespeichert wird', async ({
   await expect(component.getByText('1 von 2 Themen sicher')).toBeVisible();
 });
 
-it('behält einen Entwurf, den ein noch laufender Haken nicht schließt', async ({
+it('öffnet den Editor erst, wenn ein laufender Haken gespeichert ist oder scheitert', async ({
   mount,
   page,
 }) => {
+  // Hätte der Editor den unbestätigten Haken als Stand übernommen, schlüge
+  // nach dem gescheiterten Haken jedes Speichern als Konflikt fehl.
   const component = await mount<typeof GleichartigeThemen>(
     'features/noten/ui/leistung-detail/GleichartigeThemen',
-    { saveDelays: [langsam] },
+    { failedSaves: [0], saveDelays: [langsam] },
   );
 
   await component
     .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
     .click();
-  await component.getByRole('button', { name: 'Text bearbeiten' }).click();
+  const edit = component.getByRole('button', { name: 'Text bearbeiten' });
+  await expect(edit).toBeDisabled();
+  await expect(component.getByRole('alert')).toBeVisible();
+  await edit.click();
   const editor = component.getByRole('textbox', {
     name: 'Vorbereitung als Markdown',
   });
-  await editor.fill(`${integralSicher}\n- [ ] Kurvendiskussion`);
+  await expect(editor).toHaveValue(gleichartigeThemen);
+  await editor.fill(`${gleichartigeThemen}\n- [ ] Kurvendiskussion`);
+  await component.getByRole('button', { name: 'Speichern' }).click();
 
   await expect(
     page
@@ -178,8 +185,45 @@ it('behält einen Entwurf, den ein noch laufender Haken nicht schließt', async 
         name: 'Gespeicherte Vorbereitungen',
       })
       .getByRole('listitem', { includeHidden: true }),
-  ).toHaveText([integralSicher]);
-  await expect(editor).toHaveValue(`${integralSicher}\n- [ ] Kurvendiskussion`);
+  ).toHaveText([`${gleichartigeThemen}\n- [ ] Kurvendiskussion`]);
+  await expect(editor).toHaveCount(0);
+});
+
+it('öffnet den Editor auch nach einer Rückkehr erst, wenn der Haken gescheitert ist', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount<typeof GleichartigeThemen>(
+    'features/noten/ui/leistung-detail/GleichartigeThemen',
+    { failedSaves: [0], saveDelays: [langsamer] },
+  );
+
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
+    .click();
+  await component.getByRole('button', { name: 'Seite verlassen' }).click();
+  await component
+    .getByRole('button', { name: 'Zur Seite zurückkehren' })
+    .click();
+  const edit = component.getByRole('button', { name: 'Text bearbeiten' });
+  await expect(edit).toBeDisabled();
+  await expect(edit).toBeEnabled();
+  await edit.click();
+  const editor = component.getByRole('textbox', {
+    name: 'Vorbereitung als Markdown',
+  });
+  await expect(editor).toHaveValue(gleichartigeThemen);
+  await editor.fill(`${gleichartigeThemen}\n- [ ] Kurvendiskussion`);
+  await component.getByRole('button', { name: 'Speichern' }).click();
+
+  await expect(
+    page
+      .getByRole('list', {
+        includeHidden: true,
+        name: 'Gespeicherte Vorbereitungen',
+      })
+      .getByRole('listitem', { includeHidden: true }),
+  ).toHaveText([`${gleichartigeThemen}\n- [ ] Kurvendiskussion`]);
 });
 
 it('nimmt ungespeicherte Haken zurück, wenn alle Aufrufe scheitern', async ({

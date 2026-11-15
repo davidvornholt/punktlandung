@@ -9,10 +9,11 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import { useMemo, useRef, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { leistungKey } from '#/shared/query/query-keys.ts';
+import { PreparationChanged } from '../errors/noten-errors.ts';
 import type {
   LeistungDetail as Detail,
   Leistung,
@@ -97,6 +98,22 @@ const LerntagStub = () => {
   );
 };
 
+/**
+ * Steht für das Verlassen der Seite und die Rückkehr: Die Detailseite wird
+ * neu aufgebaut, der QueryClient mit seinen laufenden Aufrufen bleibt.
+ */
+const Leaving = ({ children }: { readonly children: ReactNode }) => {
+  const [away, setAway] = useState(false);
+  return (
+    <>
+      <button onClick={() => setAway(!away)} type="button">
+        {away ? 'Zur Seite zurückkehren' : 'Seite verlassen'}
+      </button>
+      {away ? null : <div>{children}</div>}
+    </>
+  );
+};
+
 const noSaveDelays: ReadonlyArray<number> = [];
 const noFailedSaves: ReadonlyArray<number> = [];
 
@@ -112,6 +129,11 @@ type ServerBehaviour = {
   readonly failedSaves?: ReadonlyArray<number>;
   /** Wie viele der ersten Aufrufe für die Vorlagen scheitern. */
   readonly templateFailures?: number;
+  /**
+   * Diesen Text speichert ein anderer Tab, gleich nachdem die Seite geladen
+   * hat; null heißt, er löscht die Vorbereitung.
+   */
+  readonly savedElsewhere?: string | null;
 };
 
 /**
@@ -125,12 +147,14 @@ const LeistungDetailScenario = ({
   saveDelays = noSaveDelays,
   failedSaves = noFailedSaves,
   templateFailures = 0,
+  savedElsewhere,
 }: ServerBehaviour & { readonly scenario: Scenario }) => {
   const leistungRef = useRef<Leistung>(initialLeistung(scenario));
   const loadsRef = useRef(0);
   const savesRef = useRef(0);
   const templateLoadsRef = useRef(0);
   const [saved, setSaved] = useState<ReadonlyArray<string>>([]);
+  const [loads, setLoads] = useState(0);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -144,11 +168,16 @@ const LeistungDetailScenario = ({
     () => ({
       load: () => {
         loadsRef.current += 1;
+        setLoads(loadsRef.current);
+        const leistung = leistungRef.current;
+        if (loadsRef.current === 1 && savedElsewhere !== undefined) {
+          leistungRef.current = { ...leistung, preparation: savedElsewhere };
+        }
         return refreshFails && loadsRef.current > 1
           ? Promise.reject(new Error('Verbindung unterbrochen'))
           : Promise.resolve({
               halbjahr,
-              leistung: leistungRef.current,
+              leistung,
               lernen: { daysAgo: 4, inLastWeek: 1 },
             } satisfies Detail);
       },
@@ -173,6 +202,9 @@ const LeistungDetailScenario = ({
         if (failedSaves.includes(saveIndex)) {
           throw new Error('Verbindung unterbrochen');
         }
+        if (input.expected !== leistungRef.current.preparation) {
+          throw new PreparationChanged({ noteId: input.id });
+        }
         leistungRef.current = {
           ...leistungRef.current,
           preparation: input.preparation,
@@ -180,7 +212,7 @@ const LeistungDetailScenario = ({
         setSaved((list) => [...list, input.preparation ?? '<null>']);
       },
     }),
-    [failedSaves, refreshFails, saveDelays, templateFailures],
+    [failedSaves, refreshFails, saveDelays, savedElsewhere, templateFailures],
   );
   const notenOperations = useMemo<NotenOperations>(
     () => ({
@@ -205,13 +237,15 @@ const LeistungDetailScenario = ({
         component: () => (
           <QueryClientProvider client={queryClient}>
             <main className="p-4">
-              <LeistungDetail
-                faecher={faecher}
-                leistungId="k-1"
-                leistungOperations={leistungOperations}
-                lerntag={() => <LerntagStub />}
-                notenOperations={notenOperations}
-              />
+              <Leaving>
+                <LeistungDetail
+                  faecher={faecher}
+                  leistungId="k-1"
+                  leistungOperations={leistungOperations}
+                  lerntag={() => <LerntagStub />}
+                  notenOperations={notenOperations}
+                />
+              </Leaving>
             </main>
           </QueryClientProvider>
         ),
@@ -225,6 +259,9 @@ const LeistungDetailScenario = ({
   return (
     <>
       <RouterProvider router={router} />
+      <output aria-label="Ladevorgänge" hidden={true}>
+        {loads}
+      </output>
       <ol aria-label="Gespeicherte Vorbereitungen" hidden={true}>
         {saved.map((entry, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: Der Verlauf wird nur angehängt, nie umsortiert.

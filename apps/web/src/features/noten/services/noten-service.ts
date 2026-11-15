@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/sql/SqlClient';
 import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
@@ -19,7 +19,11 @@ import type {
 import type { SchoolYearFach } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { loadSchoolYearFachSnapshot } from '#/shared/noten/school-year-fach-snapshot.ts';
 import { formatHalbjahrLabel } from '#/shared/school/klassenstufe.ts';
-import { HalbjahrNotFound, NoteNotFound } from '../errors/noten-errors.ts';
+import {
+  HalbjahrNotFound,
+  NoteNotFound,
+  PreparationChanged,
+} from '../errors/noten-errors.ts';
 import type {
   NoteInput,
   NoteUpdate,
@@ -180,11 +184,27 @@ export const updatePreparation = (input: PreparationUpdate) =>
     const updated = yield* db
       .update(noteTable)
       .set({ preparation: input.preparation })
-      .where(eq(noteTable.id, input.id))
+      .where(
+        and(
+          eq(noteTable.id, input.id),
+          input.expected === null
+            ? isNull(noteTable.preparation)
+            : eq(noteTable.preparation, input.expected),
+        ),
+      )
       .returning({ id: noteTable.id });
-    if (updated.length === 0) {
-      return yield* Effect.fail(new NoteNotFound({ noteId: input.id }));
+    if (updated.length > 0) {
+      return;
     }
+    const existing = yield* db
+      .select({ id: noteTable.id })
+      .from(noteTable)
+      .where(eq(noteTable.id, input.id));
+    return yield* Effect.fail(
+      existing.length === 0
+        ? new NoteNotFound({ noteId: input.id })
+        : new PreparationChanged({ noteId: input.id }),
+    );
   });
 
 const storedValue = (wert: number | null) => (wert === null ? null : `${wert}`);

@@ -69,6 +69,11 @@ const PreparationText = Schema.String.check(
 
 export const PreparationUpdate = Schema.Struct({
   id: Schema.String,
+  /**
+   * Der Stand, auf dem die Änderung beruht. Steht inzwischen ein anderer
+   * gespeichert, etwa aus einem zweiten Tab, wird nichts überschrieben.
+   */
+  expected: Schema.NullOr(PreparationText),
   /** null löscht die Vorbereitung. */
   preparation: Schema.NullOr(PreparationText),
 });
