@@ -9,7 +9,7 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import { useMemo, useRef, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { leistungKey } from '#/shared/query/query-keys.ts';
@@ -95,6 +95,22 @@ const LerntagStub = () => {
     >
       Lerntag-Baustein
     </button>
+  );
+};
+
+/**
+ * Steht für das Verlassen der Seite und die Rückkehr: Die Detailseite wird
+ * neu aufgebaut, der QueryClient mit seinen laufenden Aufrufen bleibt.
+ */
+const Leaving = ({ children }: { readonly children: ReactNode }) => {
+  const [away, setAway] = useState(false);
+  return (
+    <>
+      <button onClick={() => setAway(!away)} type="button">
+        {away ? 'Zur Seite zurückkehren' : 'Seite verlassen'}
+      </button>
+      {away ? null : <div>{children}</div>}
+    </>
   );
 };
 
@@ -221,13 +237,15 @@ const LeistungDetailScenario = ({
         component: () => (
           <QueryClientProvider client={queryClient}>
             <main className="p-4">
-              <LeistungDetail
-                faecher={faecher}
-                leistungId="k-1"
-                leistungOperations={leistungOperations}
-                lerntag={() => <LerntagStub />}
-                notenOperations={notenOperations}
-              />
+              <Leaving>
+                <LeistungDetail
+                  faecher={faecher}
+                  leistungId="k-1"
+                  leistungOperations={leistungOperations}
+                  lerntag={() => <LerntagStub />}
+                  notenOperations={notenOperations}
+                />
+              </Leaving>
             </main>
           </QueryClientProvider>
         ),

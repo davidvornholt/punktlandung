@@ -189,6 +189,43 @@ it('öffnet den Editor erst, wenn ein laufender Haken gespeichert ist oder schei
   await expect(editor).toHaveCount(0);
 });
 
+it('öffnet den Editor auch nach einer Rückkehr erst, wenn der Haken gescheitert ist', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount<typeof GleichartigeThemen>(
+    'features/noten/ui/leistung-detail/GleichartigeThemen',
+    { failedSaves: [0], saveDelays: [langsamer] },
+  );
+
+  await component
+    .getByRole('checkbox', { name: 'Thema offen: Integralrechnung' })
+    .click();
+  await component.getByRole('button', { name: 'Seite verlassen' }).click();
+  await component
+    .getByRole('button', { name: 'Zur Seite zurückkehren' })
+    .click();
+  const edit = component.getByRole('button', { name: 'Text bearbeiten' });
+  await expect(edit).toBeDisabled();
+  await expect(edit).toBeEnabled();
+  await edit.click();
+  const editor = component.getByRole('textbox', {
+    name: 'Vorbereitung als Markdown',
+  });
+  await expect(editor).toHaveValue(gleichartigeThemen);
+  await editor.fill(`${gleichartigeThemen}\n- [ ] Kurvendiskussion`);
+  await component.getByRole('button', { name: 'Speichern' }).click();
+
+  await expect(
+    page
+      .getByRole('list', {
+        includeHidden: true,
+        name: 'Gespeicherte Vorbereitungen',
+      })
+      .getByRole('listitem', { includeHidden: true }),
+  ).toHaveText([`${gleichartigeThemen}\n- [ ] Kurvendiskussion`]);
+});
+
 it('nimmt ungespeicherte Haken zurück, wenn alle Aufrufe scheitern', async ({
   mount,
   page,

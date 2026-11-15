@@ -171,7 +171,9 @@ const RenderedPreparation = ({
 /**
  * Speichert die Vorbereitung. Die Aufrufe einer Vorbereitung gehen
  * nacheinander hinaus, damit jeder auf dem Ergebnis des vorigen aufbaut.
- * Solange einer unterwegs ist, gilt sein Text als der angezeigte.
+ * Solange einer unterwegs ist, gilt sein Text als der angezeigte. Die
+ * Aufrufe stehen im QueryClient, nicht im Panel; `saving` gilt darum auch
+ * nach Verlassen und Wiederkehren der Seite.
  */
 const usePreparationSave = ({
   halbjahrId,
@@ -223,6 +225,7 @@ const usePreparationSave = ({
     preparation:
       pendingPreparation === undefined ? savedPreparation : pendingPreparation,
     saveMutation,
+    saving: pendingPreparations.length > 0,
   };
 };
 
@@ -247,7 +250,7 @@ export const PreparationPanel = ({
 }) => {
   const [editorBase, setEditorBase] = useState<EditorBase>(null);
   const editing = editorBase !== null;
-  const { preparation, saveMutation } = usePreparationSave({
+  const { preparation, saveMutation, saving } = usePreparationSave({
     halbjahrId,
     leistungId,
     operations,
@@ -276,7 +279,7 @@ export const PreparationPanel = ({
         <RenderedPreparation
           // Ein noch unbestätigter Haken taugt nicht als Stand des Editors:
           // Scheitert er, schlüge jedes Speichern des Entwurfs fehl.
-          editable={!saveMutation.isPending}
+          editable={!saving}
           markdown={preparation}
           onEdit={startEditing}
           onToggle={(line) => {
