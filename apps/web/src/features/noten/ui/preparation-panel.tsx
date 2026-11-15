@@ -34,6 +34,15 @@ import { ThemenMarkdown } from './themen-markdown.tsx';
 const preparationSaveKey = (leistungId: string) =>
   ['preparation-save', leistungId] as const;
 
+/** Ein Speicheraufruf: der neue Text und der Stand, auf dem er beruht. */
+type PreparationSave = {
+  readonly expected: string | null;
+  readonly preparation: string | null;
+};
+
+/** Der Stand, auf dem der offene Editor beruht; null, solange keiner offen ist. */
+type EditorBase = { readonly expected: string | null } | null;
+
 const templateErrorText =
   'Die Vorlage konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut.';
 
@@ -158,50 +167,37 @@ const RenderedPreparation = ({
 );
 
 /**
- * Die Vorbereitung einer Leistung: die gerenderte Themenliste mit
- * bedienbaren Kästchen, der Fortschritt darüber, und auf Wunsch der rohe
- * Text zum Bearbeiten. Ohne Vorbereitung beginnt das Bearbeiten mit der
- * Vorlage der Leistungsart.
+ * Speichert die Vorbereitung. Jeder Aufruf schickt den ganzen Text und den
+ * Stand, auf dem er beruht; der Server lehnt ihn ab, wenn inzwischen ein
+ * anderer gespeichert ist. Die Aufrufe einer Vorbereitung gehen nacheinander
+ * hinaus, damit jeder auf dem Ergebnis des vorigen aufbaut. Solange einer
+ * unterwegs ist, gilt sein Text als der angezeigte.
  */
-export const PreparationPanel = ({
+const usePreparationSave = ({
   halbjahrId,
-  kind,
   leistungId,
   operations,
-  preparation: savedPreparation,
+  savedPreparation,
 }: {
   readonly halbjahrId: string;
-  readonly kind: PlanbareLeistungsart;
   readonly leistungId: string;
   readonly operations: LeistungOperations;
-  readonly preparation: string | null;
+  readonly savedPreparation: string | null;
 }) => {
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
   const saveKey = preparationSaveKey(leistungId);
   const pendingPreparations = useMutationState({
     filters: { mutationKey: saveKey, status: 'pending' },
-    select: (mutation) => mutation.state.variables as string | null,
+    select: (mutation) =>
+      (mutation.state.variables as PreparationSave).preparation,
   });
   const pendingPreparation = pendingPreparations.at(-1);
-  const preparation =
-    pendingPreparation === undefined ? savedPreparation : pendingPreparation;
-  const templatesQuery = useQuery({
-    enabled: editing && preparation === null,
-    queryFn: () => operations.loadTemplates(),
-    queryKey: preparationTemplatesKey,
-  });
-  /*
-   * Jeder Aufruf schickt den ganzen Text. Deshalb gehen die Aufrufe einer
-   * Vorbereitung nacheinander hinaus: käme ein älterer nach einem neueren an,
-   * nähme er dessen Haken zurück.
-   */
   const saveMutation = useMutation({
     mutationKey: saveKey,
     scope: { id: saveKey.join(':') },
-    mutationFn: (markdown: string | null) =>
-      operations.updatePreparation({ id: leistungId, preparation: markdown }),
-    onSuccess: async (_result, markdown) => {
+    mutationFn: (save: PreparationSave) =>
+      operations.updatePreparation({ id: leistungId, ...save }),
+    onSuccess: async (_result, { preparation: markdown }) => {
       const key = leistungKey(leistungId);
       await queryClient.cancelQueries({ queryKey: key });
       queryClient.setQueryData<LeistungDetail>(key, (previous) =>
@@ -223,13 +219,54 @@ export const PreparationPanel = ({
       }
     },
   });
+  return {
+    preparation:
+      pendingPreparation === undefined ? savedPreparation : pendingPreparation,
+    saveMutation,
+  };
+};
+
+/**
+ * Die Vorbereitung einer Leistung: die gerenderte Themenliste mit
+ * bedienbaren Kästchen, der Fortschritt darüber, und auf Wunsch der rohe
+ * Text zum Bearbeiten. Ohne Vorbereitung beginnt das Bearbeiten mit der
+ * Vorlage der Leistungsart.
+ */
+export const PreparationPanel = ({
+  halbjahrId,
+  kind,
+  leistungId,
+  operations,
+  preparation: savedPreparation,
+}: {
+  readonly halbjahrId: string;
+  readonly kind: PlanbareLeistungsart;
+  readonly leistungId: string;
+  readonly operations: LeistungOperations;
+  readonly preparation: string | null;
+}) => {
+  const [editorBase, setEditorBase] = useState<EditorBase>(null);
+  const editing = editorBase !== null;
+  const { preparation, saveMutation } = usePreparationSave({
+    halbjahrId,
+    leistungId,
+    operations,
+    savedPreparation,
+  });
+  const templatesQuery = useQuery({
+    enabled: editing && preparation === null,
+    queryFn: () => operations.loadTemplates(),
+    queryKey: preparationTemplatesKey,
+  });
   const error = saveMutation.isError
     ? actionErrorText(saveMutation.error, saveErrorText)
     : null;
   const headingId = useId();
 
   const templateFor = (templates: PreparationTemplates) => templates[kind];
-  const startEditing = () => setEditing(true);
+  // Der Stand beim Öffnen, nicht beim Speichern: lädt die Seite währenddessen
+  // einen neueren nach, darf der Entwurf ihn nicht stillschweigend ersetzen.
+  const startEditing = () => setEditorBase({ expected: preparation });
 
   const body = () => {
     if (!editing) {
@@ -241,7 +278,10 @@ export const PreparationPanel = ({
           onEdit={startEditing}
           onToggle={(line) => {
             saveMutation.reset();
-            saveMutation.mutate(toggleTaskLine(preparation, line));
+            saveMutation.mutate({
+              expected: preparation,
+              preparation: toggleTaskLine(preparation, line),
+            });
           }}
         />
       );
@@ -249,7 +289,7 @@ export const PreparationPanel = ({
     if (preparation === null && templatesQuery.data === undefined) {
       return templatesQuery.isError && !templatesQuery.isFetching ? (
         <TemplateError
-          onCancel={() => setEditing(false)}
+          onCancel={() => setEditorBase(null)}
           onRetry={() => templatesQuery.refetch()}
         />
       ) : (
@@ -266,15 +306,19 @@ export const PreparationPanel = ({
         }
         onCancel={() => {
           saveMutation.reset();
-          setEditing(false);
+          setEditorBase(null);
         }}
         onSave={(markdown) => {
           saveMutation.reset();
           // Nur das Speichern des Editors schließt ihn; ein Haken, der noch
           // unterwegs war, als der Editor aufging, ließe sonst den Entwurf fallen.
-          saveMutation.mutate(markdown.trim() === '' ? null : markdown, {
-            onSuccess: () => setEditing(false),
-          });
+          saveMutation.mutate(
+            {
+              expected: editorBase.expected,
+              preparation: markdown.trim() === '' ? null : markdown,
+            },
+            { onSuccess: () => setEditorBase(null) },
+          );
         }}
         pending={saveMutation.isPending}
       />

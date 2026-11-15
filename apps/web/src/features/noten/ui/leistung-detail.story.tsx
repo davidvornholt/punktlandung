@@ -13,6 +13,7 @@ import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { leistungKey } from '#/shared/query/query-keys.ts';
+import { PreparationChanged } from '../errors/noten-errors.ts';
 import type {
   LeistungDetail as Detail,
   Leistung,
@@ -112,6 +113,8 @@ type ServerBehaviour = {
   readonly failedSaves?: ReadonlyArray<number>;
   /** Wie viele der ersten Aufrufe für die Vorlagen scheitern. */
   readonly templateFailures?: number;
+  /** Diesen Text speichert ein anderer Tab, gleich nachdem die Seite geladen hat. */
+  readonly savedElsewhere?: string;
 };
 
 /**
@@ -125,6 +128,7 @@ const LeistungDetailScenario = ({
   saveDelays = noSaveDelays,
   failedSaves = noFailedSaves,
   templateFailures = 0,
+  savedElsewhere,
 }: ServerBehaviour & { readonly scenario: Scenario }) => {
   const leistungRef = useRef<Leistung>(initialLeistung(scenario));
   const loadsRef = useRef(0);
@@ -144,11 +148,15 @@ const LeistungDetailScenario = ({
     () => ({
       load: () => {
         loadsRef.current += 1;
+        const leistung = leistungRef.current;
+        if (loadsRef.current === 1 && savedElsewhere !== undefined) {
+          leistungRef.current = { ...leistung, preparation: savedElsewhere };
+        }
         return refreshFails && loadsRef.current > 1
           ? Promise.reject(new Error('Verbindung unterbrochen'))
           : Promise.resolve({
               halbjahr,
-              leistung: leistungRef.current,
+              leistung,
               lernen: { daysAgo: 4, inLastWeek: 1 },
             } satisfies Detail);
       },
@@ -173,6 +181,9 @@ const LeistungDetailScenario = ({
         if (failedSaves.includes(saveIndex)) {
           throw new Error('Verbindung unterbrochen');
         }
+        if (input.expected !== leistungRef.current.preparation) {
+          throw new PreparationChanged({ noteId: input.id });
+        }
         leistungRef.current = {
           ...leistungRef.current,
           preparation: input.preparation,
@@ -180,7 +191,7 @@ const LeistungDetailScenario = ({
         setSaved((list) => [...list, input.preparation ?? '<null>']);
       },
     }),
-    [failedSaves, refreshFails, saveDelays, templateFailures],
+    [failedSaves, refreshFails, saveDelays, savedElsewhere, templateFailures],
   );
   const notenOperations = useMemo<NotenOperations>(
     () => ({

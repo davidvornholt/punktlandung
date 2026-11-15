@@ -20,6 +20,7 @@ import { loadUpcoming } from '#/features/noten/services/upcoming-service.ts';
 import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
 import { migrateDatabase } from '#/shared/db/migrate.ts';
 import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
+import { toggleTaskLine } from '#/shared/markdown/task-lines.ts';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import {
   postgresTestLayer,
@@ -162,7 +163,11 @@ describe('Vorbereitung einer Leistung', () => {
 
       const markdown = '## Themen\n\n- [x] Gedichtanalyse\n- [ ] Erörterung\n';
       await provided(
-        updatePreparation({ id: planned.id, preparation: markdown }),
+        updatePreparation({
+          id: planned.id,
+          expected: null,
+          preparation: markdown,
+        }),
       );
       const detail = await provided(loadLeistung(planned.id, '2026-10-01'));
       expect(detail.leistung.preparation).toBe(markdown);
@@ -180,10 +185,85 @@ describe('Vorbereitung einer Leistung', () => {
 
       const missing = await provided(
         Effect.flip(
-          updatePreparation({ id: 'gibt-es-nicht', preparation: null }),
+          updatePreparation({
+            id: 'gibt-es-nicht',
+            expected: null,
+            preparation: null,
+          }),
         ),
       );
       expect(missing._tag).toBe('NoteNichtGefunden');
+    }));
+});
+
+describe('Vorbereitung in zwei Tabs', () => {
+  it('lässt einen veralteten Tab nicht überschreiben, was ein anderer Tab gespeichert hat', () =>
+    withSeededDatabase(async (provided) => {
+      await provided(createNote(fields));
+      const planned = (await provided(listNoten(termId))).find(
+        (note) => note.status === 'planned',
+      );
+      if (planned === undefined) {
+        throw new Error('Die ausstehende Klausur fehlt.');
+      }
+      const original = '- [ ] Erstes Thema';
+      await provided(
+        updatePreparation({
+          id: planned.id,
+          expected: null,
+          preparation: original,
+        }),
+      );
+      // Beide Tabs zeigen jetzt `original`. Tab A ergänzt ein Thema.
+      const newer = `${original}\n- [ ] Neues Thema`;
+      await provided(
+        updatePreparation({
+          id: planned.id,
+          expected: original,
+          preparation: newer,
+        }),
+      );
+
+      // Tab B hakt im alten Stand das erste Thema ab.
+      const stale = await provided(
+        Effect.flip(
+          updatePreparation({
+            id: planned.id,
+            expected: original,
+            preparation: toggleTaskLine(original, 1),
+          }),
+        ),
+      );
+      expect(stale._tag).toBe('VorbereitungGeaendert');
+      expect(
+        (await provided(loadLeistung(planned.id, '2026-10-01'))).leistung
+          .preparation,
+      ).toBe(newer);
+
+      // Nach dem Neuladen gelingt derselbe Haken auf dem neuen Stand.
+      await provided(
+        updatePreparation({
+          id: planned.id,
+          expected: newer,
+          preparation: toggleTaskLine(newer, 1),
+        }),
+      );
+      expect(
+        (await provided(loadLeistung(planned.id, '2026-10-01'))).leistung
+          .preparation,
+      ).toBe('- [x] Erstes Thema\n- [ ] Neues Thema');
+
+      // Auch das Löschen prüft den gesehenen Stand.
+      const staleDelete = await provided(
+        Effect.flip(
+          updatePreparation({
+            id: planned.id,
+            expected: newer,
+            preparation: null,
+          }),
+        ),
+      );
+      expect(staleDelete._tag).toBe('VorbereitungGeaendert');
     }));
 });
 

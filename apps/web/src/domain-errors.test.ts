@@ -26,6 +26,7 @@ import {
   HalbjahrNotFound as NotenHalbjahrNotFound,
   NotenwertRequired,
   NoteOutsideHalbjahr,
+  PreparationChanged,
 } from '#/features/noten/errors/noten-errors.ts';
 import { ZeugnisHalbjahrNotFound } from '#/features/zeugnis/errors/zeugnis-errors.ts';
 import { UnexpectedFailure } from '#/shared/exit-failure.ts';
@@ -88,6 +89,7 @@ const errors: ReadonlyArray<DomainError> = [
     endsOn: '2027-01-31',
   }),
   new NotenwertRequired({ kind: 'muendlich' }),
+  new PreparationChanged({ noteId: 'note-1' }),
   new ZeugnisHalbjahrNotFound({ termId: 'halbjahr-1' }),
 ];
 

@@ -218,6 +218,7 @@ const addPreparations = (
         yield* updatePreparation(
           yield* Schema.decodeUnknownEffect(PreparationUpdate)({
             id,
+            expected: null,
             preparation: leistung.preparation,
           }),
         );
