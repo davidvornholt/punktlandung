@@ -113,8 +113,11 @@ type ServerBehaviour = {
   readonly failedSaves?: ReadonlyArray<number>;
   /** Wie viele der ersten Aufrufe für die Vorlagen scheitern. */
   readonly templateFailures?: number;
-  /** Diesen Text speichert ein anderer Tab, gleich nachdem die Seite geladen hat. */
-  readonly savedElsewhere?: string;
+  /**
+   * Diesen Text speichert ein anderer Tab, gleich nachdem die Seite geladen
+   * hat; null heißt, er löscht die Vorbereitung.
+   */
+  readonly savedElsewhere?: string | null;
 };
 
 /**
@@ -135,6 +138,7 @@ const LeistungDetailScenario = ({
   const savesRef = useRef(0);
   const templateLoadsRef = useRef(0);
   const [saved, setSaved] = useState<ReadonlyArray<string>>([]);
+  const [loads, setLoads] = useState(0);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -148,6 +152,7 @@ const LeistungDetailScenario = ({
     () => ({
       load: () => {
         loadsRef.current += 1;
+        setLoads(loadsRef.current);
         const leistung = leistungRef.current;
         if (loadsRef.current === 1 && savedElsewhere !== undefined) {
           leistungRef.current = { ...leistung, preparation: savedElsewhere };
@@ -236,6 +241,9 @@ const LeistungDetailScenario = ({
   return (
     <>
       <RouterProvider router={router} />
+      <output aria-label="Ladevorgänge" hidden={true}>
+        {loads}
+      </output>
       <ol aria-label="Gespeicherte Vorbereitungen" hidden={true}>
         {saved.map((entry, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: Der Verlauf wird nur angehängt, nie umsortiert.

@@ -176,9 +176,7 @@ export const loadLeistung = (id: string, today: string) =>
 
 /**
  * Schreibt nur die Vorbereitung. Das Notenformular lässt sie unberührt, und
- * das Abhaken eines Themas darf keine Notenprüfung anstoßen. Jeder Aufruf
- * trägt den ganzen Text; er gilt nur, solange noch `expected` gespeichert
- * ist, sonst nähme ein veralteter Tab Themen aus einem anderen zurück.
+ * das Abhaken eines Themas darf keine Notenprüfung anstoßen.
  */
 export const updatePreparation = (input: PreparationUpdate) =>
   Effect.gen(function* () {

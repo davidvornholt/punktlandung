@@ -34,7 +34,6 @@ import { ThemenMarkdown } from './themen-markdown.tsx';
 const preparationSaveKey = (leistungId: string) =>
   ['preparation-save', leistungId] as const;
 
-/** Ein Speicheraufruf: der neue Text und der Stand, auf dem er beruht. */
 type PreparationSave = {
   readonly expected: string | null;
   readonly preparation: string | null;
@@ -143,10 +142,12 @@ const EmptyPreparation = ({ onStart }: { readonly onStart: () => void }) => (
 
 /** Die gerenderte Themenliste mit dem Sprung in den rohen Text. */
 const RenderedPreparation = ({
+  editable,
   markdown,
   onEdit,
   onToggle,
 }: {
+  readonly editable: boolean;
   readonly markdown: string;
   readonly onEdit: () => void;
   readonly onToggle: (line: number) => void;
@@ -158,6 +159,7 @@ const RenderedPreparation = ({
       </div>
       <IconButton
         className="-mt-1 -mr-1"
+        disabled={!editable}
         icon={Pencil}
         label="Text bearbeiten"
         onClick={onEdit}
@@ -167,11 +169,9 @@ const RenderedPreparation = ({
 );
 
 /**
- * Speichert die Vorbereitung. Jeder Aufruf schickt den ganzen Text und den
- * Stand, auf dem er beruht; der Server lehnt ihn ab, wenn inzwischen ein
- * anderer gespeichert ist. Die Aufrufe einer Vorbereitung gehen nacheinander
- * hinaus, damit jeder auf dem Ergebnis des vorigen aufbaut. Solange einer
- * unterwegs ist, gilt sein Text als der angezeigte.
+ * Speichert die Vorbereitung. Die Aufrufe einer Vorbereitung gehen
+ * nacheinander hinaus, damit jeder auf dem Ergebnis des vorigen aufbaut.
+ * Solange einer unterwegs ist, gilt sein Text als der angezeigte.
  */
 const usePreparationSave = ({
   halbjahrId,
@@ -254,7 +254,7 @@ export const PreparationPanel = ({
     savedPreparation,
   });
   const templatesQuery = useQuery({
-    enabled: editing && preparation === null,
+    enabled: editorBase?.expected === null,
     queryFn: () => operations.loadTemplates(),
     queryKey: preparationTemplatesKey,
   });
@@ -264,8 +264,8 @@ export const PreparationPanel = ({
   const headingId = useId();
 
   const templateFor = (templates: PreparationTemplates) => templates[kind];
-  // Der Stand beim Öffnen, nicht beim Speichern: lädt die Seite währenddessen
-  // einen neueren nach, darf der Entwurf ihn nicht stillschweigend ersetzen.
+  // Der Editor beruht auf dem Stand beim Öffnen, nicht auf dem, den die Seite
+  // währenddessen nachlädt: Der Entwurf darf einen neueren nicht ersetzen.
   const startEditing = () => setEditorBase({ expected: preparation });
 
   const body = () => {
@@ -274,6 +274,9 @@ export const PreparationPanel = ({
         <EmptyPreparation onStart={startEditing} />
       ) : (
         <RenderedPreparation
+          // Ein noch unbestätigter Haken taugt nicht als Stand des Editors:
+          // Scheitert er, schlüge jedes Speichern des Entwurfs fehl.
+          editable={!saveMutation.isPending}
           markdown={preparation}
           onEdit={startEditing}
           onToggle={(line) => {
@@ -286,7 +289,7 @@ export const PreparationPanel = ({
         />
       );
     }
-    if (preparation === null && templatesQuery.data === undefined) {
+    if (editorBase.expected === null && templatesQuery.data === undefined) {
       return templatesQuery.isError && !templatesQuery.isFetching ? (
         <TemplateError
           onCancel={() => setEditorBase(null)}
@@ -299,7 +302,7 @@ export const PreparationPanel = ({
     return (
       <PreparationEditor
         initial={
-          preparation ??
+          editorBase.expected ??
           (templatesQuery.data === undefined
             ? ''
             : templateFor(templatesQuery.data))
@@ -310,8 +313,6 @@ export const PreparationPanel = ({
         }}
         onSave={(markdown) => {
           saveMutation.reset();
-          // Nur das Speichern des Editors schließt ihn; ein Haken, der noch
-          // unterwegs war, als der Editor aufging, ließe sonst den Entwurf fallen.
           saveMutation.mutate(
             {
               expected: editorBase.expected,
