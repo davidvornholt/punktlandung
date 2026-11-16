@@ -8,14 +8,14 @@ import { trendKey } from '#/shared/query/query-keys.ts';
 import { runServerEffect } from '#/shared/runtime.ts';
 import {
   NoteId,
-  NoteInput,
   NotenQuery,
+  NoteSubmission,
   NoteUpdate,
   PreparationTemplateInput,
   PreparationUpdate,
 } from '../schemas/note-schema.ts';
 import {
-  createNote,
+  createSubmittedNote,
   deleteNote,
   listNoten,
   loadLeistung,
@@ -36,8 +36,8 @@ export const listNotenFn = createServerFn({ method: 'GET' })
 
 export const createNoteFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])
-  .validator(Schema.toStandardSchemaV1(NoteInput))
-  .handler(({ data }) => runServerEffect(createNote(data)));
+  .validator(Schema.toStandardSchemaV1(NoteSubmission))
+  .handler(({ data }) => runServerEffect(createSubmittedNote(data)));
 
 export const updateNoteFn = createServerFn({ method: 'POST' })
   .middleware([sessionRequired])

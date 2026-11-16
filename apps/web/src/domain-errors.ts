@@ -23,6 +23,7 @@ import {
   HalbjahrNotFound as NotenHalbjahrNotFound,
   NotenwertRequired,
   NoteOutsideHalbjahr,
+  NoteSubmissionIdMissing,
   PreparationChanged,
 } from '#/features/noten/errors/noten-errors.ts';
 import { ZeugnisHalbjahrNotFound } from '#/features/zeugnis/errors/zeugnis-errors.ts';
@@ -53,6 +54,7 @@ export const DomainError = Schema.Union([
   NotenHalbjahrNotFound,
   NoteOutsideHalbjahr,
   NotenwertRequired,
+  NoteSubmissionIdMissing,
   PreparationChanged,
   ZeugnisHalbjahrNotFound,
 ]);

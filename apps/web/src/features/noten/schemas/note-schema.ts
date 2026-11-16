@@ -53,6 +53,19 @@ export const NoteInput = Schema.Struct({
 
 export type NoteInput = typeof NoteInput.Type;
 
+/**
+ * Die Anfrage des Notenformulars. Ein Tab, der vor der Einführung der
+ * Abgabe-ID geladen wurde, sendet keine `id`. Fehlte sie schon der
+ * Schemaprüfung, bekäme er nur den allgemeinen Verbindungsfehler; so erreicht
+ * ihn die Aufforderung, die Seite neu zu laden. Der Server erfindet keine ID,
+ * weil ein Wiederholungsversuch sie nicht kennen könnte.
+ */
+export const NoteSubmission = Schema.Struct({
+  ...NoteInput.fields,
+  id: Schema.optionalKey(NoteInput.fields.id),
+});
+export type NoteSubmission = typeof NoteSubmission.Type;
+
 export const NoteUpdate = Schema.Struct({
   id: Schema.String,
   ...NotenFields.fields,
