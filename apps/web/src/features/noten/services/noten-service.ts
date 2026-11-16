@@ -23,10 +23,12 @@ import { formatHalbjahrLabel } from '#/shared/school/klassenstufe.ts';
 import {
   HalbjahrNotFound,
   NoteNotFound,
+  NoteSubmissionIdMissing,
   PreparationChanged,
 } from '../errors/noten-errors.ts';
 import type {
   NoteInput,
+  NoteSubmission,
   NoteUpdate,
   PreparationUpdate,
 } from '../schemas/note-schema.ts';
@@ -248,6 +250,16 @@ export const createNote = (input: NoteInput) =>
           .onConflictDoNothing({ target: noteTable.id });
       }),
     );
+  });
+
+/** Nimmt eine Formularabgabe an; ohne ID ist ihre Seite veraltet. */
+export const createSubmittedNote = (input: NoteSubmission) =>
+  Effect.gen(function* () {
+    const { id } = input;
+    if (id === undefined) {
+      return yield* Effect.fail(new NoteSubmissionIdMissing());
+    }
+    yield* createNote({ ...input, id });
   });
 
 export const updateNote = (input: NoteUpdate) =>

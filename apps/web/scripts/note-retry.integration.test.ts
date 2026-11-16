@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import type { Pool } from 'pg';
 import {
   createNote,
+  createSubmittedNote,
   deleteNote,
   listNoten,
 } from '#/features/noten/services/noten-service.ts';
@@ -150,5 +151,17 @@ describe('Eine wiederholte Abgabe einer Note', () => {
       await provided(createNote(submitted));
 
       expect(werte(await provided(listNoten(termId)))).toEqual([5]);
+    }));
+
+  it('verlangt von einer Abgabe ohne ID, die Seite neu zu laden', () =>
+    withSeededDatabase(async (provided, pool) => {
+      // So sendet ein vor dem Update geladener Tab: ohne `id`.
+      const { id: _fehlt, ...staleTab } = submitted;
+      const refused = await provided(Effect.flip(createSubmittedNote(staleTab)));
+
+      expect(refused._tag).toBe('AbgabeOhneId');
+      expect(refused.message).toContain('Lade die Seite neu');
+      const stored = await pool.query('SELECT 1 FROM grade');
+      expect(stored.rowCount).toBe(0);
     }));
 });

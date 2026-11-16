@@ -14,7 +14,7 @@ import {
 import { StudyDayInput } from '#/features/lernen/schemas/study-day-schema.ts';
 import {
   NoteId,
-  NoteInput,
+  NoteSubmission,
   NotenQuery,
   NoteUpdate,
 } from '#/features/noten/schemas/note-schema.ts';
@@ -80,7 +80,12 @@ const cases: ReadonlyArray<
     },
   ],
   ['Noten query', NotenQuery, { termId: 'halbjahr-1' }],
-  ['Note create', NoteInput, noteInput],
+  ['Note create', NoteSubmission, noteInput],
+  [
+    'Note create from a page loaded before the submission ID',
+    NoteSubmission,
+    { termId: 'halbjahr-1', ...noteFields },
+  ],
   ['Note update', NoteUpdate, { id: 'note-1', ...noteFields }],
   ['Note delete', NoteId, { id: 'note-1' }],
   ['Zeugnis query', ZeugnisQuery, { termId: 'halbjahr-1' }],

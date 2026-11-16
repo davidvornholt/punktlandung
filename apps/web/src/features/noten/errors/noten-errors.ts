@@ -68,3 +68,13 @@ export class FachNotInSchoolYear extends Schema.TaggedError<FachNotInSchoolYear>
     return `Das Fach ${this.fachId} gehört nicht zum Schuljahr ${this.schoolYear}. Wähle ein Fach aus diesem Schuljahr.`;
   }
 }
+
+export class NoteSubmissionIdMissing extends Schema.TaggedError<NoteSubmissionIdMissing>()(
+  'AbgabeOhneId',
+  {},
+) {
+  // biome-ignore lint/nursery/useThisInClassMethods: Die Meldung hängt von keinem Feld ab, muss aber wie bei jedem fachlichen Fehler als `message` ankommen.
+  override get message(): string {
+    return 'Diese Seite wurde vor einem Update geladen und kann die Note nicht mehr speichern. Lade die Seite neu und trage die Note noch einmal ein.';
+  }
+}
