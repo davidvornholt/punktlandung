@@ -9,6 +9,12 @@ import { SqlClient } from 'effect/sql/SqlClient';
 export const databaseHealthDeadlineMs = 1500;
 
 type DatabaseUnavailableReason = 'error' | 'timeout';
+type DatabaseState = 'available' | DatabaseUnavailableReason;
+
+type InFlightCheck = {
+  readonly state: Promise<DatabaseState>;
+  reported: boolean;
+};
 
 // Nur der Grund, keine Fehlermeldung: sie kann Verbindungsdaten enthalten.
 const logUnavailable = (reason: DatabaseUnavailableReason) =>
@@ -27,14 +33,13 @@ export const databaseAnswers = Effect.gen(function* () {
   yield* sql`select 1`;
 }).pipe(
   Effect.timeoutOption(databaseHealthDeadlineMs),
-  Effect.flatMap(
+  Effect.map(
     Option.match({
-      // Den Timeout meldet der Aufrufer, sobald er nicht mehr wartet.
-      onNone: () => Effect.succeed(false),
-      onSome: () => Effect.succeed(true),
+      onNone: (): DatabaseState => 'timeout',
+      onSome: (): DatabaseState => 'available',
     }),
   ),
-  Effect.catchCause(() => logUnavailable('error').pipe(Effect.as(false))),
+  Effect.catchCause(() => Effect.succeed<DatabaseState>('error')),
 );
 
 /**
@@ -44,17 +49,25 @@ export const databaseAnswers = Effect.gen(function* () {
  * mehrere Sekunden. Daher ist die Antwort hier begrenzt, und der Check räumt
  * im Hintergrund auf.
  */
-const boundedAt = (
-  work: Promise<boolean>,
-  onTimeout: () => void,
-): Promise<boolean> =>
+// Meldet den Grund einmal je Check, egal ob der Check oder sein Aufrufer ihn zuerst sieht.
+const report = (check: InFlightCheck, reason: DatabaseUnavailableReason) => {
+  if (!check.reported) {
+    check.reported = true;
+    Effect.runSync(logUnavailable(reason));
+  }
+};
+
+const boundedAt = (check: InFlightCheck): Promise<boolean> =>
   new Promise((resolve) => {
     const timer = setTimeout(() => {
-      onTimeout();
+      report(check, 'timeout');
       resolve(false);
     }, databaseHealthDeadlineMs);
-    work
-      .then(resolve, () => resolve(false))
+    check.state
+      .then(
+        (state) => resolve(state === 'available'),
+        () => resolve(false),
+      )
       .finally(() => {
         clearTimeout(timer);
       });
@@ -69,22 +82,27 @@ const boundedAt = (
 export const makeDatabaseCheck = (
   run: (check: typeof databaseAnswers) => Promise<boolean>,
 ): (() => Promise<boolean>) => {
-  let inFlight: { work: Promise<boolean>; timeoutLogged: boolean } | undefined;
+  let inFlight: InFlightCheck | undefined;
   return () => {
-    inFlight ??= {
-      work: run(databaseAnswers)
-        .catch(() => false)
-        .finally(() => {
-          inFlight = undefined;
-        }),
-      timeoutLogged: false,
-    };
-    const check = inFlight;
-    return boundedAt(check.work, () => {
-      if (!check.timeoutLogged) {
-        check.timeoutLogged = true;
-        Effect.runSync(logUnavailable('timeout'));
-      }
-    });
+    if (inFlight === undefined) {
+      const check: InFlightCheck = {
+        reported: false,
+        state: run(databaseAnswers)
+          .catch((): DatabaseState => 'error')
+          .finally(() => {
+            inFlight = undefined;
+          }),
+      };
+      check.state.then(
+        (state) => {
+          if (state !== 'available') {
+            report(check, state);
+          }
+        },
+        () => undefined,
+      );
+      inFlight = check;
+    }
+    return boundedAt(inFlight);
   };
 };

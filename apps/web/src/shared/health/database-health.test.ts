@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 import { listen, sleep, type TCPSocketListener } from 'bun';
 import { Effect } from 'effect';
 
@@ -169,6 +169,30 @@ describe('Health-Check der Datenbank', () => {
 
     await check();
     expect(runs.count).toBe(2);
+  }, 30_000);
+
+  it('meldet den Timeout einmal je Check, wie auch immer er endet', async () => {
+    const port = listenSilently(() => undefined);
+    const lines: Array<string> = [];
+    const sinks = (['log', 'warn', 'error'] as const).map((method) =>
+      spyOn(console, method).mockImplementation((...args: Array<unknown>) => {
+        lines.push(args.join(' '));
+      }),
+    );
+    const check = checkAgainst(urlFor(port));
+
+    await Promise.all([check(), check(), check()]);
+    await waitUntil(() => lines.length > 0, performance.now() + 10_000);
+    await sleep(500);
+    for (const sink of sinks) {
+      sink.mockRestore();
+    }
+
+    expect(
+      lines.filter((line) =>
+        line.includes('Datenbank nicht verfügbar (timeout)'),
+      ),
+    ).toHaveLength(1);
   }, 30_000);
 
   it('meldet sofort nicht verfügbar, wenn niemand lauscht', async () => {
