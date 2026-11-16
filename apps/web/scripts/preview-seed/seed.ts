@@ -166,6 +166,7 @@ const createLeistungen = (plan: SamplePlan, ids: PlanIds) =>
         const subjectId = yield* lookup(ids.faecher, leistung.fach);
         yield* createNote(
           yield* Schema.decodeUnknownEffect(NoteInput)({
+            id: crypto.randomUUID(),
             termId,
             subjectId,
             kind: leistung.kind,

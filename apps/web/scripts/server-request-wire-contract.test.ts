@@ -54,6 +54,7 @@ const noteFields = {
 };
 
 const noteInput = {
+  id: 'abgabe-1',
   termId: 'halbjahr-1',
   ...noteFields,
 };

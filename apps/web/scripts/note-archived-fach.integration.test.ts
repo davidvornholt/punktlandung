@@ -139,12 +139,26 @@ describe('Noten an einem archivierten Fach', () => {
   it('nimmt keine neu eingetragene Note in einem archivierten Fach an', () =>
     withSeededDatabase(async (provided, pool) => {
       const blocked = await provided(
-        Effect.flip(createNote({ ...fields, subjectId: 'latein', termId })),
+        Effect.flip(
+          createNote({
+            ...fields,
+            id: 'neu-latein',
+            subjectId: 'latein',
+            termId,
+          }),
+        ),
       );
       expect(blocked._tag).toBe('FachNichtImSchuljahr');
       expect(await gradeCount(pool)).toBe('1');
 
-      await provided(createNote({ ...fields, subjectId: 'biologie', termId }));
+      await provided(
+        createNote({
+          ...fields,
+          id: 'neu-biologie',
+          subjectId: 'biologie',
+          termId,
+        }),
+      );
       expect(await gradeCount(pool)).toBe('2');
     }));
 });
