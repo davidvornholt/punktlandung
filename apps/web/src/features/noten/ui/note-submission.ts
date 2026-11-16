@@ -1,10 +1,8 @@
 import type { NotenFields } from '../schemas/note-schema.ts';
 
 /**
- * Gibt jeder Abgabe des Formulars eine ID, die der Server als ID der Note
- * speichert und so einen Wiederholungsversuch derselben Abgabe erkennt. Die ID
- * bleibt gleich, solange dieselben Eingaben abgeschickt werden; das deckt den
- * Versuch nach einem technischen Fehler ab. Geänderte Eingaben sind eine neue
+ * Die ID bleibt gleich, solange dieselben Eingaben abgeschickt werden; das
+ * deckt den Versuch nach einem technischen Fehler ab. Geänderte Eingaben sind eine neue
  * Abgabe, damit eine Korrektur nie als Wiederholung der alten verschluckt wird.
  */
 export const createSubmissionIds = (

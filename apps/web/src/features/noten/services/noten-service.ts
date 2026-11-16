@@ -219,8 +219,6 @@ export const createNote = (input: NoteInput) =>
         yield* validateValue(input.wert, halbjahr.system, input.kind);
         yield* validateDate(input.datum, halbjahr);
         yield* validateFach(input.subjectId, halbjahr.schoolYear, null);
-        // Eine Abgabe, die schon gespeichert ist, kam noch einmal an, weil
-        // die Antwort verloren ging. Sie legt keine zweite Note an.
         yield* db
           .insert(noteTable)
           .values({
