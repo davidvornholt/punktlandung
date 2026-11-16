@@ -219,16 +219,21 @@ export const createNote = (input: NoteInput) =>
         yield* validateValue(input.wert, halbjahr.system, input.kind);
         yield* validateDate(input.datum, halbjahr);
         yield* validateFach(input.subjectId, halbjahr.schoolYear, null);
-        yield* db.insert(noteTable).values({
-          id: crypto.randomUUID(),
-          subjectId: input.subjectId,
-          termId: input.termId,
-          kind: input.kind,
-          value: storedValue(input.wert),
-          weight: `${input.gewicht}`,
-          takenOn: input.datum,
-          note: input.notiz,
-        });
+        // Eine Abgabe, die schon gespeichert ist, kam noch einmal an, weil
+        // die Antwort verloren ging. Sie legt keine zweite Note an.
+        yield* db
+          .insert(noteTable)
+          .values({
+            id: input.id,
+            subjectId: input.subjectId,
+            termId: input.termId,
+            kind: input.kind,
+            value: storedValue(input.wert),
+            weight: `${input.gewicht}`,
+            takenOn: input.datum,
+            note: input.notiz,
+          })
+          .onConflictDoNothing({ target: noteTable.id });
       }),
     );
   });

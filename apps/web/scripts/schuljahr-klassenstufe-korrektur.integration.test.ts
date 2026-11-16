@@ -107,6 +107,7 @@ describe('Klassenstufe korrigieren neben Noten und gleichzeitigen Änderungen', 
       const second = await halbjahrIn(provided, secondHalbjahr.schoolYear, 2);
       await provided(
         createNote({
+          id: 'note-neu',
           termId: first.id,
           subjectId: 'mathe',
           kind: 'test',

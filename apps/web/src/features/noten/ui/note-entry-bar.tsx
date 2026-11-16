@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import { berlinCalendarDate } from '#/shared/date/calendar-date.ts';
 import { clampIsoDate } from '#/shared/date/date-range.ts';
@@ -7,6 +7,7 @@ import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import type { NotenFields } from '../schemas/note-schema.ts';
 import { NoteForm } from './note-form.tsx';
+import { createSubmissionIds } from './note-submission.ts';
 import { invalidateNotenQueries } from './noten-invalidation.ts';
 import type { NotenOperations } from './noten-operations.ts';
 
@@ -30,10 +31,16 @@ export const NoteEntryBar = ({
 }) => {
   const queryClient = useQueryClient();
   const formRef = useRef<HTMLFormElement>(null);
+  const [submissionIds] = useState(createSubmissionIds);
   const createMutation = useMutation({
     mutationFn: (values: NotenFields) =>
-      operations.create({ ...values, termId: halbjahr.id }),
+      operations.create({
+        ...values,
+        id: submissionIds.idFor(halbjahr.id, values),
+        termId: halbjahr.id,
+      }),
     onSuccess: () => {
+      submissionIds.settle();
       formRef.current?.reset();
       return invalidateNotenQueries(queryClient, halbjahr.id);
     },

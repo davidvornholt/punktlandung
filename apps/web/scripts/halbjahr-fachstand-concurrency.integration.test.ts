@@ -53,6 +53,7 @@ it('sperrt auch ein nach Beginn der Korrektur angelegtes Halbjahr vor der Notenp
       }
       note = provided(
         createNote({
+          id: 'note-neu',
           termId: second.id,
           subjectId: 'mathe',
           kind: 'test',

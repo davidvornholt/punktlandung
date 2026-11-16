@@ -78,13 +78,21 @@ describe('PostgreSQL-Kalenderdaten', () => {
       expect(currentHalbjahr(listed, '2027-02-01')?.id).toBe('term-neu');
       expect(currentHalbjahr(listed, '2027-08-01')?.id).toBe('term-neu');
 
-      await provided(createNote({ ...note, datum: halbjahr.startsOn }));
-      await provided(createNote({ ...note, datum: halbjahr.endsOn }));
+      await provided(
+        createNote({ ...note, id: 'note-anfang', datum: halbjahr.startsOn }),
+      );
+      await provided(
+        createNote({ ...note, id: 'note-ende', datum: halbjahr.endsOn }),
+      );
       const before = await provided(
-        Effect.flip(createNote({ ...note, datum: '2026-09-13' })),
+        Effect.flip(
+          createNote({ ...note, id: 'note-davor', datum: '2026-09-13' }),
+        ),
       );
       const after = await provided(
-        Effect.flip(createNote({ ...note, datum: '2027-01-30' })),
+        Effect.flip(
+          createNote({ ...note, id: 'note-dazwischen', datum: '2027-01-30' }),
+        ),
       );
       expect(before._tag).toBe('NoteAusserhalbHalbjahr');
       expect(after._tag).toBe('NoteAusserhalbHalbjahr');

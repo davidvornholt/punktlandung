@@ -46,6 +46,7 @@ describe('Halbjahr löschen', () => {
       }
       await provided(
         createNote({
+          id: 'note-neu',
           termId: halbjahr.id,
           subjectId: 'mathe',
           kind: 'test',
