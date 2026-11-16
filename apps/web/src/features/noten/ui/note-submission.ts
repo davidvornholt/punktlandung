@@ -2,8 +2,9 @@ import type { NotenFields } from '../schemas/note-schema.ts';
 
 /**
  * Die ID bleibt gleich, solange dieselben Eingaben abgeschickt werden; das
- * deckt den Versuch nach einem technischen Fehler ab. Geänderte Eingaben sind eine neue
- * Abgabe, damit eine Korrektur nie als Wiederholung der alten verschluckt wird.
+ * deckt den Versuch nach einem technischen Fehler ab. Geänderte Eingaben sind
+ * eine neue Abgabe, damit eine Korrektur nie als Wiederholung der alten
+ * verschluckt wird.
  */
 export const createSubmissionIds = (
   createId: () => string = () => crypto.randomUUID(),
