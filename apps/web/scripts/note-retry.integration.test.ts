@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { Effect } from 'effect';
+import type { Pool } from 'pg';
 import {
   createNote,
   deleteNote,
@@ -42,6 +43,7 @@ const withSeededDatabase = <Value>(
         Effect.Services<ReturnType<typeof createNote>>
       >,
     ) => Promise<A>,
+    pool: Pool,
   ) => Promise<Value>,
 ): Promise<Value> =>
   withPostgresTestDatabase(async (pool) => {
@@ -66,8 +68,9 @@ const withSeededDatabase = <Value>(
       "INSERT INTO school_year_subject_set (school_year) VALUES ('2026/27')",
     );
     const layer = postgresTestLayer(pool);
-    return use((effect) =>
-      Effect.runPromise(effect.pipe(Effect.provide(layer))),
+    return use(
+      (effect) => Effect.runPromise(effect.pipe(Effect.provide(layer))),
+      pool,
     );
   });
 
@@ -114,5 +117,38 @@ describe('Eine wiederholte Abgabe einer Note', () => {
       await provided(createNote(submitted));
 
       expect(werte(await provided(listNoten(termId)))).toEqual([1]);
+    }));
+
+  it('bestätigt eine gespeicherte Abgabe auch, wenn ihr Fach danach archiviert wurde', () =>
+    withSeededDatabase(async (provided, pool) => {
+      await provided(createNote(submitted));
+      await pool.query(
+        "UPDATE school_year_subject SET archived = true WHERE subject_id = 'mathe'",
+      );
+      // Ein neuer Eintrag im archivierten Fach bleibt gesperrt.
+      const blocked = await provided(
+        Effect.flip(createNote({ ...submitted, id: 'abgabe-neu' })),
+      );
+      expect(blocked._tag).toBe('FachNichtImSchuljahr');
+
+      await provided(createNote(submitted));
+
+      expect(werte(await provided(listNoten(termId)))).toEqual([5]);
+    }));
+
+  it('vermerkt eine abgelehnte Abgabe nicht, damit sie nach der Korrektur ankommt', () =>
+    withSeededDatabase(async (provided, pool) => {
+      await pool.query(
+        "UPDATE school_year_subject SET archived = true WHERE subject_id = 'mathe'",
+      );
+      const blocked = await provided(Effect.flip(createNote(submitted)));
+      expect(blocked._tag).toBe('FachNichtImSchuljahr');
+
+      await pool.query(
+        "UPDATE school_year_subject SET archived = false WHERE subject_id = 'mathe'",
+      );
+      await provided(createNote(submitted));
+
+      expect(werte(await provided(listNoten(termId)))).toEqual([5]);
     }));
 });

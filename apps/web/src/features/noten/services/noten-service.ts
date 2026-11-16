@@ -216,13 +216,11 @@ export const createNote = (input: NoteInput) =>
     yield* sql.withTransaction(
       Effect.gen(function* () {
         const db = yield* PgDrizzle;
-        const halbjahr = yield* loadLockedHalbjahr(input.termId);
-        yield* validateValue(input.wert, halbjahr.system, input.kind);
-        yield* validateDate(input.datum, halbjahr);
-        yield* validateFach(input.subjectId, halbjahr.schoolYear, null);
-        // Eine Zwillingsanfrage wartet hier auf den Commit der ersten, und
-        // eine bereits verarbeitete Abgabe endet erfolgreich, auch wenn ihre
-        // Note inzwischen gelöscht wurde.
+        // Die Abgabe wird vor jeder Prüfung vermerkt: Eine bereits verarbeitete
+        // endet erfolgreich, auch wenn ihre Note gelöscht oder ihr Fach
+        // inzwischen archiviert wurde, und eine Zwillingsanfrage wartet hier
+        // auf den Commit der ersten. Scheitert eine Prüfung, nimmt der
+        // Rollback den Vermerk wieder zurück.
         const recorded = yield* db
           .insert(noteSubmissionTable)
           .values({ id: input.id })
@@ -231,6 +229,10 @@ export const createNote = (input: NoteInput) =>
         if (recorded.length === 0) {
           return;
         }
+        const halbjahr = yield* loadLockedHalbjahr(input.termId);
+        yield* validateValue(input.wert, halbjahr.system, input.kind);
+        yield* validateDate(input.datum, halbjahr);
+        yield* validateFach(input.subjectId, halbjahr.schoolYear, null);
         yield* db
           .insert(noteTable)
           .values({
