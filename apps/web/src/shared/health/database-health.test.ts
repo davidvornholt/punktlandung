@@ -28,13 +28,11 @@ afterEach(() => {
   listeners.clear();
 });
 
-const be32 = (value: number): Uint8Array =>
-  new Uint8Array([
-    (value >>> 24) & 255,
-    (value >>> 16) & 255,
-    (value >>> 8) & 255,
-    value & 255,
-  ]);
+const be32 = (value: number): Uint8Array => {
+  const bytes = new Uint8Array(4);
+  new DataView(bytes.buffer).setUint32(0, value);
+  return bytes;
+};
 
 const message = (type: string, ...body: ReadonlyArray<Uint8Array>) => {
   const length = 4 + body.reduce((sum, part) => sum + part.length, 0);
@@ -43,6 +41,18 @@ const message = (type: string, ...body: ReadonlyArray<Uint8Array>) => {
     ...be32(length),
     ...body.flatMap((part) => [...part]),
   ]);
+};
+
+// Wartet, bis die Bedingung gilt oder die Zeit abgelaufen ist.
+const waitUntil = async (
+  condition: () => boolean,
+  untilMs: number,
+): Promise<void> => {
+  if (condition() || performance.now() >= untilMs) {
+    return;
+  }
+  await sleep(100);
+  await waitUntil(condition, untilMs);
 };
 
 const cancelRequestCode = 80_877_102;
@@ -154,10 +164,7 @@ describe('Health-Check der Datenbank', () => {
     const check = checkAgainst(urlFor(server.port), runs);
 
     await check();
-    const deadline = performance.now() + 15_000;
-    while (server.open() > 0 && performance.now() < deadline) {
-      await sleep(100);
-    }
+    await waitUntil(() => server.open() === 0, performance.now() + 15_000);
     expect(server.open()).toBe(0);
 
     await check();
