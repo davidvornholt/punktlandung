@@ -46,7 +46,7 @@ const result = {};
 try {
   result.before = await health();
   await admin.query('ALTER DATABASE "' + database + '" ALLOW_CONNECTIONS false');
-  await admin.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name = $1', [appName]);
+  await admin.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name = $1 AND datname = $2', [appName, database]);
   result.readableDuringOutage = await readable();
   result.during = await health();
   await admin.query('ALTER DATABASE "' + database + '" ALLOW_CONNECTIONS true');

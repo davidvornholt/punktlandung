@@ -19,6 +19,8 @@ const logUnavailable = (reason: DatabaseUnavailableReason) =>
  * baut nach einem Ausfall selbst neue Verbindungen auf, daher meldet sich die
  * App ohne Neustart wieder gesund. Eine eigene Verbindung nur für den Check
  * würde das Verbindungsbudget der Preview-Rolle (`database-layer.ts`) sprengen.
+ * Der Timeout hier sorgt nur dafür, dass der Check aufräumt; Aufrufer hören
+ * über `boundedAt` zur selben Frist auf zu warten.
  */
 export const databaseAnswers = Effect.gen(function* () {
   const sql = yield* SqlClient;
@@ -27,7 +29,8 @@ export const databaseAnswers = Effect.gen(function* () {
   Effect.timeoutOption(databaseHealthDeadlineMs),
   Effect.flatMap(
     Option.match({
-      onNone: () => logUnavailable('timeout').pipe(Effect.as(false)),
+      // Den Timeout meldet der Aufrufer, sobald er nicht mehr wartet.
+      onNone: () => Effect.succeed(false),
       onSome: () => Effect.succeed(true),
     }),
   ),
@@ -35,17 +38,50 @@ export const databaseAnswers = Effect.gen(function* () {
 );
 
 /**
+ * Hört zur Frist auf, auf einen Check zu warten. Der Timeout des Checks kann
+ * das nicht leisten: Wer eine Abfrage unterbricht, die die Datenbank nie
+ * beantwortet, wartet auf den Abbruch durch den Treiber, und der dauert
+ * mehrere Sekunden. Daher ist die Antwort hier begrenzt, und der Check räumt
+ * im Hintergrund auf.
+ */
+const boundedAt = (
+  work: Promise<boolean>,
+  onTimeout: () => void,
+): Promise<boolean> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      onTimeout();
+      resolve(false);
+    }, databaseHealthDeadlineMs);
+    work.then(resolve, () => resolve(false)).finally(() => {
+      clearTimeout(timer);
+    });
+  });
+
+/**
  * Gleichzeitige Aufrufe teilen sich eine Abfrage, damit die öffentliche Route
  * den kleinen Verbindungspool der App nicht mit Health-Abfragen füllen kann.
+ * Der Check bleibt geteilt, bis er aufgeräumt hat, auch wenn Aufrufer nicht
+ * mehr auf ihn warten. So staut eine hängende Datenbank keine Abfragen auf.
  */
 export const makeDatabaseCheck = (
   run: (check: typeof databaseAnswers) => Promise<boolean>,
 ): (() => Promise<boolean>) => {
-  let inFlight: Promise<boolean> | undefined;
+  let inFlight: { work: Promise<boolean>; timeoutLogged: boolean } | undefined;
   return () => {
-    inFlight ??= run(databaseAnswers).finally(() => {
-      inFlight = undefined;
+    const check = (inFlight ??= {
+      work: run(databaseAnswers)
+        .catch(() => false)
+        .finally(() => {
+          inFlight = undefined;
+        }),
+      timeoutLogged: false,
     });
-    return inFlight;
+    return boundedAt(check.work, () => {
+      if (!check.timeoutLogged) {
+        check.timeoutLogged = true;
+        Effect.runSync(logUnavailable('timeout'));
+      }
+    });
   };
 };
