@@ -157,7 +157,9 @@ describe('Eine wiederholte Abgabe einer Note', () => {
     withSeededDatabase(async (provided, pool) => {
       // So sendet ein vor dem Update geladener Tab: ohne `id`.
       const { id: _fehlt, ...staleTab } = submitted;
-      const refused = await provided(Effect.flip(createSubmittedNote(staleTab)));
+      const refused = await provided(
+        Effect.flip(createSubmittedNote(staleTab)),
+      );
 
       expect(refused._tag).toBe('AbgabeOhneId');
       expect(refused.message).toContain('Lade die Seite neu');

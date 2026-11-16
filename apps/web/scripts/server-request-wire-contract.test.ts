@@ -14,8 +14,8 @@ import {
 import { StudyDayInput } from '#/features/lernen/schemas/study-day-schema.ts';
 import {
   NoteId,
-  NoteSubmission,
   NotenQuery,
+  NoteSubmission,
   NoteUpdate,
 } from '#/features/noten/schemas/note-schema.ts';
 import { ZeugnisQuery } from '#/features/zeugnis/schemas/zeugnis-schema.ts';
