@@ -11,6 +11,7 @@ export const notenLimits = {
   maxNotenpunkte: 15,
   sechserMin: 1,
   sechserMax: 6,
+  maxSubmissionIdLength: 64,
 } as const;
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u;
@@ -37,6 +38,15 @@ export const NotenFields = Schema.Struct({
 export type NotenFields = typeof NotenFields.Type;
 
 export const NoteInput = Schema.Struct({
+  /**
+   * Die Identität dieser Abgabe, vom Formular erzeugt und bei jedem erneuten
+   * Versuch derselben Abgabe unverändert. Sie wird zur ID der Note, damit ein
+   * Wiederholungsversuch nach einer verlorenen Antwort keine zweite anlegt.
+   */
+  id: Schema.String.check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(notenLimits.maxSubmissionIdLength),
+  ),
   termId: Schema.String,
   ...NotenFields.fields,
 });

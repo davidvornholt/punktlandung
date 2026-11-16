@@ -34,6 +34,7 @@ const benoteteNote = 3;
 const benoteteNotenpunkte = 8;
 
 const fields = {
+  id: 'ausstehend',
   subjectId: 'mathe',
   kind: 'klausur',
   wert: null,
@@ -278,7 +279,7 @@ describe('Lerntage einer Leistung', () => {
         throw new Error('Die erste ausstehende Klausur fehlt.');
       }
 
-      await provided(createNote(fields));
+      await provided(createNote({ ...fields, id: 'ausstehend-zwei' }));
       const planned = (await provided(listNoten(termId))).filter(
         (note) => note.status === 'planned',
       );

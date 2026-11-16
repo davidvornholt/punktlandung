@@ -13,6 +13,7 @@ export const testTimeoutMs = 15_000;
 export type FachRelation = 'subject' | 'school_year_subject';
 
 export const note = {
+  id: 'neu',
   termId: 'halbjahr',
   subjectId: 'mathe',
   kind: 'test' as const,
