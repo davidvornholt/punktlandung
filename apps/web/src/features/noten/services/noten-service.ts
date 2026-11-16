@@ -4,6 +4,7 @@ import { SqlClient } from 'effect/sql/SqlClient';
 import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
 import {
   halbjahrTable,
+  noteSubmissionTable,
   noteTable,
   studyDayGradeTable,
   studyDayTable,
@@ -219,6 +220,17 @@ export const createNote = (input: NoteInput) =>
         yield* validateValue(input.wert, halbjahr.system, input.kind);
         yield* validateDate(input.datum, halbjahr);
         yield* validateFach(input.subjectId, halbjahr.schoolYear, null);
+        // Eine Zwillingsanfrage wartet hier auf den Commit der ersten, und
+        // eine bereits verarbeitete Abgabe endet erfolgreich, auch wenn ihre
+        // Note inzwischen gelöscht wurde.
+        const recorded = yield* db
+          .insert(noteSubmissionTable)
+          .values({ id: input.id })
+          .onConflictDoNothing({ target: noteSubmissionTable.id })
+          .returning({ id: noteSubmissionTable.id });
+        if (recorded.length === 0) {
+          return;
+        }
         yield* db
           .insert(noteTable)
           .values({

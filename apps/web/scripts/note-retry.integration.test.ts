@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { Effect } from 'effect';
 import {
   createNote,
+  deleteNote,
   listNoten,
 } from '#/features/noten/services/noten-service.ts';
 import { migrateDatabase } from '#/shared/db/migrate.ts';
@@ -102,5 +103,16 @@ describe('Eine wiederholte Abgabe einer Note', () => {
       ]);
 
       expect(werte(await provided(listNoten(termId)))).toEqual([5]);
+    }));
+
+  it('legt eine gelöschte Note bei erneutem Senden nicht wieder an', () =>
+    withSeededDatabase(async (provided) => {
+      await provided(createNote(earlier));
+      await provided(createNote(submitted));
+      // Ein anderer Tab löscht die gespeicherte Note, bevor die Abgabe wiederholt wird.
+      await provided(deleteNote(submitted.id));
+      await provided(createNote(submitted));
+
+      expect(werte(await provided(listNoten(termId)))).toEqual([1]);
     }));
 });

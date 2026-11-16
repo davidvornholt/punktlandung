@@ -85,6 +85,13 @@
       "when": 1794137222100,
       "tag": "0011_agent_lesezugriff",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794806135949,
+      "tag": "0012_verarbeitete_abgaben",
+      "breakpoints": true
     }
   ]
 }

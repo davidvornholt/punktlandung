@@ -145,6 +145,16 @@ export const noteTable = pgTable(
 );
 
 /**
+ * Die IDs aller Abgaben des Notenformulars, die der Server verarbeitet hat.
+ * Sie bleibt bestehen, wenn die Note gelöscht wird, damit ein erneutes Senden
+ * derselben Abgabe sie nicht wieder anlegt. Bewusst ohne Verweis auf `grade`.
+ */
+export const noteSubmissionTable = pgTable('grade_submission', {
+  id: text('id').primaryKey(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+/**
  * Die Vorlage, mit der die Vorbereitung einer neuen Leistung beginnt, je
  * planbarer Leistungsart. Fehlt die Zeile, gilt die eingebaute Vorlage.
  */

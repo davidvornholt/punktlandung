@@ -192,4 +192,29 @@ describe('Datenbankmigrationen', () => {
         { area: 'schriftlich', count: '5' },
       ]);
     }));
+
+  it('vermerkt die ID jeder vorhandenen Note als verarbeitete Abgabe', () =>
+    withPostgresTestDatabase(async (pool) => {
+      await applyMigrationsThrough(pool, '0011_agent_lesezugriff');
+      await pool.query(`
+        INSERT INTO subject (id, name, short_name, weighting, sort_order)
+        VALUES ('mathe', 'Mathematik', 'M', '{}'::jsonb, 0);
+
+        INSERT INTO term (
+          id, klassenstufe, school_year, half, system, starts_on, ends_on
+        ) VALUES (
+          'halbjahr', '10', '2026/27', 1, 'sechser', '2026-09-01', '2027-01-31'
+        );
+
+        INSERT INTO grade (id, subject_id, term_id, kind, value, taken_on)
+        VALUES ('abgabe-1', 'mathe', 'halbjahr', 'klausur', 2, '2026-10-01');
+      `);
+
+      await Effect.runPromise(migrateDatabase(pool));
+
+      const recorded = await pool.query<{ readonly id: string }>(
+        'SELECT id FROM grade_submission',
+      );
+      expect(recorded.rows).toEqual([{ id: 'abgabe-1' }]);
+    }));
 });
