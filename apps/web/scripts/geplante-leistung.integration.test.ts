@@ -4,9 +4,7 @@ import type { SqlClient } from 'effect/sql/SqlClient';
 import type { Pool } from 'pg';
 import {
   createNote,
-  deleteNote,
   listNoten,
-  loadLeistung,
   updateNote,
 } from '#/features/noten/services/noten-service.ts';
 import { loadTrend } from '#/features/noten/services/trend-service.ts';
@@ -140,56 +138,5 @@ describe('Ausstehende Leistungen', () => {
 
       await provided(updateNote({ ...fields, id: planned.id, wert: null }));
       expect((await provided(loadTrend)).length).toBe(1);
-    }));
-});
-
-describe('Daten der vorigen Version', () => {
-  /*
-   * Die vorige Version schrieb Vorbereitungen und Lerntage, und ein Rollback
-   * startet sie ohne Migration wieder auf derselben Datenbank. Diese Version
-   * liest beides nicht mehr, darf es aber weder verlieren noch daran scheitern.
-   */
-  it('lässt Vorbereitung und Lerntag einer Leistung stehen und löscht die Leistung trotzdem', () =>
-    withSeededDatabase(async (provided, pool) => {
-      await provided(createNote(fields));
-      const planned = (await provided(listNoten(termId))).find(
-        (note) => note.status === 'planned',
-      );
-      if (planned === undefined) {
-        throw new Error('Die ausstehende Klausur fehlt.');
-      }
-      const preparation = '- [ ] Erörterung';
-      await pool.query('UPDATE grade SET preparation = $1 WHERE id = $2', [
-        preparation,
-        planned.id,
-      ]);
-      await pool.query(
-        `INSERT INTO study_day (id, day, subject_id, minutes, note)
-         VALUES ('lerntag', '2026-09-28', 'mathe', NULL, NULL)`,
-      );
-      await pool.query(
-        `INSERT INTO study_day_grade (study_day_id, grade_id)
-         VALUES ('lerntag', $1)`,
-        [planned.id],
-      );
-
-      const detail = await provided(loadLeistung(planned.id));
-      expect(detail.halbjahr.label).toBe('10.1');
-      expect(Object.keys(detail.leistung)).not.toContain('preparation');
-
-      await provided(updateNote({ ...fields, id: planned.id, wert: 2 }));
-      expect(
-        (
-          await pool.query('SELECT preparation FROM grade WHERE id = $1', [
-            planned.id,
-          ])
-        ).rows,
-      ).toEqual([{ preparation }]);
-
-      await provided(deleteNote(planned.id));
-      expect(
-        (await pool.query('SELECT count(*)::int AS count FROM study_day_grade'))
-          .rows,
-      ).toEqual([{ count: 0 }]);
     }));
 });

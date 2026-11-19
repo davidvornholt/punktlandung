@@ -129,11 +129,6 @@ export const noteTable = pgTable(
     /** Termin der Leistung: angekündigt, solange sie aussteht, sonst der Tag der Arbeit. */
     takenOn: date('taken_on').notNull(),
     note: text('note'),
-    // Die Datenbank hält noch die unbenutzte Spalte `preparation`, bis ein
-    // Folge-PR sie entfernt. Sie fehlt hier mit Absicht: Drizzle nennt jede
-    // Spalte dieser Definition in jedem Insert und jedem vollen Select, und
-    // diese Version muss auch ohne die Spalte laufen. `db:generate` erzeugt
-    // deshalb ihr DROP COLUMN; das gehört erst in den Folge-PR.
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
@@ -153,46 +148,3 @@ export const noteSubmissionTable = pgTable('grade_submission', {
   id: text('id').primaryKey(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
-
-// `preparation_template`, `study_day` und `study_day_grade` sind unbenutzt.
-// Sie bleiben hier definiert, damit `db:generate` sie nicht löscht, solange
-// die vorige Version sie noch braucht; ein Folge-PR entfernt sie.
-export const preparationTemplateTable = pgTable('preparation_template', {
-  kind: leistungsartEnum('kind').primaryKey(),
-  content: text('content').notNull(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
-export const studyDayTable = pgTable(
-  'study_day',
-  {
-    id: text('id').primaryKey(),
-    day: date('day').notNull(),
-    subjectId: text('subject_id').references(() => fachTable.id, {
-      onDelete: 'set null',
-    }),
-    minutes: integer('minutes'),
-    note: text('note'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-  },
-  (table) => [
-    unique('study_day_day_subject_unique')
-      .on(table.day, table.subjectId)
-      .nullsNotDistinct(),
-  ],
-);
-
-export const studyDayGradeTable = pgTable(
-  'study_day_grade',
-  {
-    studyDayId: text('study_day_id')
-      .notNull()
-      .references(() => studyDayTable.id, { onDelete: 'cascade' }),
-    gradeId: text('grade_id')
-      .notNull()
-      .references(() => noteTable.id, { onDelete: 'cascade' }),
-  },
-  (table) => [
-    unique('study_day_grade_unique').on(table.studyDayId, table.gradeId),
-  ],
-);

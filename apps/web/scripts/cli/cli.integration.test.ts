@@ -232,8 +232,7 @@ describe('the punktlandung_agent role', () => {
 
       expect(await asAgent(pool, 'SELECT count(*) FROM grade')).toBe('allowed');
       const refused = [
-        'SELECT count(*) FROM study_day',
-        'SELECT count(*) FROM preparation_template',
+        'SELECT count(*) FROM grade_submission',
         'SELECT count(*) FROM "session"',
         "UPDATE grade SET note = 'x'",
         'DELETE FROM term',
