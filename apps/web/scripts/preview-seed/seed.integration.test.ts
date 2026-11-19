@@ -4,12 +4,10 @@ import type { SqlClient } from 'effect/sql/SqlClient';
 import type { Pool } from 'pg';
 import { listFaecher } from '#/features/faecher/services/fach-service.ts';
 import { listHalbjahre } from '#/features/halbjahre/services/halbjahr-service.ts';
-import { loadLearningStatistics } from '#/features/lernen/services/learning-service.ts';
 import {
   listNoten,
   loadLeistung,
 } from '#/features/noten/services/noten-service.ts';
-import { loadPreparationTemplates } from '#/features/noten/services/preparation-template-service.ts';
 import { loadTrend } from '#/features/noten/services/trend-service.ts';
 import { loadUpcoming } from '#/features/noten/services/upcoming-service.ts';
 import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
@@ -21,7 +19,6 @@ import {
   postgresTestLayer,
   withPostgresTestDatabase,
 } from '../postgres-test-database.ts';
-import { preparationTemplates } from './sample-calendar.ts';
 import { seedPreview } from './seed.ts';
 
 type Provided = <Value, Error>(
@@ -102,29 +99,19 @@ describe('Beispieldaten in einer leeren Datenbank', () => {
       ).toEqual([]);
     }));
 
-  it('füllt die Übersicht mit Angekündigtem, Vorbereitung und Lerntagen', () =>
+  it('füllt die Übersicht mit Angekündigtem', () =>
     withMigratedDatabase(async (provided) => {
       // Die Übersicht liest den heutigen Tag selbst, also seedet der Test auf heute.
-      const today = berlinCalendarDate();
-      await provided(seedPreview(today));
+      await provided(seedPreview(berlinCalendarDate()));
 
       const upcoming = await provided(loadUpcoming);
       expect(upcoming.overdue).toHaveLength(1);
       expect(upcoming.upcoming.length).toBeGreaterThanOrEqual(5);
       const klausur = upcoming.upcoming.find(
-        (entry) => entry.kind === 'klausur' && entry.topics !== null,
+        (entry) => entry.kind === 'klausur',
       );
-      expect(klausur?.topics).toEqual({ total: 4, checked: 2 });
-      expect(klausur?.lernen.daysAgo).toBe(1);
-
-      const detail = await provided(loadLeistung(klausur?.id ?? '', today));
-      expect(detail.leistung.preparation).toContain('Kurvendiskussion');
-
-      const statistics = await provided(loadLearningStatistics(today));
-      expect(statistics.serie).toBe(7);
-
-      const templates = await provided(loadPreparationTemplates);
-      expect(templates.klausur).toBe(preparationTemplates[0]?.content ?? '');
+      const detail = await provided(loadLeistung(klausur?.id ?? ''));
+      expect(detail.leistung.status).toBe('planned');
     }));
 
   it.each([
@@ -166,15 +153,13 @@ describe('Beispieldaten neben vorhandenen Daten', () => {
   it('lässt eine Datenbank mit eigenen App-Daten unberührt', () =>
     withMigratedDatabase(async (provided, pool) => {
       await pool.query(
-        `INSERT INTO preparation_template (kind, content) VALUES ('test', '- [ ] Eigene Vorlage')`,
+        `INSERT INTO term (id, klassenstufe, school_year, half, system, starts_on, ends_on)
+         VALUES ('eigenes', '10', '2026/27', 1, 'sechser', '2026-08-01', '2027-01-31')`,
       );
       const before = await rowCounts(pool);
 
       const result = await provided(seedPreview('2026-11-07'));
-      expect(result).toEqual({
-        status: 'skipped',
-        tables: ['preparation_template'],
-      });
+      expect(result).toEqual({ status: 'skipped', tables: ['term'] });
       expect(await rowCounts(pool)).toEqual(before);
     }));
 

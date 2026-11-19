@@ -11,7 +11,6 @@ import {
   HalbjahrInput,
   HalbjahrUpdate,
 } from '#/features/halbjahre/schemas/halbjahr-schema.ts';
-import { StudyDayInput } from '#/features/lernen/schemas/study-day-schema.ts';
 import {
   NoteId,
   NotenQuery,
@@ -68,17 +67,6 @@ const cases: ReadonlyArray<
   ['Fach archive', FachId, { id: 'mathematik', schoolYear: '2026/27' }],
   ['Halbjahr create', HalbjahrInput, halbjahrInput],
   ['Halbjahr update', HalbjahrUpdate, { id: 'halbjahr-1', ...halbjahrInput }],
-  [
-    'Lerntag create',
-    StudyDayInput,
-    {
-      day: '2026-10-01',
-      subjectId: 'mathematik',
-      gradeId: null,
-      minutes: 30,
-      notiz: 'Analysis',
-    },
-  ],
   ['Noten query', NotenQuery, { termId: 'halbjahr-1' }],
   ['Note create', NoteSubmission, noteInput],
   [

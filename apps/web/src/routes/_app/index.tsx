@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useRef } from 'react';
 
-import { LearnedToday } from '#/features/lernen/ui/learned-today.tsx';
 import {
   trendQueryOptions,
   upcomingFn,
@@ -40,7 +39,7 @@ const Overview = () => {
   }
   const retry = retryWithFocus(() => trendQuery.refetch(), headingRef);
   const trend = trendQuery.data;
-  // Scheitert nur ein Neuladen, bleibt die Übersicht samt Lerntag-Eingabe stehen.
+  // Scheitert nur ein Neuladen, bleibt die zuletzt geladene Übersicht stehen.
   if (trend === undefined) {
     return (
       <>
@@ -67,7 +66,7 @@ const Overview = () => {
           />
         </div>
       ) : null}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard
           detail={
             schnitt === null
@@ -78,7 +77,6 @@ const Overview = () => {
           value={schnitt === null ? '—' : formatNote(schnitt, 'punkte')}
         />
         <StatCard label="Anzahl Noten" value={`${trend.length}`} />
-        <LearnedToday />
       </div>
       <UpcomingBlock load={() => upcomingFn()} />
       <section className="mt-8">

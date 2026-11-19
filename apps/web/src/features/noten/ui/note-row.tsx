@@ -6,7 +6,7 @@ import {
   leistungsartLabel,
 } from '#/shared/noten/leistungsart-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { bereichDerLeistungsart, isPlanbar } from '#/shared/noten/notenwert.ts';
+import { bereichDerLeistungsart } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
 import { IconButton } from '#/shared/ui/icon-button.tsx';
@@ -34,16 +34,6 @@ const noteLabel = (
   note.status === 'graded'
     ? `Note ${formatNote(note.wert, system)}, ${leistungsartLabel[note.kind]} vom ${formatDisplayDate(note.datum)}, Eintrag ${position}`
     : `Ausstehende ${leistungsartLabel[note.kind]} am ${formatDisplayDate(note.datum)}, Eintrag ${position}`;
-
-/**
- * Baut den Verweis auf die Seite einer Leistung. Er kommt von außen, weil er
- * ein Router-Link ist und die Zeile sonst nur innerhalb eines Routers
- * gerendert werden könnte — auch in Tests.
- */
-export type PreparationLinkRenderer = (
-  note: Leistung,
-  label: string,
-) => ReactNode;
 
 /** Ein Fehler, der genau zu dieser Zeile gehört. */
 const RowError = ({
@@ -104,7 +94,6 @@ export const NoteRow = ({
   onDelete,
   onEdit,
   position,
-  preparationLink,
   savedError,
   system,
 }: {
@@ -117,7 +106,6 @@ export const NoteRow = ({
   readonly onDelete: (id: string) => void;
   readonly onEdit: (note: Leistung | null, trigger: HTMLButtonElement) => void;
   readonly position: number;
-  readonly preparationLink: PreparationLinkRenderer;
   readonly savedError: unknown;
   readonly system: Notensystem;
 }) => {
@@ -141,12 +129,7 @@ export const NoteRow = ({
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
       <RowSummary note={note} system={system} />
-      {/*
-       * Nur Leistungen mit Termin haben eine Vorbereitung; der Verweis führt
-       * auf ihre Seite, wo Themenliste und Notenformular zusammenstehen.
-       */}
       <span className="ml-auto flex items-center gap-1 self-center">
-        {isPlanbar(note.kind) ? preparationLink(note, label) : null}
         <IconButton
           aria-controls={isEditing ? formId : undefined}
           aria-expanded={isEditing}

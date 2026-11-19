@@ -5,7 +5,6 @@ import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { formatNote } from '#/shared/noten/zeugnisnote.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import type { Leistung } from '../services/noten-service.ts';
-import type { PreparationLinkRenderer } from './note-row.tsx';
 import { NoteRow } from './note-row.tsx';
 
 type FachGroup = {
@@ -61,7 +60,6 @@ export const NotenCards = ({
   noten,
   onDelete,
   onEdit,
-  preparationLink,
   system,
   updateErrors,
 }: {
@@ -76,7 +74,6 @@ export const NotenCards = ({
   readonly onDelete: (id: string) => void;
   /** Öffnet das Formular für die Note; `null` schließt die offene Zeile. */
   readonly onEdit: (note: Leistung | null, trigger: HTMLButtonElement) => void;
-  readonly preparationLink: PreparationLinkRenderer;
   readonly system: Notensystem;
   /**
    * Gescheiterte Änderungen je Note. Eine geteilte Mutation trüge nur ihren
@@ -116,7 +113,6 @@ export const NotenCards = ({
               onDelete={onDelete}
               onEdit={onEdit}
               position={index + 1}
-              preparationLink={preparationLink}
               savedError={updateErrors.get(note.id) ?? null}
               system={system}
             />

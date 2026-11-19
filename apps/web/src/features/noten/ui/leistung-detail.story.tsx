@@ -9,44 +9,19 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import { type ReactNode, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { leistungKey } from '#/shared/query/query-keys.ts';
-import { PreparationChanged } from '../errors/noten-errors.ts';
 import type {
   LeistungDetail as Detail,
   Leistung,
 } from '../services/noten-service.ts';
-import { defaultPreparationTemplate } from '../services/preparation-template-service.ts';
-import {
-  gleichartigeThemen,
-  themen,
-} from './leistung-detail.story-fixtures.ts';
 import { LeistungDetail } from './leistung-detail.tsx';
 import type { LeistungOperations } from './leistung-operations.ts';
 import type { NotenOperations } from './noten-operations.ts';
 
-type Scenario =
-  | 'ohne-vorbereitung'
-  | 'mit-themen'
-  | 'gleichartige-themen'
-  | 'benotet';
-
-const wait = (milliseconds: number) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
-  });
-
-const preparationForScenario = (scenario: Scenario): string | null => {
-  if (scenario === 'ohne-vorbereitung') {
-    return null;
-  }
-  if (scenario === 'gleichartige-themen') {
-    return gleichartigeThemen;
-  }
-  return themen;
-};
+type Scenario = 'ausstehend' | 'benotet';
 
 const halbjahr = {
   endsOn: '2027-01-31',
@@ -73,18 +48,14 @@ const initialLeistung = (scenario: Scenario): Leistung => {
     id: 'k-1',
     kind: 'klausur' as const,
     notiz: null,
-    preparation: preparationForScenario(scenario),
   };
   return scenario === 'benotet'
     ? { ...base, status: 'graded', wert: 11 }
     : { ...base, status: 'planned' };
 };
 
-/**
- * Steht für den Lerntag-Baustein, der nach „Heute dafür gelernt“ die Leistung
- * neu lädt.
- */
-const LerntagStub = () => {
+/** Steht für alles, was die Leistung neu lädt, etwa die Rückkehr in den Tab. */
+const RefreshStub = () => {
   const queryClient = useQueryClient();
   return (
     <button
@@ -93,68 +64,23 @@ const LerntagStub = () => {
       }
       type="button"
     >
-      Lerntag-Baustein
+      Neu laden
     </button>
   );
 };
-
-/**
- * Steht für das Verlassen der Seite und die Rückkehr: Die Detailseite wird
- * neu aufgebaut, der QueryClient mit seinen laufenden Aufrufen bleibt.
- */
-const Leaving = ({ children }: { readonly children: ReactNode }) => {
-  const [away, setAway] = useState(false);
-  return (
-    <>
-      <button onClick={() => setAway(!away)} type="button">
-        {away ? 'Zur Seite zurückkehren' : 'Seite verlassen'}
-      </button>
-      {away ? null : <div>{children}</div>}
-    </>
-  );
-};
-
-const noSaveDelays: ReadonlyArray<number> = [];
-const noFailedSaves: ReadonlyArray<number> = [];
 
 /** Wie sich der erfundene Server verhält. Ohne Angaben gelingt jeder Aufruf sofort. */
 type ServerBehaviour = {
   /** Nach dem ersten Laden scheitert jedes weitere, wie bei einem Verbindungsabbruch. */
   readonly refreshFails?: boolean;
-  /**
-   * Wie viele Millisekunden der n-te Speicheraufruf braucht, bis er beim
-   * Server ankommt. Aufrufe ohne Eintrag kommen sofort an.
-   */
-  readonly saveDelays?: ReadonlyArray<number>;
-  readonly failedSaves?: ReadonlyArray<number>;
-  /** Wie viele der ersten Aufrufe für die Vorlagen scheitern. */
-  readonly templateFailures?: number;
-  /**
-   * Diesen Text speichert ein anderer Tab, gleich nachdem die Seite geladen
-   * hat; null heißt, er löscht die Vorbereitung.
-   */
-  readonly savedElsewhere?: string | null;
 };
 
-/**
- * Die Detailseite mit erfundenen Serveraufrufen. Der Verlauf der Aufrufe
- * steht in einer Liste im DOM, damit ein Test prüfen kann, welcher Quelltext
- * gespeichert wurde.
- */
 const LeistungDetailScenario = ({
   scenario,
   refreshFails = false,
-  saveDelays = noSaveDelays,
-  failedSaves = noFailedSaves,
-  templateFailures = 0,
-  savedElsewhere,
 }: ServerBehaviour & { readonly scenario: Scenario }) => {
   const leistungRef = useRef<Leistung>(initialLeistung(scenario));
   const loadsRef = useRef(0);
-  const savesRef = useRef(0);
-  const templateLoadsRef = useRef(0);
-  const [saved, setSaved] = useState<ReadonlyArray<string>>([]);
-  const [loads, setLoads] = useState(0);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -168,51 +94,15 @@ const LeistungDetailScenario = ({
     () => ({
       load: () => {
         loadsRef.current += 1;
-        setLoads(loadsRef.current);
-        const leistung = leistungRef.current;
-        if (loadsRef.current === 1 && savedElsewhere !== undefined) {
-          leistungRef.current = { ...leistung, preparation: savedElsewhere };
-        }
         return refreshFails && loadsRef.current > 1
           ? Promise.reject(new Error('Verbindung unterbrochen'))
           : Promise.resolve({
               halbjahr,
-              leistung,
-              lernen: { daysAgo: 4, inLastWeek: 1 },
+              leistung: leistungRef.current,
             } satisfies Detail);
       },
-      loadTemplates: () => {
-        templateLoadsRef.current += 1;
-        return templateLoadsRef.current <= templateFailures
-          ? Promise.reject(new Error('Verbindung unterbrochen'))
-          : Promise.resolve({
-              klausur: defaultPreparationTemplate,
-              test: defaultPreparationTemplate,
-              gfs: '- [ ] Handout',
-            });
-      },
-      saveTemplate: () => Promise.resolve(),
-      updatePreparation: async (input) => {
-        const saveIndex = savesRef.current;
-        const delay = saveDelays[saveIndex];
-        savesRef.current += 1;
-        if (delay !== undefined) {
-          await wait(delay);
-        }
-        if (failedSaves.includes(saveIndex)) {
-          throw new Error('Verbindung unterbrochen');
-        }
-        if (input.expected !== leistungRef.current.preparation) {
-          throw new PreparationChanged({ noteId: input.id });
-        }
-        leistungRef.current = {
-          ...leistungRef.current,
-          preparation: input.preparation,
-        };
-        setSaved((list) => [...list, input.preparation ?? '<null>']);
-      },
     }),
-    [failedSaves, refreshFails, saveDelays, savedElsewhere, templateFailures],
+    [refreshFails],
   );
   const notenOperations = useMemo<NotenOperations>(
     () => ({
@@ -237,51 +127,24 @@ const LeistungDetailScenario = ({
         component: () => (
           <QueryClientProvider client={queryClient}>
             <main className="p-4">
-              <Leaving>
-                <LeistungDetail
-                  faecher={faecher}
-                  leistungId="k-1"
-                  leistungOperations={leistungOperations}
-                  lerntag={() => <LerntagStub />}
-                  notenOperations={notenOperations}
-                />
-              </Leaving>
+              <RefreshStub />
+              <LeistungDetail
+                faecher={faecher}
+                leistungId="k-1"
+                leistungOperations={leistungOperations}
+                notenOperations={notenOperations}
+              />
             </main>
           </QueryClientProvider>
         ),
       }),
     }),
   );
-  /*
-   * Der Verlauf steht außerhalb des Routers: dessen Wurzelkomponente ist
-   * einmal gebaut und sähe nur den ersten Stand von `saved`.
-   */
-  return (
-    <>
-      <RouterProvider router={router} />
-      <output aria-label="Ladevorgänge" hidden={true}>
-        {loads}
-      </output>
-      <ol aria-label="Gespeicherte Vorbereitungen" hidden={true}>
-        {saved.map((entry, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: Der Verlauf wird nur angehängt, nie umsortiert.
-          <li key={index}>{entry}</li>
-        ))}
-      </ol>
-    </>
-  );
+  return <RouterProvider router={router} />;
 };
 
-export const MitThemen = (props: ServerBehaviour) => (
-  <LeistungDetailScenario {...props} scenario="mit-themen" />
-);
-
-export const GleichartigeThemen = (props: ServerBehaviour) => (
-  <LeistungDetailScenario {...props} scenario="gleichartige-themen" />
-);
-
-export const OhneVorbereitung = (props: ServerBehaviour) => (
-  <LeistungDetailScenario {...props} scenario="ohne-vorbereitung" />
+export const Ausstehend = (props: ServerBehaviour) => (
+  <LeistungDetailScenario {...props} scenario="ausstehend" />
 );
 
 export const Benotet = (props: ServerBehaviour) => (

@@ -4,12 +4,11 @@ import { file } from 'bun';
 const sensitiveServerFiles = [
   '../../features/faecher/server/fach-fns.ts',
   '../../features/halbjahre/server/halbjahr-fns.ts',
-  '../../features/lernen/server/lernen-fns.ts',
   '../../features/noten/server/noten-fns.ts',
   '../../features/zeugnis/server/zeugnis-fns.ts',
 ] as const;
 
-const expectedFunctionCount = 21;
+const expectedFunctionCount = 16;
 
 describe('sensitive server-function class', () => {
   it('attaches authentication middleware to every handler', async () => {

@@ -1,5 +1,4 @@
 import type { HalbjahrInput } from '#/features/halbjahre/schemas/halbjahr-schema.ts';
-import type { PreparationTemplateInput } from '#/features/noten/schemas/note-schema.ts';
 import { daysBetween } from '#/shared/date/calendar-date.ts';
 import type { Leistungsart, Notensystem } from '#/shared/noten/notenwert.ts';
 import { toSechser } from '#/shared/noten/notenwert.ts';
@@ -13,12 +12,7 @@ import {
   schoolYearStartYear,
 } from '#/shared/school/school-year.ts';
 import type { PlannedLeistung } from './sample-calendar.ts';
-import {
-  plannedLeistungen,
-  plannedStudyDays,
-  preparationTemplates,
-  reviewedPreparation,
-} from './sample-calendar.ts';
+import { plannedLeistungen } from './sample-calendar.ts';
 import type { SampleFach } from './sample-faecher.ts';
 import { faecher, kursstufeMath, variation } from './sample-faecher.ts';
 
@@ -50,24 +44,11 @@ export type SampleLeistung = {
   readonly gewicht: number;
   readonly datum: string;
   readonly notiz: string | null;
-  readonly preparation: string | null;
-};
-
-export type SampleStudyDay = {
-  readonly day: string;
-  /** Fachkürzel; null ist ein allgemeiner Lerntag. */
-  readonly fach: string | null;
-  /** `key` der Leistung, für die gelernt wurde. */
-  readonly leistungKey: string | null;
-  readonly minutes: number | null;
-  readonly notiz: string | null;
 };
 
 export type SamplePlan = {
   readonly schoolYears: ReadonlyArray<SampleSchoolYear>;
   readonly leistungen: ReadonlyArray<SampleLeistung>;
-  readonly studyDays: ReadonlyArray<SampleStudyDay>;
-  readonly preparationTemplates: ReadonlyArray<PreparationTemplateInput>;
 };
 
 const isoDateLength = '0000-00-00'.length;
@@ -238,7 +219,6 @@ const gradedLeistungen = (
           wert: valueFor(notenpunkte, system),
           gewicht: scheduled.gewicht ?? 1,
           notiz: scheduled.notiz ?? null,
-          preparation: null,
         },
       ];
     }),
@@ -263,7 +243,6 @@ const plannedLeistung = (
     wert: null,
     gewicht: 1,
     notiz: planned.notiz,
-    preparation: planned.preparation,
   };
 };
 
@@ -277,24 +256,6 @@ const uniqueByKey = (
     keys.add(leistung.key);
     return isNew;
   });
-};
-
-/** Die zuletzt geschriebene Klausur bekommt eine abgehakte Vorbereitung. */
-const withReviewedPreparation = (
-  leistungen: ReadonlyArray<SampleLeistung>,
-): ReadonlyArray<SampleLeistung> => {
-  const latest = leistungen
-    .filter((leistung) => leistung.kind === 'klausur' && leistung.wert !== null)
-    .reduce<SampleLeistung | null>(
-      (found, leistung) =>
-        found === null || leistung.datum > found.datum ? leistung : found,
-      null,
-    );
-  return leistungen.map((leistung) =>
-    leistung === latest
-      ? { ...leistung, preparation: reviewedPreparation }
-      : leistung,
-  );
 };
 
 const faecherAfter = (
@@ -357,20 +318,8 @@ export const samplePlan = (today: string): SamplePlan => {
       ),
     );
   });
-  const studyDays = plannedStudyDays.map((entry) => ({
-    day: addDays(today, entry.offsetDays),
-    fach: entry.fach,
-    leistungKey:
-      entry.forPlanned === null
-        ? null
-        : (planned[entry.forPlanned]?.key ?? null),
-    minutes: entry.minutes,
-    notiz: entry.notiz,
-  }));
   return {
     schoolYears,
-    leistungen: withReviewedPreparation(uniqueByKey([...planned, ...graded])),
-    studyDays,
-    preparationTemplates,
+    leistungen: uniqueByKey([...planned, ...graded]),
   };
 };

@@ -27,7 +27,6 @@ import {
   NotenwertRequired,
   NoteOutsideHalbjahr,
   NoteSubmissionIdMissing,
-  PreparationChanged,
 } from '#/features/noten/errors/noten-errors.ts';
 import { ZeugnisHalbjahrNotFound } from '#/features/zeugnis/errors/zeugnis-errors.ts';
 import { UnexpectedFailure } from '#/shared/exit-failure.ts';
@@ -91,7 +90,6 @@ const errors: ReadonlyArray<DomainError> = [
   }),
   new NotenwertRequired({ kind: 'muendlich' }),
   new NoteSubmissionIdMissing({}),
-  new PreparationChanged({ noteId: 'note-1' }),
   new ZeugnisHalbjahrNotFound({ termId: 'halbjahr-1' }),
 ];
 

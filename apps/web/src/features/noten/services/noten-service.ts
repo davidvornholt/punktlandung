@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/sql/SqlClient';
 import { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
@@ -6,11 +6,7 @@ import {
   halbjahrTable,
   noteSubmissionTable,
   noteTable,
-  studyDayGradeTable,
-  studyDayTable,
 } from '#/shared/db/schema.ts';
-import type { StudyRecency } from '#/shared/lernen/study-recency.ts';
-import { studyRecency } from '#/shared/lernen/study-recency.ts';
 import { isGraded } from '#/shared/noten/graded-rows.ts';
 import type {
   Fachgewichtung,
@@ -24,13 +20,11 @@ import {
   HalbjahrNotFound,
   NoteNotFound,
   NoteSubmissionIdMissing,
-  PreparationChanged,
 } from '../errors/noten-errors.ts';
 import type {
   NoteInput,
   NoteSubmission,
   NoteUpdate,
-  PreparationUpdate,
 } from '../schemas/note-schema.ts';
 import {
   loadLockedHalbjahr,
@@ -46,8 +40,6 @@ type LeistungBase = {
   /** Termin der Leistung: angekündigt, solange sie aussteht. */
   readonly datum: string;
   readonly notiz: string | null;
-  /** Vorbereitung als Markdown; null, solange keine angelegt ist. */
-  readonly preparation: string | null;
   readonly fachId: string;
   readonly fachName: string;
   readonly fachKuerzel: string;
@@ -79,7 +71,6 @@ const toLeistung = (note: NoteRow, fach: SchoolYearFach): Leistung => {
     gewicht: Number(note.weight),
     datum: note.takenOn,
     notiz: note.note,
-    preparation: note.preparation,
     fachId: fach.id,
     fachName: fach.name,
     fachKuerzel: fach.shortName,
@@ -125,15 +116,10 @@ export type LeistungDetail = {
     readonly schoolYear: string;
     readonly label: string;
   };
-  /** Wann zuletzt für diese Leistung gelernt wurde. */
-  readonly lernen: StudyRecency;
 };
 
-/**
- * Eine Leistung samt ihrem Halbjahr und ihren Lerntagen — die Datenbasis der
- * Detailseite. `today` kommt von außen, damit der Abstand prüfbar bleibt.
- */
-export const loadLeistung = (id: string, today: string) =>
+/** Eine Leistung samt ihrem Halbjahr — die Datenbasis der Detailseite. */
+export const loadLeistung = (id: string) =>
   Effect.gen(function* () {
     const db = yield* PgDrizzle;
     const rows = yield* db
@@ -152,14 +138,6 @@ export const loadLeistung = (id: string, today: string) =>
     if (fach === undefined) {
       return yield* Effect.fail(new NoteNotFound({ noteId: id }));
     }
-    const studyDays = yield* db
-      .select({ day: studyDayTable.day })
-      .from(studyDayTable)
-      .innerJoin(
-        studyDayGradeTable,
-        eq(studyDayGradeTable.studyDayId, studyDayTable.id),
-      )
-      .where(eq(studyDayGradeTable.gradeId, id));
     return {
       leistung: toLeistung(row.note, fach),
       halbjahr: {
@@ -170,44 +148,7 @@ export const loadLeistung = (id: string, today: string) =>
         schoolYear: row.halbjahr.schoolYear,
         label: formatHalbjahrLabel(row.halbjahr),
       },
-      lernen: studyRecency(
-        studyDays.map((entry) => entry.day),
-        today,
-      ),
     } satisfies LeistungDetail;
-  });
-
-/**
- * Schreibt nur die Vorbereitung. Das Notenformular lässt sie unberührt, und
- * das Abhaken eines Themas darf keine Notenprüfung anstoßen.
- */
-export const updatePreparation = (input: PreparationUpdate) =>
-  Effect.gen(function* () {
-    const db = yield* PgDrizzle;
-    const updated = yield* db
-      .update(noteTable)
-      .set({ preparation: input.preparation })
-      .where(
-        and(
-          eq(noteTable.id, input.id),
-          input.expected === null
-            ? isNull(noteTable.preparation)
-            : eq(noteTable.preparation, input.expected),
-        ),
-      )
-      .returning({ id: noteTable.id });
-    if (updated.length > 0) {
-      return;
-    }
-    const existing = yield* db
-      .select({ id: noteTable.id })
-      .from(noteTable)
-      .where(eq(noteTable.id, input.id));
-    return yield* Effect.fail(
-      existing.length === 0
-        ? new NoteNotFound({ noteId: input.id })
-        : new PreparationChanged({ noteId: input.id }),
-    );
   });
 
 const storedValue = (wert: number | null) => (wert === null ? null : `${wert}`);
