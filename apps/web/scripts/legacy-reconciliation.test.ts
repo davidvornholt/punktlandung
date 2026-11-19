@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { Cause, Effect, Exit } from 'effect';
 import type { Pool } from 'pg';
 import { migrateDatabase } from '../src/shared/db/migrate.ts';
+import { standardgewichtung } from '../src/shared/noten/fach-gewichtung.ts';
 import {
   applyMigrationsThrough,
   withPostgresTestDatabase,
@@ -12,6 +13,13 @@ const insertFach = (pool: Pool) =>
     `INSERT INTO subject (id, name, short_name)
      VALUES ('mathe', 'Mathematik', 'M')`,
   );
+
+const studyDayTableExists = async (pool: Pool): Promise<boolean> =>
+  (
+    await pool.query<{ readonly exists: boolean }>(
+      "SELECT to_regclass('public.study_day') IS NOT NULL AS exists",
+    )
+  ).rows[0]?.exists === true;
 
 describe('Bestandsdaten vor Migrationen', () => {
   it('führt kompatible Halbjahre und Lerntage vor dem Constraint verlustfrei zusammen', () =>
@@ -35,30 +43,57 @@ describe('Bestandsdaten vor Migrationen', () => {
           ('study-d', '2026-10-02', 'mathe', 45, NULL);
       `);
 
+      // Ohne die Bereinigung der Lerntage scheitert hier Migration 0001.
       await Effect.runPromise(migrateDatabase(pool));
 
       const halbjahre = await pool.query('SELECT id FROM term');
       const noten = await pool.query(
         'SELECT id, term_id AS "halbjahrId" FROM grade ORDER BY id',
       );
-      const studyDays = await pool.query(
-        'SELECT id FROM study_day ORDER BY id',
-      );
       expect(halbjahre.rows).toEqual([{ id: 'term-a' }]);
       expect(noten.rows).toEqual([
         { id: 'grade-a', halbjahrId: 'term-a' },
         { id: 'grade-b', halbjahrId: 'term-a' },
       ]);
-      expect(studyDays.rows).toEqual([{ id: 'study-a' }, { id: 'study-c' }]);
+      expect(await studyDayTableExists(pool)).toBe(false);
       await expect(
         pool.query(`INSERT INTO term
           (id, klassenstufe, school_year, half, system, starts_on, ends_on)
           VALUES ('term-c', '10', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29')`),
       ).rejects.toMatchObject({ constraint: 'term_school_year_half_unique' });
-      await expect(
-        pool.query(`INSERT INTO study_day (id, day, subject_id)
-          VALUES ('study-e', '2026-10-01', NULL)`),
-      ).rejects.toMatchObject({ constraint: 'study_day_day_subject_unique' });
+    }));
+
+  it('führt Halbjahre auch zusammen, wenn es `study_day` nicht mehr gibt', () =>
+    withPostgresTestDatabase(async (pool) => {
+      await Effect.runPromise(migrateDatabase(pool));
+      expect(await studyDayTableExists(pool)).toBe(false);
+      // Der Constraint verhindert Duplikate sonst; ohne ihn zeigt der zweite
+      // Lauf, dass die Bereinigung trotz fehlender Tabelle läuft.
+      await pool.query(
+        'ALTER TABLE term DROP CONSTRAINT term_school_year_half_unique',
+      );
+      await pool.query(
+        `INSERT INTO subject (id, name, short_name, weighting)
+         VALUES ('mathe', 'Mathematik', 'M', $1)`,
+        [standardgewichtung],
+      );
+      await pool.query(`
+        INSERT INTO term (id, klassenstufe, school_year, half, system, starts_on, ends_on)
+        VALUES
+          ('term-a', '10', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29'),
+          ('term-b', '10', '2026/27', 1, 'sechser', '2026-09-14', '2027-01-29');
+        INSERT INTO grade (id, subject_id, term_id, kind, value, taken_on)
+        VALUES ('grade-b', 'mathe', 'term-b', 'test', 3, '2026-11-01');
+      `);
+
+      await Effect.runPromise(migrateDatabase(pool));
+
+      expect((await pool.query('SELECT id FROM term')).rows).toEqual([
+        { id: 'term-a' },
+      ]);
+      expect(
+        (await pool.query('SELECT term_id AS "halbjahrId" FROM grade')).rows,
+      ).toEqual([{ halbjahrId: 'term-a' }]);
     }));
 
   it('führt Halbjahre mit abweichender Bezeichnung nicht zusammen', () =>

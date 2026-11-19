@@ -124,19 +124,27 @@ const mergeStudyDays = (
 
 const reconcileInTransaction = (client: PoolClient) =>
   Effect.gen(function* () {
-    const tables = yield* query<{ readonly ready: boolean }>(
+    const tables = yield* query<{
+      readonly ready: boolean;
+      readonly hasStudyDays: boolean;
+    }>(
       client,
       `SELECT to_regclass('public.term') IS NOT NULL
-          AND to_regclass('public.grade') IS NOT NULL
-          AND to_regclass('public.study_day') IS NOT NULL AS ready`,
+          AND to_regclass('public.grade') IS NOT NULL AS ready,
+              to_regclass('public.study_day') IS NOT NULL AS "hasStudyDays"`,
     );
-    if (tables.rows[0]?.ready !== true) {
+    const [found] = tables.rows;
+    if (found?.ready !== true) {
       return;
     }
+    // Migration 0013 löscht `study_day`. Eine Datenbank vor Migration 0001
+    // hat sie noch und braucht ihre Bereinigung, weil 0001 ihr einen
+    // Unique-Constraint gibt.
+    const { hasStudyDays } = found;
 
     yield* query(
       client,
-      'LOCK TABLE term, grade, study_day IN SHARE ROW EXCLUSIVE MODE',
+      `LOCK TABLE term, grade${hasStudyDays ? ', study_day' : ''} IN SHARE ROW EXCLUSIVE MODE`,
     );
     const halbjahre = yield* query<HalbjahrRow>(
       client,
@@ -147,18 +155,20 @@ const reconcileInTransaction = (client: PoolClient) =>
          FROM term
         ORDER BY school_year, half, id`,
     );
-    const studyDays = yield* query<StudyDayRow>(
-      client,
-      `SELECT id, day, subject_id AS "subjectId", minutes, note
-         FROM study_day
-        ORDER BY day, subject_id NULLS FIRST, id`,
-    );
+    const studyDays = hasStudyDays
+      ? (yield* query<StudyDayRow>(
+          client,
+          `SELECT id, day, subject_id AS "subjectId", minutes, note
+             FROM study_day
+            ORDER BY day, subject_id NULLS FIRST, id`,
+        )).rows
+      : [];
     const halbjahrGroups = groupItems(
       halbjahre.rows,
       (row) => `${row.schoolYear}\u0000${row.half}`,
     );
     const studyDayGroups = groupItems(
-      studyDays.rows,
+      studyDays,
       (row) => `${row.day}\u0000${row.subjectId ?? ''}`,
     );
     const halbjahrConflicts = halbjahrGroups.filter(

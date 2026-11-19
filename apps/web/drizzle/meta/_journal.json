@@ -92,6 +92,13 @@
       "when": 1794806135949,
       "tag": "0012_verarbeitete_abgaben",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795108458979,
+      "tag": "0013_lerntage_und_vorbereitung_entfernen",
+      "breakpoints": true
     }
   ]
 }
