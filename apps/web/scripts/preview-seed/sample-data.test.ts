@@ -141,21 +141,6 @@ describe.each(stichtage)('Beispieldaten zum %s', (today) => {
       pending.filter((leistung) => leistung.datum >= today).length,
     ).toBeGreaterThanOrEqual(5);
   });
-
-  it('trägt höchstens einen Lerntag je Tag und Fach ein, gewidmet nur Leistungen desselben Fachs', () => {
-    const days = new Set(plan.studyDays.map((day) => `${day.day}:${day.fach}`));
-    expect(days.size).toBe(plan.studyDays.length);
-    expect(plan.studyDays.filter((studyDay) => studyDay.day > today)).toEqual(
-      [],
-    );
-    const misassigned = plan.studyDays.filter(
-      (studyDay) =>
-        studyDay.leistungKey !== null &&
-        plan.leistungen.find((entry) => entry.key === studyDay.leistungKey)
-          ?.fach !== studyDay.fach,
-    );
-    expect(misassigned).toEqual([]);
-  });
 });
 
 describe('Beispieldaten im laufenden Halbjahr', () => {
@@ -169,15 +154,5 @@ describe('Beispieldaten im laufenden Halbjahr', () => {
         leistung.half === 2,
     );
     expect(new Set(graded.map((leistung) => leistung.fach)).size).toBe(8);
-  });
-
-  it('hakt die zuletzt geschriebene Klausur ganz ab', () => {
-    const plan = samplePlan('2026-11-07');
-    const prepared = plan.leistungen.filter(
-      (leistung) => leistung.wert !== null && leistung.preparation !== null,
-    );
-    expect(prepared).toHaveLength(1);
-    expect(prepared[0]?.kind).toBe('klausur');
-    expect(prepared[0]?.preparation).not.toContain('- [ ]');
   });
 });

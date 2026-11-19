@@ -24,7 +24,6 @@ import {
   NotenwertRequired,
   NoteOutsideHalbjahr,
   NoteSubmissionIdMissing,
-  PreparationChanged,
 } from '#/features/noten/errors/noten-errors.ts';
 import { ZeugnisHalbjahrNotFound } from '#/features/zeugnis/errors/zeugnis-errors.ts';
 import { GewichtungInvalid } from '#/shared/noten/fach-gewichtung.ts';
@@ -55,7 +54,6 @@ export const DomainError = Schema.Union([
   NoteOutsideHalbjahr,
   NotenwertRequired,
   NoteSubmissionIdMissing,
-  PreparationChanged,
   ZeugnisHalbjahrNotFound,
 ]);
 

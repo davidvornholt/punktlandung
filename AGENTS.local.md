@@ -8,7 +8,7 @@ Punktlandung is a single-user Noten tracker for a Baden-Württemberg Gymnasium. 
 - A Fach stores only the Gewichtung its teacher announced, in the scale it was announced in. Rules such as "eine GFS zählt wie eine Klausur" are derived from equal Gewichte, never stored.
 - The Leistungsart fixes the Wertungsbereich, because teachers announce the ratio between the Wertungsbereiche, never which Leistungsart counts where. So there is no Wertungsbereich picker.
 - Notensystem conversion, Gewichtung, and Zeugnis rounding are load-bearing product logic. Change them only with tests.
-- UI copy is German in sentence case. Domain terms such as Fach, Klausur, GFS, Halbjahr, and Lerntage are never translated.
+- UI copy is German in sentence case. Domain terms such as Fach, Klausur, GFS, and Halbjahr are never translated.
 - Identifiers keep German domain vocabulary where English would collapse a distinction the product turns on: "semester" is not a Halbjahr, and "exam" erases Klausur versus Test. That vocabulary is Fach, Note, Halbjahr, Klassenstufe, Leistungsart, Wertungsbereich, Gewichtung, Sammlung, Klausur, GFS, Notenpunkte, and Zeugnis. Everything else is English, so mixed compounds such as `createFach` and `faecherQueryOptions` are expected.
 
 ## Architecture decisions

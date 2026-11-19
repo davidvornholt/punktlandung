@@ -1,10 +1,4 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  createMemoryHistory,
-  createRootRoute,
-  createRouter,
-  RouterProvider,
-} from '@tanstack/react-router';
 import { useMemo, useRef, useState } from 'react';
 
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
@@ -63,7 +57,6 @@ const note = (id: string, wert: number, datum: string): Leistung => ({
   id,
   kind: 'klausur',
   notiz: null,
-  preparation: null,
   status: 'graded',
   wert,
 });
@@ -157,74 +150,61 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
     };
   }, [scenario]);
 
-  /* Die Zeilen verweisen per Router-Link auf ihre Leistung; ein Speicherverlauf reicht. */
-  const [router] = useState(() =>
-    createRouter({
-      history: createMemoryHistory({ initialEntries: ['/noten'] }),
-      routeTree: createRootRoute({
-        component: () => (
-          <QueryClientProvider client={queryClient}>
-            <main className="p-4">
-              <NotenList
-                faecher={waehlbareFaecher(scenario)}
-                halbjahr={halbjahr}
-                operations={operations}
-              />
-            </main>
-            <div hidden={true}>
-              <button
-                type="button"
-                data-testid="complete-a"
-                onClick={() =>
-                  pendingByIdRef.current.get('note-a')?.('success')
-                }
-              >
-                Complete A
-              </button>
-              <button
-                type="button"
-                data-testid="complete-b"
-                onClick={() =>
-                  pendingByIdRef.current.get('note-b')?.('success')
-                }
-              >
-                Complete B
-              </button>
-              <button
-                aria-label="Complete save"
-                data-testid="complete"
-                onClick={() => settleRef.current?.('success')}
-                type="button"
-              />
-              <button
-                aria-label="Fail save"
-                data-testid="fail"
-                onClick={() => settleRef.current?.('failure')}
-                type="button"
-              />
-              <button
-                aria-label="Finish list read"
-                data-testid="finish-read"
-                onClick={() => finishReadRef.current?.()}
-                type="button"
-              />
-              <button
-                aria-label="Refetch list"
-                data-testid="refetch"
-                onClick={() =>
-                  queryClient.refetchQueries({
-                    queryKey: notenKey(halbjahr.id),
-                  })
-                }
-                type="button"
-              />
-            </div>
-          </QueryClientProvider>
-        ),
-      }),
-    }),
+  return (
+    <QueryClientProvider client={queryClient}>
+      <main className="p-4">
+        <NotenList
+          faecher={waehlbareFaecher(scenario)}
+          halbjahr={halbjahr}
+          operations={operations}
+        />
+      </main>
+      <div hidden={true}>
+        <button
+          type="button"
+          data-testid="complete-a"
+          onClick={() => pendingByIdRef.current.get('note-a')?.('success')}
+        >
+          Complete A
+        </button>
+        <button
+          type="button"
+          data-testid="complete-b"
+          onClick={() => pendingByIdRef.current.get('note-b')?.('success')}
+        >
+          Complete B
+        </button>
+        <button
+          aria-label="Complete save"
+          data-testid="complete"
+          onClick={() => settleRef.current?.('success')}
+          type="button"
+        />
+        <button
+          aria-label="Fail save"
+          data-testid="fail"
+          onClick={() => settleRef.current?.('failure')}
+          type="button"
+        />
+        <button
+          aria-label="Finish list read"
+          data-testid="finish-read"
+          onClick={() => finishReadRef.current?.()}
+          type="button"
+        />
+        <button
+          aria-label="Refetch list"
+          data-testid="refetch"
+          onClick={() =>
+            queryClient.refetchQueries({
+              queryKey: notenKey(halbjahr.id),
+            })
+          }
+          type="button"
+        />
+      </div>
+    </QueryClientProvider>
   );
-  return <RouterProvider router={router} />;
 };
 
 export const Standard = () => <NotenListScenario scenario="standard" />;

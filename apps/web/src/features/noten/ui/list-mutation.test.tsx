@@ -37,7 +37,6 @@ const note = (id: string): Leistung => ({
   id,
   kind: 'klausur',
   notiz: `Ziel ${id}`,
-  preparation: null,
   status: 'graded',
   wert: 2,
 });
@@ -62,7 +61,6 @@ it('NotenCards sperrt B während A und kündigt As verzögerten Fehler an', asyn
       noten={noten}
       onDelete={() => undefined}
       onEdit={() => undefined}
-      preparationLink={() => null}
       system="sechser"
       updateErrors={noUpdateErrors}
     />,
@@ -88,7 +86,6 @@ it('NotenCards sperrt B während A und kündigt As verzögerten Fehler an', asyn
       noten={noten}
       onDelete={() => undefined}
       onEdit={() => undefined}
-      preparationLink={() => null}
       system="sechser"
       updateErrors={noUpdateErrors}
     />,

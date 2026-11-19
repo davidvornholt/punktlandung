@@ -29,19 +29,8 @@ const faecher = new Map([
   ['2026/27', [fach('mathe', 'Mathematik'), fach('englisch', 'Englisch')]],
 ]);
 const halbjahre = new Map([[halbjahr.id, halbjahr]]);
-const noStudyDays = new Map<string, ReadonlyArray<string>>();
-
-const upcoming = (
-  rows: ReadonlyArray<UpcomingRow>,
-  studyDaysByLeistung: ReadonlyMap<string, ReadonlyArray<string>> = noStudyDays,
-) =>
-  calculateUpcoming({
-    rows,
-    halbjahre,
-    faecherBySchoolYear: faecher,
-    studyDaysByLeistung,
-    today,
-  });
+const upcoming = (rows: ReadonlyArray<UpcomingRow>) =>
+  calculateUpcoming({ rows, halbjahre, faecherBySchoolYear: faecher, today });
 
 const row = (
   id: string,
@@ -56,7 +45,6 @@ const row = (
   wert: null,
   gewicht: 1,
   datum,
-  preparation: null,
   ...overrides,
 });
 
@@ -101,35 +89,6 @@ describe('calculateUpcoming', () => {
     expect(mathe?.fachschnitt).toBeNull();
     expect(englisch?.fachName).toBe('Englisch');
     expect(englisch?.halbjahrLabel).toBe('J1.1');
-  });
-
-  it('zählt die Themen der Vorbereitung und lässt sichere Leistungen zurückfallen', () => {
-    const result = upcoming([
-      row('m-k1', 'mathe', '2026-09-15', {
-        preparation: '- [x] Integrale\n- [x] Ableitungen',
-      }),
-      row('e-k1', 'englisch', '2026-09-25', {
-        preparation: '## Themen\n- [ ] Vokabeln\n- [x] Grammatik\n- [ ] Essay',
-      }),
-    ]);
-    // Mathe ist näher, aber jedes Thema sitzt; Englisch hat noch zwei offene.
-    expect(result.upcoming.map((entry) => entry.id)).toEqual(['e-k1', 'm-k1']);
-    expect(result.upcoming[0]?.topics).toEqual({ total: 3, checked: 1 });
-    expect(result.upcoming[1]?.topics).toEqual({ total: 2, checked: 2 });
-  });
-
-  it('sagt je Leistung, wann zuletzt dafür gelernt wurde', () => {
-    const result = upcoming(
-      [
-        row('m-k1', 'mathe', '2026-09-20'),
-        row('e-k1', 'englisch', '2026-09-21'),
-      ],
-      new Map([['m-k1', ['2026-09-09', '2026-09-11', '2026-08-01']]]),
-    );
-    const mathe = result.upcoming.find((entry) => entry.id === 'm-k1');
-    const englisch = result.upcoming.find((entry) => entry.id === 'e-k1');
-    expect(mathe?.lernen).toEqual({ daysAgo: 2, inLastWeek: 2 });
-    expect(englisch?.lernen).toEqual({ daysAgo: null, inLastWeek: 0 });
   });
 
   it('lässt Leistungen ohne bekanntes Halbjahr oder Fach weg', () => {

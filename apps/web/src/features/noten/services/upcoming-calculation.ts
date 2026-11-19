@@ -1,8 +1,4 @@
 import { daysBetween } from '#/shared/date/calendar-date.ts';
-import type { StudyRecency } from '#/shared/lernen/study-recency.ts';
-import { studyRecency } from '#/shared/lernen/study-recency.ts';
-import type { TopicProgress } from '#/shared/markdown/task-lines.ts';
-import { topicProgress } from '#/shared/markdown/task-lines.ts';
 import { byDringlichkeit } from '#/shared/noten/dringlichkeit.ts';
 import {
   fachAverage,
@@ -22,7 +18,6 @@ export type UpcomingRow = {
   readonly wert: number | null;
   readonly gewicht: number;
   readonly datum: string;
-  readonly preparation: string | null;
 };
 
 export type UpcomingHalbjahr = {
@@ -49,10 +44,6 @@ export type UpcomingLeistung = {
   readonly fachKuerzel: string;
   /** Aktueller Fachschnitt im System des Halbjahrs; null ohne benotete Leistung. */
   readonly fachschnitt: number | null;
-  /** Fortschritt der Themenliste; null, solange keine Vorbereitung angelegt ist. */
-  readonly topics: TopicProgress | null;
-  /** Wann zuletzt für diese Leistung gelernt wurde. */
-  readonly lernen: StudyRecency;
   readonly system: Notensystem;
   readonly termId: string;
   readonly halbjahrLabel: string;
@@ -92,7 +83,6 @@ export const calculateUpcoming = ({
   rows,
   halbjahre,
   faecherBySchoolYear,
-  studyDaysByLeistung,
   today,
 }: {
   readonly rows: ReadonlyArray<UpcomingRow>;
@@ -101,8 +91,6 @@ export const calculateUpcoming = ({
     string,
     ReadonlyArray<SchoolYearFach>
   >;
-  /** Lerntage je Leistung, als ISO-Tage. */
-  readonly studyDaysByLeistung: ReadonlyMap<string, ReadonlyArray<string>>;
   readonly today: string;
 }): Upcoming => {
   const groups = groupByFach(rows);
@@ -150,9 +138,6 @@ export const calculateUpcoming = ({
           fachName: fach.name,
           fachKuerzel: fach.shortName,
           fachschnitt,
-          topics:
-            row.preparation === null ? null : topicProgress(row.preparation),
-          lernen: studyRecency(studyDaysByLeistung.get(row.id) ?? [], today),
           system: halbjahr.system,
           termId: halbjahr.id,
           halbjahrLabel: formatHalbjahrLabel(halbjahr),

@@ -16,19 +16,8 @@ import {
   createHalbjahr,
   listHalbjahre,
 } from '#/features/halbjahre/services/halbjahr-service.ts';
-import { StudyDayInput } from '#/features/lernen/schemas/study-day-schema.ts';
-import { logStudyDay } from '#/features/lernen/services/learning-service.ts';
-import {
-  NoteInput,
-  PreparationTemplateInput,
-  PreparationUpdate,
-} from '#/features/noten/schemas/note-schema.ts';
-import {
-  createNote,
-  listNoten,
-  updatePreparation,
-} from '#/features/noten/services/noten-service.ts';
-import { savePreparationTemplate } from '#/features/noten/services/preparation-template-service.ts';
+import { NoteInput } from '#/features/noten/schemas/note-schema.ts';
+import { createNote } from '#/features/noten/services/noten-service.ts';
 import {
   account,
   session,
@@ -36,7 +25,7 @@ import {
   verification,
 } from '#/shared/auth/auth-schema.ts';
 import type { SamplePlan, SampleSchoolYear } from './sample-data.ts';
-import { halbjahrKey, leistungKey, samplePlan } from './sample-data.ts';
+import { halbjahrKey, samplePlan } from './sample-data.ts';
 import type { SampleFach } from './sample-faecher.ts';
 
 /**
@@ -69,7 +58,6 @@ export type SeedCounts = {
   readonly faecher: number;
   readonly benotet: number;
   readonly ausstehend: number;
-  readonly lerntage: number;
 };
 
 export type SeedResult =
@@ -180,82 +168,6 @@ const createLeistungen = (plan: SamplePlan, ids: PlanIds) =>
     { discard: true },
   );
 
-const loadLeistungIds = (
-  halbjahre: ReadonlyArray<{
-    readonly id: string;
-    readonly schoolYear: string;
-    readonly half: 1 | 2;
-  }>,
-) =>
-  Effect.forEach(halbjahre, (halbjahr) =>
-    listNoten(halbjahr.id).pipe(
-      Effect.map((leistungen) =>
-        leistungen.map(
-          (leistung) =>
-            [
-              leistungKey({
-                schoolYear: halbjahr.schoolYear,
-                half: halbjahr.half,
-                fach: leistung.fachKuerzel,
-                kind: leistung.kind,
-                datum: leistung.datum,
-              }),
-              leistung.id,
-            ] as const,
-        ),
-      ),
-    ),
-  ).pipe(Effect.map((entries) => new Map(entries.flat())));
-
-const addPreparations = (
-  plan: SamplePlan,
-  leistungIds: ReadonlyMap<string, string>,
-) =>
-  Effect.forEach(
-    plan.leistungen.filter((leistung) => leistung.preparation !== null),
-    (leistung) =>
-      Effect.gen(function* () {
-        const id = yield* lookup(leistungIds, leistung.key);
-        yield* updatePreparation(
-          yield* Schema.decodeUnknownEffect(PreparationUpdate)({
-            id,
-            expected: null,
-            preparation: leistung.preparation,
-          }),
-        );
-      }),
-    { discard: true },
-  );
-
-const logStudyDays = (
-  plan: SamplePlan,
-  ids: PlanIds & { readonly leistungen: ReadonlyMap<string, string> },
-) =>
-  Effect.forEach(
-    plan.studyDays,
-    (studyDay) =>
-      Effect.gen(function* () {
-        const subjectId =
-          studyDay.fach === null
-            ? null
-            : yield* lookup(ids.faecher, studyDay.fach);
-        const gradeId =
-          studyDay.leistungKey === null
-            ? null
-            : yield* lookup(ids.leistungen, studyDay.leistungKey);
-        yield* logStudyDay(
-          yield* Schema.decodeUnknownEffect(StudyDayInput)({
-            day: studyDay.day,
-            subjectId,
-            gradeId,
-            minutes: studyDay.minutes,
-            notiz: studyDay.notiz,
-          }),
-        );
-      }),
-    { discard: true },
-  );
-
 const applyPlan = (plan: SamplePlan) =>
   Effect.gen(function* () {
     const faecher = new Map<string, string>();
@@ -278,14 +190,6 @@ const applyPlan = (plan: SamplePlan) =>
       ),
     };
     yield* createLeistungen(plan, ids);
-    const leistungen = yield* loadLeistungIds(halbjahre);
-    yield* addPreparations(plan, leistungen);
-    yield* logStudyDays(plan, { ...ids, leistungen });
-    for (const template of plan.preparationTemplates) {
-      yield* savePreparationTemplate(
-        yield* Schema.decodeUnknownEffect(PreparationTemplateInput)(template),
-      );
-    }
     const ausstehend = plan.leistungen.filter(
       (leistung) => leistung.wert === null,
     ).length;
@@ -294,7 +198,6 @@ const applyPlan = (plan: SamplePlan) =>
       faecher: faecher.size,
       benotet: plan.leistungen.length - ausstehend,
       ausstehend,
-      lerntage: plan.studyDays.length,
     } satisfies SeedCounts;
   });
 

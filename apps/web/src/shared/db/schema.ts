@@ -129,11 +129,11 @@ export const noteTable = pgTable(
     /** Termin der Leistung: angekündigt, solange sie aussteht, sonst der Tag der Arbeit. */
     takenOn: date('taken_on').notNull(),
     note: text('note'),
-    /**
-     * Die Vorbereitung als Markdown. Aufgabenzeilen (`- [ ]`) sind die
-     * Themen; abgehakt heißt „kann ich", nicht „erledigt".
-     */
-    preparation: text('preparation'),
+    // Die Datenbank hält noch die unbenutzte Spalte `preparation`, bis ein
+    // Folge-PR sie entfernt. Sie fehlt hier mit Absicht: Drizzle nennt jede
+    // Spalte dieser Definition in jedem Insert und jedem vollen Select, und
+    // diese Version muss auch ohne die Spalte laufen. `db:generate` erzeugt
+    // deshalb ihr DROP COLUMN; das gehört erst in den Folge-PR.
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
@@ -154,23 +154,15 @@ export const noteSubmissionTable = pgTable('grade_submission', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-/**
- * Die Vorlage, mit der die Vorbereitung einer neuen Leistung beginnt, je
- * planbarer Leistungsart. Fehlt die Zeile, gilt die eingebaute Vorlage.
- */
+// `preparation_template`, `study_day` und `study_day_grade` sind unbenutzt.
+// Sie bleiben hier definiert, damit `db:generate` sie nicht löscht, solange
+// die vorige Version sie noch braucht; ein Folge-PR entfernt sie.
 export const preparationTemplateTable = pgTable('preparation_template', {
   kind: leistungsartEnum('kind').primaryKey(),
   content: text('content').notNull(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-/**
- * Lerntage: ein Eintrag pro Tag und (optional) Fach. Der Eintrag kann einer
- * Leistung gelten — dann heißt er „heute dafür gelernt" und zählt nur den
- * Tag, nie die Zeit; die bleibt im Zeiterfassungswerkzeug. Zwei Leistungen
- * desselben Fachs am selben Tag teilen sich eine Zeile; ihre Zuordnung bleibt
- * in `study_day_grade` für jede Leistung erhalten.
- */
 export const studyDayTable = pgTable(
   'study_day',
   {
@@ -190,7 +182,6 @@ export const studyDayTable = pgTable(
   ],
 );
 
-/** Leistungen, für die an einem Lerntag gelernt wurde. */
 export const studyDayGradeTable = pgTable(
   'study_day_grade',
   {

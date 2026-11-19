@@ -26,7 +26,7 @@ const report = (result: SeedResult) =>
         `Die Datenbank enthält bereits App-Daten (${result.tables.join(', ')}); es werden keine Beispieldaten angelegt.`,
       )
     : Console.log(
-        `Beispieldaten angelegt: ${result.counts.halbjahre} Halbjahre, ${result.counts.faecher} Fächer, ${result.counts.benotet} benotete und ${result.counts.ausstehend} ausstehende Leistungen, ${result.counts.lerntage} Lerntage.`,
+        `Beispieldaten angelegt: ${result.counts.halbjahre} Halbjahre, ${result.counts.faecher} Fächer, ${result.counts.benotet} benotete und ${result.counts.ausstehend} ausstehende Leistungen.`,
       );
 
 const exit = await Effect.runPromiseExit(

@@ -3,7 +3,6 @@ import { Effect } from 'effect';
 import type { SqlClient } from 'effect/sql/SqlClient';
 import { listFaecher } from '#/features/faecher/services/fach-service.ts';
 import { listHalbjahre } from '#/features/halbjahre/services/halbjahr-service.ts';
-import { loadLearningStatistics } from '#/features/lernen/services/learning-service.ts';
 import { listNoten } from '#/features/noten/services/noten-service.ts';
 import { loadTrend } from '#/features/noten/services/trend-service.ts';
 import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
@@ -55,9 +54,6 @@ describe('server response wire contract', () => {
         VALUES
           ('note-1', 'mathematik', 'halbjahr-1', 'klausur', 2, 1, '2026-10-01', NULL),
           ('note-2', 'mathematik', 'halbjahr-2', 'muendlich', 3, 1, '2027-03-01', 'Mitarbeit');
-
-        INSERT INTO study_day (id, day, subject_id, minutes, note)
-        VALUES ('lerntag-1', '2026-10-01', 'mathematik', 30, NULL);
       `);
 
       const layer = postgresTestLayer(pool);
@@ -70,7 +66,6 @@ describe('server response wire contract', () => {
         'Fach',
       );
       const halbjahr = required((await provided(listHalbjahre))[0], 'Halbjahr');
-      const statistics = await provided(loadLearningStatistics('2026-10-02'));
       const note = required(
         (await provided(listNoten('halbjahr-1')))[0],
         'Note',
@@ -95,7 +90,6 @@ describe('server response wire contract', () => {
         'startsOn',
         'system',
       ]);
-      expect(keys(statistics)).toEqual(['serie', 'tageDiesenMonat']);
       expect(keys(note)).toEqual([
         'datum',
         'fachId',
@@ -106,7 +100,6 @@ describe('server response wire contract', () => {
         'id',
         'kind',
         'notiz',
-        'preparation',
         'status',
         'wert',
       ]);

@@ -2,25 +2,18 @@ import { describe, expect, it } from 'bun:test';
 import { Effect } from 'effect';
 import type { SqlClient } from 'effect/sql/SqlClient';
 import type { Pool } from 'pg';
-import { logStudyDay } from '#/features/lernen/services/learning-service.ts';
 import {
   createNote,
+  deleteNote,
   listNoten,
   loadLeistung,
   updateNote,
-  updatePreparation,
 } from '#/features/noten/services/noten-service.ts';
-import {
-  defaultPreparationTemplate,
-  loadPreparationTemplates,
-  savePreparationTemplate,
-} from '#/features/noten/services/preparation-template-service.ts';
 import { loadTrend } from '#/features/noten/services/trend-service.ts';
 import { loadUpcoming } from '#/features/noten/services/upcoming-service.ts';
 import { loadZeugnis } from '#/features/zeugnis/services/zeugnis-service.ts';
 import { migrateDatabase } from '#/shared/db/migrate.ts';
 import type { PgDrizzle } from '#/shared/db/pg-drizzle.ts';
-import { toggleTaskLine } from '#/shared/markdown/task-lines.ts';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import {
   postgresTestLayer,
@@ -150,9 +143,14 @@ describe('Ausstehende Leistungen', () => {
     }));
 });
 
-describe('Vorbereitung einer Leistung', () => {
-  it('trägt eine Vorbereitung, deren Themen die Übersicht zählt und das Notenformular nicht anrührt', () =>
-    withSeededDatabase(async (provided) => {
+describe('Daten der vorigen Version', () => {
+  /*
+   * Die vorige Version schrieb Vorbereitungen und Lerntage, und ein Rollback
+   * startet sie ohne Migration wieder auf derselben Datenbank. Diese Version
+   * liest beides nicht mehr, darf es aber weder verlieren noch daran scheitern.
+   */
+  it('lässt Vorbereitung und Lerntag einer Leistung stehen und löscht die Leistung trotzdem', () =>
+    withSeededDatabase(async (provided, pool) => {
       await provided(createNote(fields));
       const planned = (await provided(listNoten(termId))).find(
         (note) => note.status === 'planned',
@@ -160,235 +158,38 @@ describe('Vorbereitung einer Leistung', () => {
       if (planned === undefined) {
         throw new Error('Die ausstehende Klausur fehlt.');
       }
-      expect(planned.preparation).toBeNull();
-
-      const markdown = '## Themen\n\n- [x] Gedichtanalyse\n- [ ] Erörterung\n';
-      await provided(
-        updatePreparation({
-          id: planned.id,
-          expected: null,
-          preparation: markdown,
-        }),
+      const preparation = '- [ ] Erörterung';
+      await pool.query('UPDATE grade SET preparation = $1 WHERE id = $2', [
+        preparation,
+        planned.id,
+      ]);
+      await pool.query(
+        `INSERT INTO study_day (id, day, subject_id, minutes, note)
+         VALUES ('lerntag', '2026-09-28', 'mathe', NULL, NULL)`,
       );
-      const detail = await provided(loadLeistung(planned.id, '2026-10-01'));
-      expect(detail.leistung.preparation).toBe(markdown);
-      expect(detail.halbjahr.label).toBe('10.1');
+      await pool.query(
+        `INSERT INTO study_day_grade (study_day_id, grade_id)
+         VALUES ('lerntag', $1)`,
+        [planned.id],
+      );
 
-      const upcoming = await provided(loadUpcoming);
-      const [entry] = [...upcoming.upcoming, ...upcoming.overdue];
-      expect(entry?.topics).toEqual({ total: 2, checked: 1 });
+      const detail = await provided(loadLeistung(planned.id));
+      expect(detail.halbjahr.label).toBe('10.1');
+      expect(Object.keys(detail.leistung)).not.toContain('preparation');
 
       await provided(updateNote({ ...fields, id: planned.id, wert: 2 }));
       expect(
-        (await provided(loadLeistung(planned.id, '2026-10-01'))).leistung
-          .preparation,
-      ).toBe(markdown);
-
-      const missing = await provided(
-        Effect.flip(
-          updatePreparation({
-            id: 'gibt-es-nicht',
-            expected: null,
-            preparation: null,
-          }),
-        ),
-      );
-      expect(missing._tag).toBe('NoteNichtGefunden');
-    }));
-});
-
-describe('Vorbereitung in zwei Tabs', () => {
-  it('lässt einen veralteten Tab nicht überschreiben, was ein anderer Tab gespeichert hat', () =>
-    withSeededDatabase(async (provided) => {
-      await provided(createNote(fields));
-      const planned = (await provided(listNoten(termId))).find(
-        (note) => note.status === 'planned',
-      );
-      if (planned === undefined) {
-        throw new Error('Die ausstehende Klausur fehlt.');
-      }
-      const original = '- [ ] Erstes Thema';
-      await provided(
-        updatePreparation({
-          id: planned.id,
-          expected: null,
-          preparation: original,
-        }),
-      );
-      // Beide Tabs zeigen jetzt `original`. Tab A ergänzt ein Thema.
-      const newer = `${original}\n- [ ] Neues Thema`;
-      await provided(
-        updatePreparation({
-          id: planned.id,
-          expected: original,
-          preparation: newer,
-        }),
-      );
-
-      // Tab B hakt im alten Stand das erste Thema ab.
-      const stale = await provided(
-        Effect.flip(
-          updatePreparation({
-            id: planned.id,
-            expected: original,
-            preparation: toggleTaskLine(original, 1),
-          }),
-        ),
-      );
-      expect(stale._tag).toBe('VorbereitungGeaendert');
-      expect(
-        (await provided(loadLeistung(planned.id, '2026-10-01'))).leistung
-          .preparation,
-      ).toBe(newer);
-
-      // Nach dem Neuladen gelingt derselbe Haken auf dem neuen Stand.
-      await provided(
-        updatePreparation({
-          id: planned.id,
-          expected: newer,
-          preparation: toggleTaskLine(newer, 1),
-        }),
-      );
-      expect(
-        (await provided(loadLeistung(planned.id, '2026-10-01'))).leistung
-          .preparation,
-      ).toBe('- [x] Erstes Thema\n- [ ] Neues Thema');
-
-      // Auch das Löschen prüft den gesehenen Stand.
-      const staleDelete = await provided(
-        Effect.flip(
-          updatePreparation({
-            id: planned.id,
-            expected: newer,
-            preparation: null,
-          }),
-        ),
-      );
-      expect(staleDelete._tag).toBe('VorbereitungGeaendert');
-    }));
-});
-
-describe('Lerntage einer Leistung', () => {
-  it('widmet einen Lerntag der Leistung, ohne ihn einem allgemeinen Lerntag zu opfern', () =>
-    withSeededDatabase(async (provided, pool) => {
-      await provided(createNote(fields));
-      const firstPlanned = (await provided(listNoten(termId))).find(
-        (note) => note.status === 'planned',
-      );
-      if (firstPlanned === undefined) {
-        throw new Error('Die erste ausstehende Klausur fehlt.');
-      }
-
-      await provided(createNote({ ...fields, id: 'ausstehend-zwei' }));
-      const planned = (await provided(listNoten(termId))).filter(
-        (note) => note.status === 'planned',
-      );
-      const secondPlanned = planned.find((note) => note.id !== firstPlanned.id);
-      if (secondPlanned === undefined) {
-        throw new Error('Die zweite ausstehende Klausur fehlt.');
-      }
-
-      const lerntag = {
-        subjectId: 'mathe',
-        minutes: null,
-        notiz: null,
-      };
-
-      await provided(
-        logStudyDay({
-          ...lerntag,
-          gradeId: firstPlanned.id,
-          day: '2026-09-25',
-        }),
-      );
-      await Promise.all([
-        provided(
-          logStudyDay({
-            ...lerntag,
-            gradeId: firstPlanned.id,
-            day: '2026-09-28',
-          }),
-        ),
-        provided(
-          logStudyDay({
-            ...lerntag,
-            gradeId: secondPlanned.id,
-            day: '2026-09-28',
-          }),
-        ),
-      ]);
-      // Ein wiederholter Eintrag bleibt idempotent.
-      await provided(
-        logStudyDay({
-          ...lerntag,
-          gradeId: firstPlanned.id,
-          day: '2026-09-28',
-        }),
-      );
-      // Ein allgemeiner Lerntag für Mathe am selben Tag nimmt der Klausur den Tag nicht.
-      await provided(
-        logStudyDay({ ...lerntag, day: '2026-09-28', gradeId: null }),
-      );
-
-      const firstDetail = await provided(
-        loadLeistung(firstPlanned.id, '2026-09-30'),
-      );
-      expect(firstDetail.lernen).toEqual({ daysAgo: 2, inLastWeek: 2 });
-      const secondDetail = await provided(
-        loadLeistung(secondPlanned.id, '2026-09-30'),
-      );
-      expect(secondDetail.lernen).toEqual({ daysAgo: 2, inLastWeek: 1 });
-      expect(
-        (await pool.query('SELECT count(*)::int AS count FROM study_day')).rows,
-      ).toEqual([{ count: 2 }]);
-
-      const upcoming = await provided(loadUpcoming);
-      const [entry] = [...upcoming.upcoming, ...upcoming.overdue];
-      expect(entry?.lernen.inLastWeek).toBeGreaterThanOrEqual(0);
-
-      await pool.query('DELETE FROM grade WHERE id = $1', [firstPlanned.id]);
-      expect(
         (
-          await pool.query(
-            `SELECT sd.day, sdg.grade_id AS "gradeId"
-               FROM study_day_grade sdg
-               JOIN study_day sd ON sd.id = sdg.study_day_id
-              ORDER BY sd.day, sdg.grade_id`,
-          )
+          await pool.query('SELECT preparation FROM grade WHERE id = $1', [
+            planned.id,
+          ])
         ).rows,
-      ).toEqual([{ day: '2026-09-28', gradeId: secondPlanned.id }]);
-      expect(
-        (await pool.query('SELECT count(*)::int AS count FROM study_day')).rows,
-      ).toEqual([{ count: 2 }]);
-      await pool.query('DELETE FROM grade WHERE id = $1', [secondPlanned.id]);
+      ).toEqual([{ preparation }]);
+
+      await provided(deleteNote(planned.id));
       expect(
         (await pool.query('SELECT count(*)::int AS count FROM study_day_grade'))
           .rows,
       ).toEqual([{ count: 0 }]);
-      expect(
-        (await pool.query('SELECT count(*)::int AS count FROM study_day')).rows,
-      ).toEqual([{ count: 2 }]);
-    }));
-});
-
-describe('Vorbereitungsvorlagen einer Leistung', () => {
-  it('liefert für jede planbare Art eine Vorlage und merkt sich eine geänderte', () =>
-    withSeededDatabase(async (provided) => {
-      const defaults = await provided(loadPreparationTemplates);
-      expect(defaults).toEqual({
-        klausur: defaultPreparationTemplate,
-        test: defaultPreparationTemplate,
-        gfs: defaultPreparationTemplate,
-      });
-
-      await provided(
-        savePreparationTemplate({ kind: 'gfs', content: '- [ ] Handout' }),
-      );
-      await provided(
-        savePreparationTemplate({ kind: 'gfs', content: '- [ ] Vortrag üben' }),
-      );
-      const changed = await provided(loadPreparationTemplates);
-      expect(changed.gfs).toBe('- [ ] Vortrag üben');
-      expect(changed.klausur).toBe(defaultPreparationTemplate);
     }));
 });

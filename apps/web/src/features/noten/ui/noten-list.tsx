@@ -1,18 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
-import { ListChecks } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { notenKey } from '#/shared/query/query-keys.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
-import { iconButtonClass, iconSize, iconStroke } from '#/shared/ui/icon.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import type { Leistung } from '../services/noten-service.ts';
 import { NoteForm } from './note-form.tsx';
-import type { PreparationLinkRenderer } from './note-row.tsx';
 import { NotenCards } from './noten-cards.tsx';
 import {
   closeIfSaved,
@@ -37,18 +33,6 @@ type FachList = ReadonlyArray<{
   readonly id: string;
   readonly name: string;
 }>;
-
-const preparationLink: PreparationLinkRenderer = (note, label) => (
-  <Link
-    aria-label={`Vorbereitung: ${label}`}
-    className={iconButtonClass}
-    params={{ id: note.id }}
-    title={`Vorbereitung: ${label}`}
-    to="/noten/$id"
-  >
-    <ListChecks aria-hidden={true} size={iconSize} strokeWidth={iconStroke} />
-  </Link>
-);
 
 /**
  * A failed refresh keeps the list already shown, so an open edit stays mounted
@@ -206,7 +190,6 @@ export const NotenList = ({
             }
             setEditTarget(note);
           }}
-          preparationLink={preparationLink}
           system={halbjahr.system}
           updateErrors={updateErrors}
         />
