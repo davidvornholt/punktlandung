@@ -11,9 +11,6 @@ type Dringend = {
  * Tagen und ein kleiner Test morgen etwa gleich, und was übermorgen kommt,
  * überholt, was erst in einem Monat ansteht. Größer heißt dringender; ein
  * bereits verstrichener Termin zählt wie heute.
- *
- * Der Anteil selbst wird nie angezeigt: er verschiebt sich, sobald eine
- * weitere Leistung angekündigt wird. Er ordnet nur.
  */
 export const dringlichkeit = ({ anteil, tageBis }: Dringend): number =>
   anteil / (Math.max(0, tageBis) + 1);

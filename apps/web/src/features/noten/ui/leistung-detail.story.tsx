@@ -75,7 +75,6 @@ type ServerBehaviour = {
   readonly refreshFails?: boolean;
 };
 
-/** Die Detailseite mit erfundenen Serveraufrufen. */
 const LeistungDetailScenario = ({
   scenario,
   refreshFails = false,
