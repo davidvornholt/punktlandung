@@ -44,7 +44,7 @@
     "better-auth": "^1.7.25",
     "drizzle-kit": "^0.31.11",
     "drizzle-orm": "^0.45.4",
-    "effect": "4.1.4",
+    "effect": "4.1.5",
     "lucide-react": "1.73.0",
     "pg": "^8.23.1",
     "react": "^19.3.1",
