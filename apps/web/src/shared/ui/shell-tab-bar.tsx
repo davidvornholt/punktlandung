@@ -27,6 +27,9 @@ const tabClass =
 const moreItemClass =
   'flex min-h-[2.875rem] items-center gap-3 px-3 text-left hover:bg-paper disabled:text-ink-soft aria-[current=page]:font-bold';
 
+/** A label that may break, and is hyphenated, where enlarged text leaves the menu too narrow for it. */
+const moreLabelClass = 'min-w-0 hyphens-auto break-words';
+
 const Tab = ({ page }: { readonly page: (typeof mainPages)[number] }) => {
   const pathname = useShownPathname();
   const pending = usePendingPathname();
@@ -121,8 +124,8 @@ const MoreTab = ({ signOut }: { readonly signOut: ShellSignOut }) => {
       </button>
       {open ? (
         <div
-          // Above the strip of paper the bar lays over the page, which would wash out its lower edge.
-          className="absolute right-2 bottom-[calc(100%+1.125rem)] z-10 grid min-w-[13.125rem] animate-eases-in border-[1.5px] border-ink bg-sheet p-1.5 text-base"
+          // Above the strip of paper the bar lays over the page, which would wash out its lower edge. With enlarged text it may not grow wider than the screen, and its entries wrap instead.
+          className="absolute right-2 bottom-[calc(100%+1.125rem)] z-10 grid w-max min-w-[min(13.125rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] animate-eases-in grid-cols-1 border-[1.5px] border-ink bg-sheet p-1.5 text-base"
           id={popoverId}
           ref={popoverRef}
         >
@@ -138,7 +141,7 @@ const MoreTab = ({ signOut }: { readonly signOut: ShellSignOut }) => {
                 size={iconSize}
                 strokeWidth={iconStroke}
               />
-              {page.label}
+              <span className={moreLabelClass}>{page.label}</span>
             </Link>
           ))}
           <button
@@ -152,7 +155,9 @@ const MoreTab = ({ signOut }: { readonly signOut: ShellSignOut }) => {
               size={iconSize}
               strokeWidth={iconStroke}
             />
-            {signOut.pending ? 'Wird abgemeldet …' : 'Abmelden'}
+            <span className={moreLabelClass}>
+              {signOut.pending ? 'Wird abgemeldet …' : 'Abmelden'}
+            </span>
           </button>
         </div>
       ) : null}
