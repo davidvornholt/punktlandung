@@ -1,5 +1,6 @@
-import { memo, type PointerEvent, useId, useMemo, useRef } from 'react';
+import { memo, useId, useMemo, useRef } from 'react';
 import { useHostWidth } from '#/shared/ui/ruler/ruler-hooks.ts';
+import { useScrubbing } from '#/shared/ui/ruler/scrubbing.ts';
 import {
   countAt,
   type VerlaufEntry,
@@ -18,8 +19,6 @@ const sizes = {
   markLabelY: 20,
   markLabel: 12.5,
   knob: 6,
-  /** How far a finger moves before it is clear whether it drags along the band or scrolls the page. */
-  touchSlop: 6,
 } as const;
 
 const notIdCharacters = /[^a-z0-9]/giu;
@@ -148,64 +147,6 @@ const VerlaufSvg = ({
   );
 };
 
-/** A pointer on the band. A finger has not said at once whether it drags, scrolls the page or taps. */
-type Drag = {
-  readonly x: number;
-  readonly y: number;
-  state: 'undecided' | 'dragging' | 'scrolling';
-};
-
-/**
- * Moves the hand with the pointer. A mouse drags from the moment it is
- * pressed. A finger may be about to scroll the page, which on a phone runs
- * under the band: it moves the hand only once it has moved along the band,
- * or when it is lifted where it was put down.
- */
-const useScrubbing = (scrub: (event: PointerEvent<HTMLDivElement>) => void) => {
-  const dragRef = useRef<Drag | null>(null);
-  return {
-    onPointerCancel: (): void => {
-      dragRef.current = null;
-    },
-    onPointerDown: (event: PointerEvent<HTMLDivElement>): void => {
-      event.currentTarget.setPointerCapture(event.pointerId);
-      const touch = event.pointerType === 'touch';
-      dragRef.current = {
-        x: event.clientX,
-        y: event.clientY,
-        state: touch ? 'undecided' : 'dragging',
-      };
-      if (!touch) {
-        scrub(event);
-      }
-    },
-    onPointerMove: (event: PointerEvent<HTMLDivElement>): void => {
-      const drag = dragRef.current;
-      if (drag === null) {
-        return;
-      }
-      if (drag.state === 'undecided') {
-        const along = Math.abs(event.clientX - drag.x);
-        const across = Math.abs(event.clientY - drag.y);
-        if (across >= sizes.touchSlop && across > along) {
-          drag.state = 'scrolling';
-        } else if (along >= sizes.touchSlop) {
-          drag.state = 'dragging';
-        }
-      }
-      if (drag.state === 'dragging') {
-        scrub(event);
-      }
-    },
-    onPointerUp: (event: PointerEvent<HTMLDivElement>): void => {
-      if (dragRef.current?.state === 'undecided') {
-        scrub(event);
-      }
-      dragRef.current = null;
-    },
-  };
-};
-
 /**
  * The Verlauf: where the Gesamtschnitt stood after every Note, as a line over
  * time. The hand marks the day the hero shows. Dragging on the band moves it;
@@ -240,7 +181,7 @@ export const VerlaufBand = ({
         : verlaufLayout({ entries, halbjahre, hostWidth: width, today }),
     [entries, halbjahre, today, width],
   );
-  const scrubbing = useScrubbing((event) => {
+  const scrubbing = useScrubbing<HTMLDivElement>((event) => {
     if (layout !== null) {
       const { left } = event.currentTarget.getBoundingClientRect();
       onScrub(countAt(layout, entries, event.clientX - left));

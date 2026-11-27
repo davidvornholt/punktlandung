@@ -1,3 +1,4 @@
+import type * as playwright from '@playwright/test';
 import { expect, test as it } from '@playwright/test';
 
 /** What the Physik fixture of the stories holds. */
@@ -8,6 +9,9 @@ const physik = {
   /** Clicks land this far above the bar's bottom edge, inside the bar. */
   insideBar: 10,
 } as const;
+
+/** A finger that scrolls the page: up by `rise` in `steps`, drifting a little sideways. */
+const swipe = { rise: 90, steps: 6, drift: 2 } as const;
 
 it('names the figure and draws every Note as a disc', async ({ mount }) => {
   const component = await mount('shared/ui/ruler/ruler/Bench');
@@ -73,4 +77,95 @@ it('lets a Note be chosen with the pointer and lands it when it is saved', async
   await expect(component.locator('[data-part="fulcrum-value"]')).toHaveText(
     '11 P.',
   );
+});
+
+/** A finger on the page, sent to the browser as it sends real touches. */
+const finger = async (page: playwright.Page) => {
+  const client = await page.context().newCDPSession(page);
+  const touch = async (
+    type: 'touchStart' | 'touchMove' | 'touchEnd',
+    points: ReadonlyArray<Point>,
+  ): Promise<void> => {
+    await client.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: points.map((point) => ({ ...point })),
+    });
+  };
+  return {
+    down: (point: Point) => touch('touchStart', [point]),
+    move: (point: Point) => touch('touchMove', [point]),
+    up: () => touch('touchEnd', []),
+  };
+};
+
+type Point = { readonly x: number; readonly y: number };
+
+/** A place inside the bar, over the column of one value. */
+const placeOver = async (
+  component: playwright.Locator,
+  name: string,
+): Promise<Point> => {
+  const box = await component
+    .getByRole('radio', { name, exact: true })
+    .locator('..')
+    .boundingBox();
+  expect(box).not.toBeNull();
+  return {
+    x: Math.round((box?.x ?? 0) + (box?.width ?? 0) / 2),
+    y: Math.round((box?.y ?? 0) + (box?.height ?? 0) - physik.insideBar),
+  };
+};
+
+it('picks no Note when a finger that starts on the bar scrolls the page', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount('shared/ui/ruler/ruler/Entry');
+  const from = await placeOver(component, '3 Notenpunkte');
+  const hand = await finger(page);
+  await hand.down(from);
+  // One move after the other, as a finger makes them.
+  await Array.from({ length: swipe.steps }, (_, index) => index + 1).reduce(
+    (before, step) =>
+      before.then(() =>
+        hand.move({
+          x: from.x + swipe.drift,
+          y: from.y - (swipe.rise * step) / swipe.steps,
+        }),
+      ),
+    Promise.resolve(),
+  );
+  await hand.up();
+  await expect(component.getByRole('radio', { checked: true })).toHaveCount(0);
+  await expect(component.locator('[data-part="held-text"]')).toHaveText(
+    'noch offen',
+  );
+});
+
+it('picks the Note a finger taps, and follows a finger that drags along the bar', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount('shared/ui/ruler/ruler/Entry');
+  const hand = await finger(page);
+  const tapped = await placeOver(component, '9 Notenpunkte');
+  await hand.down(tapped);
+  await expect(component.getByRole('radio', { checked: true })).toHaveCount(0);
+  await hand.up();
+  await expect(
+    component.getByRole('radio', { name: '9 Notenpunkte' }),
+  ).toBeChecked();
+
+  const from = await placeOver(component, '5 Notenpunkte');
+  const to = await placeOver(component, '12 Notenpunkte');
+  await hand.down(from);
+  await hand.move({ x: (from.x + to.x) / 2, y: from.y });
+  await hand.move(to);
+  await expect(
+    component.getByRole('radio', { name: '12 Notenpunkte' }),
+  ).toBeChecked();
+  await hand.up();
+  await expect(
+    component.getByRole('radio', { name: '12 Notenpunkte' }),
+  ).toBeChecked();
 });

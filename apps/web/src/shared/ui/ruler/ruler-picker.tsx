@@ -1,6 +1,7 @@
 import type { PointerEvent } from 'react';
 import type { Geometry } from './geometry.ts';
 import { nearestStep, type RulerScale, scaleUnits } from './scale.ts';
+import { useScrubbing } from './scrubbing.ts';
 
 /**
  * Choosing a Note on the bar itself. To the browser this is a group of radio
@@ -41,6 +42,8 @@ export const PickerOverlay = ({
       .querySelector<HTMLInputElement>(`input[value="${value}"]`)
       ?.focus({ preventScroll: true });
   };
+  // A finger that scrolls the page past the bar picks nothing; a tap, a drag along the bar and a mouse do.
+  const scrubbing = useScrubbing(pick);
   // Keyboard focus is shown on the bar itself, as a frame around the value's place. Ink, because the page's focus colour is too light on yellow in dark mode.
   const focusHeight = geometry.phone ? 'after:h-9' : 'after:h-10';
   return (
@@ -54,15 +57,7 @@ export const PickerOverlay = ({
       <fieldset
         className="flex size-full cursor-pointer touch-pan-y select-none"
         onMouseDown={(event) => event.preventDefault()}
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          pick(event);
-        }}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            pick(event);
-          }
-        }}
+        {...scrubbing}
       >
         <legend className="sr-only">{picker.legend}</legend>
         {scale.steps.map((step) => (
