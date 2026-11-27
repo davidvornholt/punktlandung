@@ -1,3 +1,4 @@
+import type * as playwright from '@playwright/test';
 import { expect, test as it } from '@playwright/test';
 
 const story = 'features/noten/ui/overview-hero/Verlauf';
@@ -159,3 +160,73 @@ it('bietet ohne Bewegung kein Abspielen an und zeigt sofort den heutigen Stand',
     component.getByRole('button', { name: 'Abspielen' }),
   ).toBeHidden();
 });
+
+/** The numbers of WCAG's relative luminance and contrast ratio. */
+const wcag = {
+  byteMax: 255,
+  linearBelow: 0.040_45,
+  linearDivisor: 12.92,
+  gammaOffset: 0.055,
+  gammaDivisor: 1.055,
+  gamma: 2.4,
+  red: 0.2126,
+  green: 0.7152,
+  blue: 0.0722,
+  flare: 0.05,
+  /** WCAG 2.2 AA for a graphic that carries information. */
+  graphic: 3,
+} as const;
+
+/** WCAG's contrast between two colours, as the browser draws them. */
+const contrast = (page: playwright.Page, colours: readonly [string, string]) =>
+  page.evaluate(
+    ({ pair, numbers }) => {
+      const context = document.createElement('canvas').getContext('2d', {
+        willReadFrequently: true,
+      });
+      if (context === null) {
+        return 0;
+      }
+      const luminance = (colour: string): number => {
+        // The canvas turns any colour notation into sRGB bytes.
+        context.fillStyle = colour;
+        context.fillRect(0, 0, 1, 1);
+        const [red = 0, green = 0, blue = 0] = Array.from(
+          context.getImageData(0, 0, 1, 1).data,
+          (byte) => {
+            const share = byte / numbers.byteMax;
+            return share <= numbers.linearBelow
+              ? share / numbers.linearDivisor
+              : ((share + numbers.gammaOffset) / numbers.gammaDivisor) **
+                  numbers.gamma;
+          },
+        );
+        return numbers.red * red + numbers.green * green + numbers.blue * blue;
+      };
+      const [dark = 0, light = 0] = pair.map(luminance).sort((x, y) => x - y);
+      return (light + numbers.flare) / (dark + numbers.flare);
+    },
+    { pair: colours, numbers: wcag },
+  );
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  it(`zeigt den Verlauf nach dem gewählten Tag mit genug Kontrast (${colorScheme})`, async ({
+    mount,
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const component = await mount(story);
+    const trace = component.locator('[data-part="verlauf-trace"]');
+    const stroke = await trace.evaluate(
+      (node) => getComputedStyle(node).stroke,
+    );
+    const paper = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    );
+    expect(await contrast(page, [stroke, paper])).toBeGreaterThanOrEqual(
+      wcag.graphic,
+    );
+    // Told apart from the part up to the hand by its dashes, not only by its colour.
+    await expect(trace).toHaveAttribute('stroke-dasharray', '4 3');
+  });
+}
