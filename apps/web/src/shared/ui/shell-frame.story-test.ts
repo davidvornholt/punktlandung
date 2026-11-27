@@ -208,3 +208,35 @@ it('loads a page again that could not be loaded', async ({ mount }) => {
   await component.getByRole('button', { name: 'Erneut versuchen' }).click();
   await expect(component.getByText('Geladen')).toBeVisible();
 });
+
+it('lets the disc of the mark hop when the name is pressed', async ({
+  mount,
+}) => {
+  const component = await mount(shell);
+  const mark = component
+    .getByRole('link', { name: 'Punktlandung, zur Übersicht' })
+    .locator('[data-part="brand-mark"]');
+  await expect(mark).not.toHaveAttribute('data-motion');
+
+  await component
+    .getByRole('link', { name: 'Punktlandung, zur Übersicht' })
+    .click();
+  await expect(mark).toHaveAttribute('data-motion', 'hops');
+  // The hop ends by itself, so the mark can sway again while something loads.
+  await expect(mark).not.toHaveAttribute('data-motion');
+});
+
+it('keeps the mark still for those who asked for less motion', async ({
+  mount,
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const component = await mount(shell);
+  const name = component.getByRole('link', {
+    name: 'Punktlandung, zur Übersicht',
+  });
+  await name.click();
+  await expect(name.locator('[data-part="brand-mark"]')).not.toHaveAttribute(
+    'data-motion',
+  );
+});

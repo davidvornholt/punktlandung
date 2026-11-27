@@ -1,10 +1,12 @@
 import { Link } from '@tanstack/react-router';
 import { LogOut, Plus } from 'lucide-react';
+import { type AnimationEvent, useState } from 'react';
 
 import { BrandMark } from './brand-mark.tsx';
 import { primaryButtonClass } from './form-classes.ts';
 import { buttonIconSize, iconSize, iconStroke } from './icon.ts';
 import { IconButton } from './icon-button.tsx';
+import { prefersReducedMotion } from './motion.ts';
 import { flag } from './ruler/disc-look.ts';
 import {
   isPageOpen,
@@ -61,6 +63,41 @@ const NavLink = ({
   );
 };
 
+/** The animation that ends a hop of the mark, as `shell.css` names it. */
+const hopEnd = 'brand-beam-settles';
+
+/**
+ * The name of the app, which leads to the Übersicht. A press makes the disc
+ * of its mark jump and land again, also on the Übersicht itself, where the
+ * press changes nothing else.
+ */
+const Brand = ({ loading }: { readonly loading: boolean }) => {
+  // Each press is a hop of its own: a new number draws the mark anew, which starts the hop again while one still plays.
+  const [hop, setHop] = useState({ count: 0, playing: false });
+  const swaying = loading ? 'sways' : undefined;
+  return (
+    <Link
+      aria-label="Punktlandung, zur Übersicht"
+      className="flex shrink-0 items-center gap-2.5 whitespace-nowrap font-bold desk:text-[1.125rem] text-lg tracking-[-0.01em]"
+      onAnimationEnd={(event: AnimationEvent) => {
+        if (event.animationName === hopEnd) {
+          setHop(({ count }) => ({ count, playing: false }));
+        }
+      }}
+      onClick={() => {
+        // Without motion nothing would end the hop.
+        if (!prefersReducedMotion()) {
+          setHop(({ count }) => ({ count: count + 1, playing: true }));
+        }
+      }}
+      to="/"
+    >
+      <BrandMark key={hop.count} motion={hop.playing ? 'hops' : swaying} />
+      Punktlandung
+    </Link>
+  );
+};
+
 /**
  * The bar at the top of every page. On a phone it keeps only the name; the
  * pages and the actions move to the tab bar at the bottom.
@@ -78,14 +115,7 @@ export const ShellTopBar = ({
       data-part="top-bar"
     >
       <div className="mx-auto flex desk:h-16 h-13 max-w-[78rem] items-stretch desk:gap-4 gap-3 desk:px-6 px-4 min-[64rem]:gap-9">
-        <Link
-          aria-label="Punktlandung, zur Übersicht"
-          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap font-bold desk:text-[1.125rem] text-lg tracking-[-0.01em]"
-          to="/"
-        >
-          <BrandMark motion={loading ? 'sways' : undefined} />
-          Punktlandung
-        </Link>
+        <Brand loading={loading} />
         <nav
           aria-label="Hauptnavigation"
           // Should the links ever need more room than there is, as with letter spacing a reader has widened, they scroll here instead of pushing the page sideways.

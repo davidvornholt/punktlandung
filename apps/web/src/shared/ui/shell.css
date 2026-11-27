@@ -10,6 +10,24 @@
     view-transition-name: tab-bar;
   }
 
+  /*
+   * The mark in the bar is drawn live while the page changes, never as the
+   * picture of how it stood before: a press on the name makes its disc hop
+   * and leads to the Übersicht at once, and the picture would show a second
+   * disc at rest under the one in the air.
+   */
+  [data-part="top-bar"] [data-part="brand-mark"] {
+    view-transition-name: brand-mark;
+  }
+
+  ::view-transition-old(brand-mark) {
+    display: none;
+  }
+
+  ::view-transition-new(brand-mark) {
+    animation: none;
+  }
+
   /* The bars answer a press themselves, so the grey box a phone lays over a pressed link is left out. */
   [data-part="top-bar"],
   [data-part="tab-bar"] {
@@ -132,6 +150,18 @@
       animation: brand-beam-settles 1s ease-in-out 0.67s both;
     }
 
+    /*
+     * A press on the name: the disc jumps off the ruler and lands on it again,
+     * and the ruler sways as after every landing.
+     */
+    [data-part="brand-mark"][data-motion="hops"] [data-part="brand-disc"] {
+      animation: brand-disc-hops 0.46s both;
+    }
+
+    [data-part="brand-mark"][data-motion="hops"] [data-part="brand-beam"] {
+      animation: brand-beam-settles 0.9s ease-in-out 0.44s both;
+    }
+
     /* It starts level and only after a moment, so a page that is there at once does not make the mark twitch. */
     [data-part="brand-mark"][data-motion="sways"] [data-part="brand-beam"] {
       animation: brand-beam-sways 1.8s ease-in-out 0.25s infinite;
@@ -166,6 +196,24 @@
 
       25% {
         opacity: 1;
+      }
+    }
+
+    /* Up it slows, down it speeds up, as a thrown thing does. */
+    /* The two curves are those of a thrown ball: it slows evenly to the top and speeds up evenly on the way down. */
+    @keyframes brand-disc-hops {
+      0% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0.33, 0.67, 0.67, 1);
+      }
+
+      50% {
+        transform: translateY(-8px);
+        animation-timing-function: cubic-bezier(0.33, 0, 0.67, 0.33);
+      }
+
+      100% {
+        transform: translateY(0);
       }
     }
 

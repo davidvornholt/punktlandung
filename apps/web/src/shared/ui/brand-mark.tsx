@@ -26,9 +26,10 @@ export const BrandMark = ({
   readonly height?: number;
   /**
    * `lands` plays the landing once: the disc drops onto the ruler, which
-   * settles level. `sways` keeps the ruler rocking while something loads.
+   * settles level. `hops` is the answer to a press: the disc jumps and lands
+   * again. `sways` keeps the ruler rocking while something loads.
    */
-  readonly motion?: 'lands' | 'sways';
+  readonly motion?: 'lands' | 'hops' | 'sways';
 }) => {
   const rim = (rimWidth * drawn.height) / height;
   const inset = rim / 2;
