@@ -131,6 +131,12 @@ const fachschnitt = (
     gewichtung,
   ).average;
 
+const weighted = (leistung: Leistung) => ({
+  id: leistung.id,
+  individualGewichtung: leistung.gewicht,
+  leistungsart: leistung.kind,
+});
+
 /** In `punkte` more is better, in `sechser` less. */
 const isBetter = (a: number, b: number, system: Notensystem): boolean =>
   system === 'punkte' ? a > b : a < b;
@@ -142,8 +148,10 @@ type Side = 'better' | 'worse';
 export type Standing =
   /** It has no Note yet. `missing`: its date has passed. */
   | { readonly kind: 'waiting'; readonly state: 'pending' | 'missing' }
-  /** It is the only Note of the Fach, so it is the Fachschnitt. */
+  /** It is the only Note of the Fach that counts, so it is the Fachschnitt. */
   | { readonly kind: 'alone' }
+  /** Its Note counts for nothing, for example because its Wertungsbereich has a share of 0. */
+  | { readonly kind: 'weightless' }
   | {
       readonly kind: 'placed';
       /** How far the Note lies from the Fachschnitt, as a positive figure. */
@@ -176,6 +184,13 @@ export const standingOf = ({
       state:
         leistungState(leistung, today) === 'missing' ? 'missing' : 'pending',
     };
+  }
+  const counted = leistungsanteile(
+    leistungen.filter((other) => other.status === 'graded').map(weighted),
+    gewichtung,
+  );
+  if ((counted.get(leistung.id) ?? 0) === 0) {
+    return { kind: 'weightless' };
   }
   const others = leistungen.filter((other) => other.id !== leistung.id);
   const average = fachschnitt([...others, leistung], gewichtung);
@@ -275,6 +290,9 @@ export const standingSentence = (input: SentenceInput): string => {
   if (standing.kind === 'alone') {
     return `${subject} ist bisher die einzige Note in ${fachName} und bestimmt den Fachschnitt allein.`;
   }
+  if (standing.kind === 'weightless') {
+    return `${subject} zählt nach der Gewichtung von ${fachName} nicht zum Fachschnitt.`;
+  }
   return standing.state === 'missing'
     ? `${subject} ist vorbei, aber die Note fehlt noch. Bis sie eingetragen ist, zählt ${pronoun} nicht.`
     : `${subject} ist noch nicht gelandet. ${capitalized(pronoun)} wartet am rechten Rand der Skala und zählt erst, wenn die Note da ist.`;
@@ -287,12 +305,6 @@ export type FachShares = {
   /** Once every Leistung of the Fach has a Note. */
   readonly later: ReadonlyMap<string, number>;
 };
-
-const weighted = (leistung: Leistung) => ({
-  id: leistung.id,
-  individualGewichtung: leistung.gewicht,
-  leistungsart: leistung.kind,
-});
 
 export const fachShares = ({
   gewichtung,

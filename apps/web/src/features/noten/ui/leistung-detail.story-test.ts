@@ -94,6 +94,17 @@ it('sagt es im Sechsersystem mit besser und schlechter', async ({ mount }) => {
   );
 });
 
+it('sagt, wenn die Leistung nicht zum Fachschnitt zählt', async ({ mount }) => {
+  const component = await mount(story('OhneAnteil'));
+
+  await expect(standing(component)).toHaveText(
+    'Die Klausur zählt nach der Gewichtung von Mathematik nicht zum Fachschnitt.',
+  );
+  await expect(
+    component.getByText('Die Klausur zählt heute 0 % des Fachschnitts.'),
+  ).toBeVisible();
+});
+
 it('sagt, wenn die Leistung die einzige ihres Fachs ist', async ({ mount }) => {
   const component = await mount(story('Allein'));
 

@@ -125,7 +125,8 @@ const FachRow = ({
         className={`${cellClass} text-right text-ink-soft text-sm`}
         colSpan={3}
       >
-        noch keine Note
+        {/* A Fach can hold Noten that all carry no weight, for example in a Wertungsbereich whose share is 0. */}
+        {row.anzahlNoten === 0 ? 'noch keine Note' : 'keine Note zählt'}
       </td>
     )}
   </tr>
