@@ -25,6 +25,8 @@
 
     /* A Note of the current Halbjahr. A graphic colour, too light for text. */
     --pl-note: oklch(0.62 0.21 32);
+    /* Text that lies on that red. No other ink reaches WCAG AA (4.5:1) on it in light; the same in dark, where the red is lighter. */
+    --pl-note-ink: oklch(0.16 0.05 268);
     --pl-focus: oklch(0.5 0.25 272);
 
     /* Older Halbjahre are ink that has faded: the further back, the paler. */

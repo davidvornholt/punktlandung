@@ -10,6 +10,8 @@ const fixture = {
   /** A phone's table leaves out the number of Noten. */
   phoneColumns: 4,
   phone: { width: 390, height: 844 },
+  /** WCAG AA for text of this size. */
+  minTextContrast: 4.5,
 } as const;
 
 const jahresvorschau = /Jahresvorschau/u;
@@ -197,3 +199,86 @@ it('passt auf dem Telefon ohne seitliches Scrollen', async ({
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+/** The numbers of WCAG's relative luminance and contrast ratio. */
+const wcag = {
+  byteMax: 255,
+  linearBelow: 0.040_45,
+  linearDivisor: 12.92,
+  gammaOffset: 0.055,
+  gammaDivisor: 1.055,
+  gamma: 2.4,
+  red: 0.2126,
+  green: 0.7152,
+  blue: 0.0722,
+  flare: 0.05,
+} as const;
+
+/** WCAG's contrast between the fills of two elements, read as the browser draws them. */
+const contrastOf = async (
+  label: playwright.Locator,
+  ground: playwright.Locator,
+) =>
+  label.evaluate(
+    (text, { body, numbers }) => {
+      const context = document.createElement('canvas').getContext('2d', {
+        willReadFrequently: true,
+      });
+      if (context === null || body === null) {
+        return 0;
+      }
+      const luminance = (element: Element): number => {
+        // The canvas turns any colour notation into sRGB bytes.
+        context.fillStyle = getComputedStyle(element).fill;
+        context.fillRect(0, 0, 1, 1);
+        const [red = 0, green = 0, blue = 0] = Array.from(
+          context.getImageData(0, 0, 1, 1).data,
+          (byte) => {
+            const share = byte / numbers.byteMax;
+            return share <= numbers.linearBelow
+              ? share / numbers.linearDivisor
+              : ((share + numbers.gammaOffset) / numbers.gammaDivisor) **
+                  numbers.gamma;
+          },
+        );
+        return numbers.red * red + numbers.green * green + numbers.blue * blue;
+      };
+      const [dark = 0, light = 0] = [luminance(text), luminance(body)].sort(
+        (a, b) => a - b,
+      );
+      return (light + numbers.flare) / (dark + numbers.flare);
+    },
+    { body: await ground.elementHandle(), numbers: wcag },
+  );
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  it(`hält das Kürzel auf der hervorgehobenen Scheibe lesbar (${colorScheme})`, async ({
+    mount,
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const component = await mount('features/zeugnis/ui/zeugnis-sheet/Punkte');
+    const table = component.getByRole('table', {
+      name: 'Halbjahresnoten in J1.1',
+    });
+    const disc = component.locator('[data-disc="deutsch"]');
+
+    const body = disc.locator('[data-part="disc-body"]');
+    const resting = await body.evaluate((node) => getComputedStyle(node).fill);
+
+    await rowOf(table, 'Deutsch').hover();
+    await expect(disc).toHaveAttribute('data-hover', '');
+    // The colours ease into the highlight; the test reads them once they have arrived.
+    await expect(body).not.toHaveCSS('fill', resting);
+    await disc.evaluate((node) =>
+      Promise.all(
+        node
+          .getAnimations({ subtree: true })
+          .map((animation) => animation.finished),
+      ),
+    );
+    expect(
+      await contrastOf(disc.locator('[data-part="disc-text"]'), body),
+    ).toBeGreaterThanOrEqual(fixture.minTextContrast);
+  });
+}
