@@ -1,5 +1,4 @@
 import { daysBetween } from '#/shared/date/calendar-date.ts';
-import { byDringlichkeit } from '#/shared/noten/dringlichkeit.ts';
 import {
   fachAverage,
   leistungsanteile,
@@ -18,6 +17,7 @@ export type UpcomingRow = {
   readonly wert: number | null;
   readonly gewicht: number;
   readonly datum: string;
+  readonly notiz: string | null;
 };
 
 export type UpcomingHalbjahr = {
@@ -28,17 +28,21 @@ export type UpcomingHalbjahr = {
   readonly half: 1 | 2;
 };
 
-/**
- * Eine ausstehende Leistung, wie die Übersicht sie zeigt. Der Anteil, nach
- * dem sie geordnet wurde, fehlt absichtlich: er verschiebt sich mit jeder
- * weiteren angekündigten Leistung und soll nicht auf den Schirm.
- */
+/** Eine ausstehende Leistung, wie die Übersicht sie zeigt. */
 export type UpcomingLeistung = {
   readonly id: string;
   readonly kind: Leistungsart;
   readonly datum: string;
+  readonly notiz: string | null;
   /** Tage bis zum Termin; negativ, wenn er vorbei ist. */
   readonly tageBis: number;
+  /**
+   * Der Anteil am Fachschnitt (0–1), den die Note haben wird, sobald jede
+   * angekündigte Leistung des Fachs im Halbjahr eine hat. Die Übersicht zeigt
+   * ihn als Größe des Kreises; er verschiebt sich mit jeder weiteren
+   * angekündigten Leistung.
+   */
+  readonly anteil: number;
   readonly fachId: string;
   readonly fachName: string;
   readonly fachKuerzel: string;
@@ -50,7 +54,7 @@ export type UpcomingLeistung = {
 };
 
 export type Upcoming = {
-  /** Termin heute oder später, dringendste zuerst. */
+  /** Termin heute oder später; nächste zuerst. */
   readonly upcoming: ReadonlyArray<UpcomingLeistung>;
   /** Termin vorbei, Note fehlt; älteste zuerst. */
   readonly overdue: ReadonlyArray<UpcomingLeistung>;
@@ -73,11 +77,16 @@ const groupByFach = (rows: ReadonlyArray<UpcomingRow>) => {
   return groups;
 };
 
+const byDatum = (left: UpcomingLeistung, right: UpcomingLeistung): number =>
+  left.datum.localeCompare(right.datum) ||
+  right.anteil - left.anteil ||
+  left.fachName.localeCompare(right.fachName, 'de');
+
 /**
- * Sammelt die ausstehenden Leistungen und ordnet sie nach Dringlichkeit. Der
+ * Sammelt die ausstehenden Leistungen in der Reihenfolge ihrer Termine. Der
  * Anteil jeder Leistung entsteht aus allen Leistungen ihres Fachs im
  * Halbjahr, auch den ausstehenden — wer den Klausurenplan früh einträgt,
- * bekommt so eine Reihenfolge, die schon stimmt.
+ * sieht so schon, wie viel jede Klausur zählen wird.
  */
 export const calculateUpcoming = ({
   rows,
@@ -94,7 +103,7 @@ export const calculateUpcoming = ({
   readonly today: string;
 }): Upcoming => {
   const groups = groupByFach(rows);
-  const ranked = rows.flatMap((row) => {
+  const leistungen = rows.flatMap((row): ReadonlyArray<UpcomingLeistung> => {
     const halbjahr = halbjahre.get(row.termId);
     const fach = faecherBySchoolYear
       .get(halbjahr?.schoolYear ?? '')
@@ -128,32 +137,28 @@ export const calculateUpcoming = ({
     );
     return [
       {
+        id: row.id,
+        kind: row.kind,
+        datum: row.datum,
+        notiz: row.notiz,
+        tageBis: daysBetween(today, row.datum),
         anteil,
-        leistung: {
-          id: row.id,
-          kind: row.kind,
-          datum: row.datum,
-          tageBis: daysBetween(today, row.datum),
-          fachId: fach.id,
-          fachName: fach.name,
-          fachKuerzel: fach.shortName,
-          fachschnitt,
-          system: halbjahr.system,
-          termId: halbjahr.id,
-          halbjahrLabel: formatHalbjahrLabel(halbjahr),
-        } satisfies UpcomingLeistung,
+        fachId: fach.id,
+        fachName: fach.name,
+        fachKuerzel: fach.shortName,
+        fachschnitt,
+        system: halbjahr.system,
+        termId: halbjahr.id,
+        halbjahrLabel: formatHalbjahrLabel(halbjahr),
       },
     ];
   });
   return {
-    upcoming: ranked
-      .filter((entry) => entry.leistung.tageBis >= 0)
-      .map((entry) => ({ ...entry.leistung, anteil: entry.anteil }))
-      .sort(byDringlichkeit)
-      .map(({ anteil: _anteil, ...leistung }) => leistung),
-    overdue: ranked
-      .map((entry) => entry.leistung)
+    upcoming: leistungen
+      .filter((leistung) => leistung.tageBis >= 0)
+      .sort(byDatum),
+    overdue: leistungen
       .filter((leistung) => leistung.tageBis < 0)
-      .sort((left, right) => left.datum.localeCompare(right.datum)),
+      .sort(byDatum),
   };
 };

@@ -14,6 +14,7 @@ const halbjahr = (
   schoolYear = '2026/27',
 ): HalbjahrWithNotenCount => ({
   endsOn: '2027-01-31',
+  gradedCount: 0,
   half: 1,
   id,
   klassenstufe: '10',

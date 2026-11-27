@@ -2,20 +2,17 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { ConversionReference } from '#/features/halbjahre/ui/conversion-reference.tsx';
 import { HalbjahreManagement } from '#/features/halbjahre/ui/halbjahre-management.tsx';
+import { PageHeader } from '#/shared/ui/page-header.tsx';
 import { pageTitle } from '#/shared/ui/page-title.ts';
 
 const SettingsPage = () => (
   <>
-    <h1 className="font-display text-3xl text-ink tracking-tight">
-      Einstellungen
-    </h1>
-    <p className="mt-2 text-ink-muted">
-      Halbjahre bestimmen Zeitraum und Notensystem für alle Noten.
-    </p>
-    <div className="mt-6">
-      <HalbjahreManagement />
-    </div>
-    <div className="mt-10">
+    <PageHeader
+      lead="Die Halbjahre, in die deine Noten gehören, und die Umrechnung zwischen Noten und Notenpunkten."
+      title="Einstellungen"
+    />
+    <HalbjahreManagement />
+    <div className="desk:mt-15 mt-11">
       <ConversionReference />
     </div>
   </>

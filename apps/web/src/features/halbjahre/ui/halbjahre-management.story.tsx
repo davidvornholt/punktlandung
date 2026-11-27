@@ -1,40 +1,55 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
 import { halbjahreKey } from '#/shared/query/query-keys.ts';
+import {
+  type Klassenstufe,
+  notensystemForKlassenstufe,
+} from '#/shared/school/klassenstufe.ts';
+import { halbjahrDateRange } from '#/shared/school/school-year.ts';
 
 import { HalbjahrDeletionConsequenceChanged } from '../errors/halbjahr-errors.ts';
 import type { HalbjahrWithNotenCount } from '../services/halbjahr-service.ts';
 import type { HalbjahrOperations } from './halbjahr-operations.ts';
 import { HalbjahreManagementBoundary } from './halbjahre-management-boundary.tsx';
 
-type Scenario = 'neuladen-scheitert' | 'next' | 'previous' | 'single' | 'stale';
+type Scenario =
+  | 'laden-scheitert'
+  | 'laedt'
+  | 'laufbahn'
+  | 'leer'
+  | 'neuladen-scheitert'
+  | 'next'
+  | 'previous'
+  | 'single'
+  | 'speichern-scheitert'
+  | 'stale';
 type DeletionOutcome = 'stale' | 'success';
-const fourDigitYearLength = 4;
 
 const createHalbjahr = ({
+  gradedCount,
   half,
   id,
   klassenstufe,
+  notenCount = 0,
   schoolYear,
 }: {
+  /** How many of the Noten have their value; all of them unless said. */
+  readonly gradedCount?: number;
   readonly half: 1 | 2;
   readonly id: string;
-  readonly klassenstufe: '10' | 'J1';
+  readonly klassenstufe: Klassenstufe;
+  readonly notenCount?: number;
   readonly schoolYear: string;
-}): HalbjahrWithNotenCount => {
-  const startingYear = schoolYear.slice(0, fourDigitYearLength);
-  const endingYear = String(Number(startingYear) + 1);
-  return {
-    endsOn: half === 1 ? `${endingYear}-01-31` : `${endingYear}-07-31`,
-    half,
-    id,
-    klassenstufe,
-    notenCount: 0,
-    schoolYear,
-    startsOn: half === 1 ? `${startingYear}-08-01` : `${endingYear}-02-01`,
-    system: klassenstufe === 'J1' ? 'punkte' : 'sechser',
-  };
-};
+}): HalbjahrWithNotenCount => ({
+  ...halbjahrDateRange(schoolYear, half),
+  gradedCount: gradedCount ?? notenCount,
+  half,
+  id,
+  klassenstufe,
+  notenCount,
+  schoolYear,
+  system: notensystemForKlassenstufe(klassenstufe),
+});
 
 const target = createHalbjahr({
   half: 1,
@@ -61,9 +76,68 @@ const sameYearSibling = createHalbjahr({
   schoolYear: '2026/27',
 });
 
+/**
+ * Klasse 9 to J1 the way the list arrives, newest first: Noten in every
+ * Halbjahr that has begun, a 10.1 that began after the summer holidays instead
+ * of on the official day, and a J1.2 that is entered ahead of time and empty.
+ */
+const laufbahn: ReadonlyArray<HalbjahrWithNotenCount> = [
+  createHalbjahr({
+    half: 2,
+    id: 'j1-2',
+    klassenstufe: 'J1',
+    schoolYear: '2026/27',
+  }),
+  createHalbjahr({
+    half: 1,
+    gradedCount: 12,
+    id: 'j1-1',
+    klassenstufe: 'J1',
+    notenCount: 18,
+    schoolYear: '2026/27',
+  }),
+  createHalbjahr({
+    half: 2,
+    id: 'zehn-2',
+    klassenstufe: '10',
+    notenCount: 41,
+    schoolYear: '2025/26',
+  }),
+  {
+    ...createHalbjahr({
+      half: 1,
+      id: 'zehn-1',
+      klassenstufe: '10',
+      notenCount: 38,
+      schoolYear: '2025/26',
+    }),
+    startsOn: '2025-09-15',
+  },
+  createHalbjahr({
+    half: 2,
+    id: 'neun-2',
+    klassenstufe: '9',
+    notenCount: 44,
+    schoolYear: '2024/25',
+  }),
+  createHalbjahr({
+    half: 1,
+    id: 'neun-1',
+    klassenstufe: '9',
+    notenCount: 1,
+    schoolYear: '2024/25',
+  }),
+];
+
 const initialHalbjahre = (
   scenario: Scenario,
 ): ReadonlyArray<HalbjahrWithNotenCount> => {
+  if (scenario === 'laufbahn' || scenario === 'speichern-scheitert') {
+    return laufbahn;
+  }
+  if (scenario === 'leer') {
+    return [];
+  }
   if (scenario === 'previous') {
     return [neighbor, laterNeighbor, target];
   }
@@ -76,29 +150,37 @@ const initialHalbjahre = (
   return [target];
 };
 
-const HalbjahreManagementScenario = ({
-  scenario,
-}: {
-  readonly scenario: Scenario;
-}) => {
+const newestFirst = (
+  halbjahre: ReadonlyArray<HalbjahrWithNotenCount>,
+): ReadonlyArray<HalbjahrWithNotenCount> =>
+  [...halbjahre].sort((a, b) => b.startsOn.localeCompare(a.startsOn));
+
+const connectionLost = () => Promise.reject(new Error('Verbindung weg'));
+
+/**
+ * A server in memory: it keeps the list, holds a deletion until a test settles
+ * it, and fails where the scenario says so.
+ */
+const useScenario = (scenario: Scenario) => {
   const halbjahreRef = useRef(initialHalbjahre(scenario));
   const readsRef = useRef(0);
   const finishReadRef = useRef<(() => void) | null>(null);
   const settleDeletionRef = useRef<((outcome: DeletionOutcome) => void) | null>(
     null,
   );
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          mutations: { retry: false },
-          queries: { retry: false },
-        },
-      }),
-  );
-  const operations = useMemo<HalbjahrOperations>(
-    () => ({
-      create: () => Promise.resolve(),
+  const operations = useMemo<HalbjahrOperations>(() => {
+    const saves = scenario !== 'speichern-scheitert';
+    return {
+      create: (input) => {
+        if (!saves) {
+          return connectionLost();
+        }
+        halbjahreRef.current = newestFirst([
+          ...halbjahreRef.current,
+          createHalbjahr({ ...input, id: `neu-${readsRef.current}` }),
+        ]);
+        return Promise.resolve();
+      },
       delete: async (input) => {
         const outcome = await new Promise<DeletionOutcome>((resolve) => {
           settleDeletionRef.current = resolve;
@@ -121,8 +203,14 @@ const HalbjahreManagementScenario = ({
       list: () => {
         const read = readsRef.current;
         readsRef.current += 1;
+        if (scenario === 'laedt') {
+          return new Promise(() => undefined);
+        }
+        if (scenario === 'laden-scheitert' && read === 0) {
+          return connectionLost();
+        }
         if (scenario === 'neuladen-scheitert' && read === 1) {
-          return Promise.reject(new Error('Verbindung weg'));
+          return connectionLost();
         }
         if (scenario === 'neuladen-scheitert' && read === 2) {
           return new Promise((resolve) => {
@@ -131,9 +219,44 @@ const HalbjahreManagementScenario = ({
         }
         return Promise.resolve(halbjahreRef.current);
       },
-      update: () => Promise.resolve(),
-    }),
-    [scenario],
+      update: (input) => {
+        if (!saves) {
+          return connectionLost();
+        }
+        halbjahreRef.current = newestFirst(
+          halbjahreRef.current.map((halbjahr) =>
+            halbjahr.id === input.id
+              ? {
+                  ...createHalbjahr(input),
+                  ...input,
+                  gradedCount: halbjahr.gradedCount,
+                  notenCount: halbjahr.notenCount,
+                }
+              : halbjahr,
+          ),
+        );
+        return Promise.resolve();
+      },
+    };
+  }, [scenario]);
+  return { finishReadRef, operations, settleDeletionRef };
+};
+
+const HalbjahreManagementScenario = ({
+  scenario,
+}: {
+  readonly scenario: Scenario;
+}) => {
+  const { finishReadRef, operations, settleDeletionRef } =
+    useScenario(scenario);
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          mutations: { retry: false },
+          queries: { retry: false },
+        },
+      }),
   );
 
   return (
@@ -184,3 +307,24 @@ export const Previous = () => (
 export const Single = () => <HalbjahreManagementScenario scenario="single" />;
 
 export const Stale = () => <HalbjahreManagementScenario scenario="stale" />;
+
+/** The first load fails; "Erneut versuchen" then brings the list. */
+export const LadenScheitert = () => (
+  <HalbjahreManagementScenario scenario="laden-scheitert" />
+);
+
+/** The list never arrives. */
+export const Laedt = () => <HalbjahreManagementScenario scenario="laedt" />;
+
+/** Six Halbjahre from Klasse 9 to J1, saving and deleting work. */
+export const Laufbahn = () => (
+  <HalbjahreManagementScenario scenario="laufbahn" />
+);
+
+/** A new account: no Halbjahr yet. */
+export const Leer = () => <HalbjahreManagementScenario scenario="leer" />;
+
+/** Like `Laufbahn`, but nothing can be saved. */
+export const SpeichernScheitert = () => (
+  <HalbjahreManagementScenario scenario="speichern-scheitert" />
+);

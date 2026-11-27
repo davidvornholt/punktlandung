@@ -1,248 +1,120 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { Pencil } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { type ReactNode, useRef } from 'react';
 
-import {
-  berlinCalendarDate,
-  daysBetween,
-  formatIsoDate,
-} from '#/shared/date/calendar-date.ts';
-import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
-import { formatNote } from '#/shared/noten/zeugnisnote.ts';
-import { leistungKey } from '#/shared/query/query-keys.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
-import { secondaryButtonClass } from '#/shared/ui/form-classes.ts';
-import { IconButton } from '#/shared/ui/icon-button.tsx';
+import { EmptyState } from '#/shared/ui/empty-state.tsx';
+import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
+import { buttonIconSize, iconStroke } from '#/shared/ui/icon.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
-import type { NotenFields } from '../schemas/note-schema.ts';
-import type { LeistungDetail as Detail } from '../services/noten-service.ts';
+import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
+import { LeistungHead } from './leistung-head.tsx';
 import type { LeistungOperations } from './leistung-operations.ts';
-import { NoteForm } from './note-form.tsx';
-import { invalidateNotenQueries } from './noten-invalidation.ts';
+import { LeistungPage } from './leistung-page.tsx';
+import {
+  type LeistungData,
+  type LeistungPageInput,
+  useLeistungData,
+} from './leistung-state.ts';
 import type { NotenOperations } from './noten-operations.ts';
-import { tageBisText } from './upcoming-text.ts';
 
-type FachList = ReadonlyArray<{
-  readonly id: string;
-  readonly name: string;
-}>;
+export type LeistungDetailProps = Pick<
+  LeistungPageInput,
+  'eintragen' | 'faecher' | 'notenOperations' | 'onDeleted' | 'onEntryAnswered'
+> & {
+  readonly leistungId: string;
+  readonly leistungOperations: LeistungOperations;
+  readonly notenOperations: NotenOperations;
+  /** ISO date. */
+  readonly today: string;
+};
 
-const Heading = ({ text }: { readonly text: string }) => (
-  <h1 className="font-display text-3xl text-ink tracking-tight">{text}</h1>
+/** The Leistung was deleted, or the link to it never led anywhere. */
+const Missing = () => (
+  <EmptyState
+    text="Sie wurde gelöscht, oder der Link zu ihr ist veraltet."
+    title="Diese Leistung gibt es nicht mehr"
+  >
+    <Link className={primaryButtonClass} to="/noten">
+      <ArrowLeft
+        aria-hidden={true}
+        size={buttonIconSize}
+        strokeWidth={iconStroke}
+      />
+      Zu den Noten
+    </Link>
+  </EmptyState>
 );
 
-/**
- * Die Kopfzeile. Die Note ist die Schlagzeile und steht groß; eine
- * ausstehende Leistung hat keine, also trägt der Termin die Zeile und
- * „ausstehend" bleibt ein leises Wort daneben.
- */
-const Facts = ({ detail }: { readonly detail: Detail }) => {
-  const { halbjahr, leistung } = detail;
-  const termin = `${leistungsartLabel[leistung.kind]} · ${formatIsoDate(leistung.datum)}`;
-  const gewicht =
-    leistung.gewicht === 1 ? '' : ` · Gewicht ${leistung.gewicht}`;
-  return (
-    <dl className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-      {leistung.status === 'graded' ? (
-        <>
-          <div>
-            <dt className="sr-only">Note</dt>
-            <dd className="font-display text-4xl text-ink tracking-tight">
-              {formatNote(leistung.wert, halbjahr.system)}
-            </dd>
-          </div>
-          <div>
-            <dt className="sr-only">Termin</dt>
-            <dd className="text-ink-muted">
-              {termin}
-              {gewicht}
-            </dd>
-          </div>
-        </>
-      ) : (
-        <>
-          <div>
-            <dt className="sr-only">Termin</dt>
-            <dd className="font-display text-2xl text-ink tracking-tight">
-              {termin} ·{' '}
-              {tageBisText(daysBetween(berlinCalendarDate(), leistung.datum))}
-            </dd>
-          </div>
-          <div>
-            <dt className="sr-only">Stand</dt>
-            <dd className="text-ink-muted">
-              ausstehend
-              {gewicht}
-            </dd>
-          </div>
-        </>
+/** What stands under the head instead of the page, or above it when only a refresh failed. */
+const noticeOf = (
+  data: LeistungData,
+  retry: () => Promise<void>,
+): ReactNode => {
+  if (data.state === 'pending') {
+    return <LoadingHint text="Leistung wird geladen …" />;
+  }
+  if (data.state === 'missing') {
+    return <Missing />;
+  }
+  if (data.state === 'failed') {
+    return (
+      <QueryError
+        onRetry={retry}
+        text={actionErrorText(
+          data.error,
+          'Die Leistung konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut.',
+        )}
+      />
+    );
+  }
+  // A failed refresh keeps the page already shown, so an open entry stays mounted with what was typed.
+  return data.refreshError === null ? null : (
+    <QueryError
+      onRetry={retry}
+      text={actionErrorText(
+        data.refreshError,
+        'Die Leistung konnte nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut.',
       )}
-      <div>
-        <dt className="sr-only">Halbjahr</dt>
-        <dd className="text-ink-faint">
-          {halbjahr.label} · {halbjahr.schoolYear}
-        </dd>
-      </div>
-      {leistung.notiz === null ? null : (
-        <div className="basis-full">
-          <dt className="sr-only">Notiz</dt>
-          <dd className="text-ink-muted">{leistung.notiz}</dd>
-        </div>
-      )}
-    </dl>
+    />
   );
 };
 
 /**
- * Eine benotete Leistung wird bearbeitet — ein Stift genügt. Eine
- * ausstehende wartet auf ihre Note; das ist die Handlung der Seite und
- * steht in Worten.
- */
-const HeaderAction = ({
-  graded,
-  onEdit,
-}: {
-  readonly graded: boolean;
-  readonly onEdit: () => void;
-}) =>
-  graded ? (
-    <IconButton icon={Pencil} label="Bearbeiten" onClick={onEdit} />
-  ) : (
-    <button className={secondaryButtonClass} onClick={onEdit} type="button">
-      Note eintragen
-    </button>
-  );
-
-/**
- * Die Seite einer Leistung: die Fakten und auf Wunsch das Notenformular —
- * hier wird eine ausstehende Klausur zur Note.
+ * The page of one Leistung: where it lies among the Leistungen of its Fach,
+ * what it does to the Fachschnitt and how much it counts. Here a Leistung
+ * that waits gets its Note.
  */
 export const LeistungDetail = ({
-  faecher,
   leistungId,
   leistungOperations,
-  notenOperations,
-}: {
-  /** Der wählbare Fachstand des Schuljahrs; null, solange er lädt. */
-  readonly faecher: FachList | null;
-  readonly leistungId: string;
-  readonly leistungOperations: LeistungOperations;
-  readonly notenOperations: NotenOperations;
-}) => {
-  const queryClient = useQueryClient();
-  const detailQuery = useQuery({
-    queryFn: () => leistungOperations.load(leistungId),
-    queryKey: leistungKey(leistungId),
+  today,
+  ...page
+}: LeistungDetailProps) => {
+  const { data, refetch } = useLeistungData({
+    leistungId,
+    leistungOperations,
+    notenOperations: page.notenOperations,
   });
-  const [editing, setEditing] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-  const updateMutation = useMutation({
-    mutationFn: (values: NotenFields) =>
-      notenOperations.update({ ...values, id: leistungId }),
-    onSuccess: async () => {
-      const termId = detailQuery.data?.halbjahr.id;
-      if (termId !== undefined) {
-        await invalidateNotenQueries(queryClient, termId);
-      }
-      setEditing(false);
-    },
-  });
-
-  if (detailQuery.isPending) {
-    return (
-      <>
-        <Heading text="Leistung" />
-        <div className="mt-6">
-          <LoadingHint text="Leistung wird geladen …" />
-        </div>
-      </>
-    );
-  }
-  // A failed refresh keeps the data already shown, so an open form stays
-  // mounted.
-  if (detailQuery.isError && detailQuery.data === undefined) {
-    return (
-      <>
-        <Heading text="Leistung" />
-        <div className="mt-6">
-          <QueryError
-            onRetry={() => detailQuery.refetch()}
-            text={actionErrorText(
-              detailQuery.error,
-              'Die Leistung konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut.',
-            )}
-          />
-        </div>
-      </>
-    );
-  }
-  const detail = detailQuery.data;
-  const { halbjahr, leistung } = detail;
-
+  // The heading takes the keyboard when a retry removes the button that had it.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const notice = noticeOf(data, retryWithFocus(refetch, headingRef));
   return (
     <>
-      <p className="text-ink-muted text-sm">
-        <Link className="underline underline-offset-4" to="/noten">
-          Noten
-        </Link>
-        <span> / {leistung.fachName}</span>
-      </p>
-      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-3">
-        <Heading
-          text={`${leistungsartLabel[leistung.kind]} ${leistung.fachName}`}
+      <LeistungHead
+        detail={data.state === 'loaded' ? data.detail : null}
+        headingRef={headingRef}
+        today={today}
+      />
+      {notice === null ? null : <div className="mt-6">{notice}</div>}
+      {data.state === 'loaded' ? (
+        <LeistungPage
+          {...page}
+          detail={data.detail}
+          noten={data.noten}
+          today={today}
         />
-        {editing ? null : (
-          <HeaderAction
-            graded={leistung.status === 'graded'}
-            onEdit={() => setEditing(true)}
-          />
-        )}
-      </div>
-      {detailQuery.isError ? (
-        <div className="mt-4">
-          <QueryError
-            onRetry={() => detailQuery.refetch()}
-            text={actionErrorText(
-              detailQuery.error,
-              'Die Leistung konnte nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut.',
-            )}
-          />
-        </div>
       ) : null}
-      {editing ? (
-        <div className="mt-4">
-          {faecher === null ? (
-            <LoadingHint text="Fächer werden geladen …" />
-          ) : (
-            <NoteForm
-              error={
-                updateMutation.isError
-                  ? actionErrorText(
-                      updateMutation.error,
-                      'Die Note konnte nicht geändert werden. Die Eingaben bleiben erhalten; prüfe die Verbindung und versuche es erneut.',
-                    )
-                  : null
-              }
-              faecher={faecher}
-              formRef={formRef}
-              halbjahr={halbjahr}
-              note={leistung}
-              onCancel={() => {
-                updateMutation.reset();
-                setEditing(false);
-              }}
-              onSave={(values) => {
-                updateMutation.reset();
-                updateMutation.mutate(values);
-              }}
-              pending={updateMutation.isPending}
-            />
-          )}
-        </div>
-      ) : (
-        <Facts detail={detail} />
-      )}
     </>
   );
 };

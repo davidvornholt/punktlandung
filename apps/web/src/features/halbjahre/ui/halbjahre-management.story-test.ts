@@ -1,6 +1,9 @@
 import type * as playwright from '@playwright/test';
 import { expect, test as it } from '@playwright/test';
 
+/** The date field's name is its label followed by the date it holds. */
+const startsOnName = /^Beginn/u;
+
 const rowNamed = (component: playwright.Locator, name: string) =>
   component.getByRole('listitem').filter({ hasText: name });
 
@@ -95,8 +98,13 @@ it('preserves an open create form and uses its first control as fallback', async
   await component
     .getByRole('button', { name: 'Zeitraum abweichend festlegen' })
     .click();
-  const startsOn = component.getByRole('textbox', { name: 'Beginn' });
-  await startsOn.fill('2026-09-03');
+  const startsOn = component.getByRole('button', { name: startsOnName });
+  await startsOn.click();
+  await component
+    .getByRole('dialog', { name: 'Datum wählen' })
+    .getByRole('button', { name: 'Mittwoch, 3. Februar 2027' })
+    .click();
+  await expect(startsOn).toContainText('03.02.2027');
 
   await confirmDeletion(rowNamed(component, '10.1'));
   await completeDeletion(component);
@@ -104,7 +112,7 @@ it('preserves an open create form and uses its first control as fallback', async
   await expect(
     component.getByRole('heading', { name: 'Neues Halbjahr' }),
   ).toBeVisible();
-  await expect(startsOn).toHaveValue('2026-09-03');
+  await expect(startsOn).toContainText('03.02.2027');
   await expect(
     component.getByRole('combobox', { name: 'Klassenstufe' }),
   ).toBeFocused();

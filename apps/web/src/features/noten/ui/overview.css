@@ -1,0 +1,65 @@
+/*
+ * The dots of the hero on the Übersicht. A dot's colour is its Halbjahr, and
+ * whether it shows depends on the state of the group around it, which
+ * utilities in the markup would hide. The legend draws the same dots.
+ */
+
+@layer components {
+  [data-part="hero-dot"] {
+    stroke: var(--pl-stratum-edge);
+    stroke-width: 0.75;
+    transition: opacity 0.18s;
+  }
+
+  /* Older Halbjahre are ink that has faded: the further back, the paler. */
+  [data-part="hero-dot"][data-stratum="0"] {
+    fill: var(--pl-stratum-0);
+  }
+
+  [data-part="hero-dot"][data-stratum="1"] {
+    fill: var(--pl-stratum-1);
+  }
+
+  [data-part="hero-dot"][data-stratum="2"] {
+    fill: var(--pl-stratum-2);
+  }
+
+  [data-part="hero-dot"][data-stratum="3"] {
+    fill: var(--pl-stratum-3);
+  }
+
+  /* The current Halbjahr is drawn like a disc on every other ruler: filled, or a ring when mündlich. */
+  [data-part="hero-dot"][data-stratum="now"] {
+    fill: var(--pl-note);
+    stroke: var(--pl-edge);
+    stroke-width: 1.25;
+  }
+
+  [data-part="hero-dot"][data-ring] {
+    fill: var(--pl-sheet);
+    stroke: var(--pl-note);
+    stroke-width: 3;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    [data-part="hero-dot"][data-ring] {
+      fill: var(--pl-paper);
+    }
+  }
+
+  [data-part="hero-legend"] [data-part="hero-dot"][data-ring] {
+    stroke-width: 2.5;
+  }
+
+  /* A Note that had not been written on the day the Verlauf is turned back to. */
+  [data-part="hero-dot"][data-away] {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Pointing at a Note picks out every Note of its Fach: the others step back. */
+  [data-part="hero-dots"][data-pick]
+  [data-part="hero-dot"]:not([data-picked], [data-away]) {
+    opacity: 0.2;
+  }
+}

@@ -1,10 +1,16 @@
 import { expect, test as it } from '@playwright/test';
 import {
-  editForm,
+  cancelButton,
+  chooseNote,
+  deleteRow,
+  entryForm,
   firstRow,
-  noteField,
+  list,
+  noteOnBar,
   openEditor,
+  otherFachRow,
   save,
+  saveButton,
   secondRow,
   settle,
 } from './noten-list.story-locators.ts';
@@ -12,51 +18,49 @@ import {
 it('keeps save focus while pending and after failure', async ({ mount }) => {
   const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
-  const submit = editForm(component).getByRole('button', {
-    name: 'Note speichern',
-  });
+  const submit = saveButton(component);
   await submit.focus();
   await submit.press('Enter');
-  await expect(
-    editForm(component).getByRole('button', { name: 'Note wird gespeichert' }),
-  ).toBeFocused();
-  await expect(
-    editForm(component).getByRole('button', { name: 'Abbrechen' }),
-  ).toBeDisabled();
+  const saving = entryForm(component).getByRole('button', {
+    name: 'Wird gespeichert …',
+  });
+  await expect(saving).toBeFocused();
+  await expect(saving).toHaveAttribute('aria-disabled', 'true');
+  await expect(cancelButton(component)).toBeDisabled();
   await settle(component, 'fail');
   await expect(submit).toBeFocused();
-  await expect(editForm(component).getByRole('alert')).toBeVisible();
+  await expect(entryForm(component).getByRole('alert')).toBeVisible();
 });
 
 it('retains the first deletion failure when a second deletion starts', async ({
   mount,
 }) => {
   const component = await mount('features/noten/ui/noten-list/Standard');
-  await firstRow(component).getByRole('button', { name: 'Löschen' }).click();
+  await deleteRow(firstRow(component));
   await settle(component, 'fail');
   await expect(firstRow(component).getByRole('alert')).toBeVisible();
-  await secondRow(component).getByRole('button', { name: 'Löschen' }).click();
+  await deleteRow(secondRow(component));
   await expect(firstRow(component).getByRole('alert')).toBeVisible();
   await settle(component, 'complete');
+  await expect(secondRow(component)).toHaveCount(0);
   await expect(firstRow(component).getByRole('alert')).toBeVisible();
 });
 
+/** The Latein Note is still on its way when the Mathematik one is saved and done. */
 it('keeps an earlier save pending after a later save finishes', async ({
   mount,
 }) => {
   const component = await mount('features/noten/ui/noten-list/Standard');
   await openEditor(firstRow(component));
   await save(component);
-  await openEditor(secondRow(component));
+  await openEditor(otherFachRow(component));
   await save(component);
-  await component.getByTestId('complete-b').dispatchEvent('click');
-  await expect(editForm(component)).toHaveCount(0);
+  await component.getByTestId('complete-c').dispatchEvent('click');
+  await expect(entryForm(component)).toHaveCount(0);
   await openEditor(firstRow(component));
-  await expect(
-    editForm(component).getByRole('button', { name: 'Abbrechen' }),
-  ).toBeDisabled();
+  await expect(cancelButton(component)).toBeDisabled();
   await component.getByTestId('complete-a').dispatchEvent('click');
-  await expect(editForm(component)).toHaveCount(0);
+  await expect(entryForm(component)).toHaveCount(0);
 });
 
 it('returns focus to the list after a successful retry', async ({ mount }) => {
@@ -65,20 +69,18 @@ it('returns focus to the list after a successful retry', async ({ mount }) => {
   await retry.focus();
   await retry.press('Enter');
   await expect(firstRow(component)).toBeVisible();
-  await expect(
-    component.getByRole('region', { name: 'Notenliste' }),
-  ).toBeFocused();
+  await expect(list(component)).toBeFocused();
 });
 
-it('keeps an open edit when a background refresh fails', async ({ mount }) => {
+it('keeps an open entry when a background refresh fails', async ({ mount }) => {
   const component = await mount(
     'features/noten/ui/noten-list/NeuladenScheitert',
   );
   await openEditor(firstRow(component));
-  await noteField(component).fill('4');
+  await chooseNote(component, 'Note 4');
   await component.getByTestId('refetch').dispatchEvent('click');
   await expect(component.getByRole('alert')).toBeVisible();
-  await expect(noteField(component)).toHaveValue('4');
+  await expect(noteOnBar(component, 'Note 4')).toBeChecked();
 });
 
 it('returns focus to the list after a successful refresh retry', async ({
@@ -93,12 +95,10 @@ it('returns focus to the list after a successful refresh retry', async ({
   await retry.press('Enter');
   await component.getByTestId('finish-read').dispatchEvent('click');
   await expect(component.getByRole('alert')).toHaveCount(0);
-  await expect(
-    component.getByRole('region', { name: 'Notenliste' }),
-  ).toBeFocused();
+  await expect(list(component)).toBeFocused();
 });
 
-it('keeps focus in the edit form when a refresh retry finishes later', async ({
+it('keeps focus in the entry when a refresh retry finishes later', async ({
   mount,
 }) => {
   const component = await mount(
@@ -109,8 +109,9 @@ it('keeps focus in the edit form when a refresh retry finishes later', async ({
   const retry = component.getByRole('button', { name: 'Erneut versuchen' });
   await retry.focus();
   await retry.press('Enter');
-  await noteField(component).focus();
+  const onBar = noteOnBar(component, 'Note 2');
+  await onBar.focus();
   await component.getByTestId('finish-read').dispatchEvent('click');
   await expect(component.getByRole('alert')).toHaveCount(0);
-  await expect(noteField(component)).toBeFocused();
+  await expect(onBar).toBeFocused();
 });

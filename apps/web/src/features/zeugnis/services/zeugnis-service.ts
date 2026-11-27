@@ -21,7 +21,13 @@ import { ZeugnisHalbjahrNotFound } from '../errors/zeugnis-errors.ts';
 export type ZeugnisRow = {
   readonly fachId: string;
   readonly fachName: string;
+  readonly fachKuerzel: string;
   readonly archived: boolean;
+  /** Der ungerundete Fachschnitt im Notensystem des Halbjahrs; `null` ohne Noten. */
+  readonly schnitt: number | null;
+  /** Die Halbjahresnote als Zahl: die Stelle der Skala, auf die der Schnitt gerundet wird. */
+  readonly halbjahresnote: number | null;
+  /** Die Halbjahresnote, wie sie im Zeugnis steht: "11 P." oder "2-3". */
   readonly anzeige: string | null;
   readonly anzahlNoten: number;
 };
@@ -40,6 +46,8 @@ export type Zeugnis = {
   readonly schoolYear: string;
   readonly system: Notensystem;
   readonly gesamtschnitt: string | null;
+  /** Derselbe Schnitt als Zahl, ungerundet: die Stelle, an der die Halbjahresnoten im Gleichgewicht sind. */
+  readonly gesamtschnittWert: number | null;
   readonly zeilen: ReadonlyArray<ZeugnisRow>;
   readonly jahresvorschau: ReadonlyArray<JahresvorschauRow> | null;
 };
@@ -140,7 +148,10 @@ export const loadZeugnis = (termId: string) =>
       return {
         fachId: fach.id,
         fachName: fach.name,
+        fachKuerzel: fach.shortName,
         archived: fach.archived,
+        schnitt: average,
+        halbjahresnote: halbnote,
         anzeige:
           halbnote === null ? null : displayFor(halbnote, halbjahr.system),
         anzahlNoten: fachNoten.length,
@@ -178,21 +189,22 @@ export const loadZeugnis = (termId: string) =>
       ? calculateJahresvorschau(jahresnoten.filter(isGraded), fachSnapshot)
       : null;
 
-    const gesamtschnitt =
+    const gesamtschnittWert =
       halbnoten.length === 0
         ? null
-        : formatNote(
-            halbnoten.reduce((total, value) => total + value, 0) /
-              halbnoten.length,
-            halbjahr.system,
-          );
+        : halbnoten.reduce((total, value) => total + value, 0) /
+          halbnoten.length;
 
     return {
       termId: halbjahr.id,
       label: formatHalbjahrLabel(halbjahr),
       schoolYear: halbjahr.schoolYear,
       system: halbjahr.system,
-      gesamtschnitt,
+      gesamtschnitt:
+        gesamtschnittWert === null
+          ? null
+          : formatNote(gesamtschnittWert, halbjahr.system),
+      gesamtschnittWert,
       zeilen,
       jahresvorschau,
     } satisfies Zeugnis;

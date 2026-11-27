@@ -3,8 +3,9 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { authClient } from '#/shared/auth/auth-client.ts';
 import { rejectAuthError } from '#/shared/auth/auth-response.ts';
 import { getSessionFn } from '#/shared/auth/session-fn.ts';
-import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
 import { pageTitle } from '#/shared/ui/page-title.ts';
+import { SignInView } from '#/shared/ui/shell-sign-in.tsx';
+import { StandalonePending } from '#/shared/ui/shell-states.tsx';
 
 const SignInPage = () => {
   const signInMutation = useMutation({
@@ -14,40 +15,11 @@ const SignInPage = () => {
         .then(rejectAuthError),
   });
   return (
-    <main className="flex min-h-svh items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm border border-border bg-surface p-8 shadow-card">
-        <h1 className="font-display text-4xl text-ink tracking-tight">
-          Punktlandung
-        </h1>
-        <p className="mt-3 text-ink-muted">
-          Dein Notenheft fürs Gymnasium: Noten erfassen, Schnitte verfolgen, das
-          Zeugnis im Blick behalten.
-        </p>
-        <button
-          className={`${primaryButtonClass} mt-8 w-full py-3`}
-          disabled={signInMutation.isPending}
-          onClick={() => signInMutation.mutate()}
-          type="button"
-        >
-          {signInMutation.isPending
-            ? 'GitHub-Anmeldung wird geöffnet …'
-            : 'Mit GitHub anmelden'}
-        </button>
-        {signInMutation.isError ? (
-          <p
-            className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
-            role="alert"
-          >
-            Die GitHub-Anmeldung konnte nicht gestartet werden. Prüfe die
-            Verbindung und versuche es erneut.
-          </p>
-        ) : null}
-        <p className="mt-4 text-ink-faint text-sm">
-          Privater Zugang: nur das freigeschaltete GitHub-Konto kann sich
-          anmelden.
-        </p>
-      </div>
-    </main>
+    <SignInView
+      failed={signInMutation.isError}
+      onSignIn={() => signInMutation.mutate()}
+      pending={signInMutation.isPending}
+    />
   );
 };
 
@@ -59,5 +31,6 @@ export const Route = createFileRoute('/anmelden')({
     }
   },
   component: SignInPage,
+  pendingComponent: StandalonePending,
   head: () => ({ meta: [{ title: pageTitle('Anmelden') }] }),
 });

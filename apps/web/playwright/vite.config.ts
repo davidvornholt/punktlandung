@@ -10,6 +10,10 @@ import { defineConfig } from 'vite';
  * every `createRoot` entry.
  */
 export default defineConfig({
+  // Its own dependency cache: sharing the app's lets a running dev server and
+  // the gallery overwrite each other's optimized dependencies, and the gallery
+  // then answers 504 for every story that imports the router.
+  cacheDir: 'node_modules/.vite-gallery',
   resolve: { tsconfigPaths: true },
   plugins: [tailwindcss(), viteReact()],
 });

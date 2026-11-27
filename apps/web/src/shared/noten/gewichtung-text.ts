@@ -25,6 +25,9 @@ const prozentBasis = 100;
 
 const zahl = (wert: number): string => `${wert}`.replace('.', ',');
 
+/** Keeps a figure and its percent sign on one line. */
+const nbsp = '\u00a0';
+
 /** Ganze Prozente, die sich stets zu 100 ergänzen. */
 export const verhaeltnisProzent = (
   verhaeltnis: Bereichsverhaeltnis,
@@ -41,7 +44,7 @@ export const verhaeltnisProzentText = (
   verhaeltnis: Bereichsverhaeltnis,
 ): string => {
   const prozent = verhaeltnisProzent(verhaeltnis);
-  return `${prozent.schriftlich} % : ${prozent.muendlich} %`;
+  return `${prozent.schriftlich}${nbsp}% : ${prozent.muendlich}${nbsp}%`;
 };
 
 const vielfache: Readonly<Record<string, string>> = {
@@ -50,8 +53,11 @@ const vielfache: Readonly<Record<string, string>> = {
   '3': 'dreifach',
 };
 
+/** A word joiner: "0,5-fach" is not divided after its hyphen at the end of a line. */
+const wordJoiner = '\u2060';
+
 const gewichtsWort = (gewicht: number): string =>
-  vielfache[`${gewicht}`] ?? `${zahl(gewicht)}-fach`;
+  vielfache[`${gewicht}`] ?? `${zahl(gewicht)}-${wordJoiner}fach`;
 
 const grundsatz = (kind: Leistungsart, art: Artgewichtung): string | null => {
   const plural = leistungsartPlural[kind];
@@ -101,7 +107,7 @@ export const gewichtungsSaetze = (
   const aufteilung =
     prozent === null
       ? 'Alle Noten in einer Liste'
-      : `Schriftlich ${prozent.schriftlich} % : mündlich ${prozent.muendlich} %`;
+      : `Schriftlich ${prozent.schriftlich}${nbsp}% : mündlich ${prozent.muendlich}${nbsp}%`;
   const weitere = leistungsartReihenfolge.flatMap((kind) => {
     const satz = artSatz(kind, gewichtung);
     return satz === null ? [] : [satz];

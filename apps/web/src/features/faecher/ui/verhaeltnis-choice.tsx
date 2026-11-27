@@ -6,17 +6,30 @@ import {
 } from '#/shared/noten/fach-gewichtung.ts';
 import { verhaeltnisProzentText } from '#/shared/noten/gewichtung-text.ts';
 import type { Bereichsverhaeltnis } from '#/shared/noten/notenwert.ts';
-import { inputClass, quietButtonClass } from '#/shared/ui/form-classes.ts';
+import {
+  buttonClass,
+  hintClass,
+  inputClass,
+} from '#/shared/ui/form-classes.ts';
 import { Radio } from '#/shared/ui/form-controls.tsx';
+import { VerhaeltnisBar } from './gewichtung-figure.tsx';
 import type { GewichtungAction } from './gewichtung-model.ts';
 
-/** Die Verhältnisse, die Lehrkräfte am häufigsten verkünden. */
-const quickChoices: ReadonlyArray<Bereichsverhaeltnis> = [
-  { schriftlich: 1, muendlich: 1 },
-  { schriftlich: 2, muendlich: 1 },
-  { schriftlich: 3, muendlich: 1 },
-  { schriftlich: 60, muendlich: 40 },
-  { schriftlich: 70, muendlich: 30 },
+/**
+ * Die Verhältnisse, die Lehrkräfte am häufigsten verkünden: erst die in
+ * Teilen, dann die in Prozent. Wo nicht alle in eine Zeile passen, bleibt
+ * jede der beiden Gruppen beisammen.
+ */
+const quickChoices: ReadonlyArray<ReadonlyArray<Bereichsverhaeltnis>> = [
+  [
+    { schriftlich: 1, muendlich: 1 },
+    { schriftlich: 2, muendlich: 1 },
+    { schriftlich: 3, muendlich: 1 },
+  ],
+  [
+    { schriftlich: 60, muendlich: 40 },
+    { schriftlich: 70, muendlich: 30 },
+  ],
 ];
 
 const formatVerhaeltnis = (verhaeltnis: Bereichsverhaeltnis): string =>
@@ -35,7 +48,7 @@ const ShareField = ({
   readonly value: number;
   readonly onAction: (action: GewichtungAction) => void;
 }) => (
-  <label className="block w-20">
+  <label className="block w-20 [&>input]:mt-0">
     <span className="sr-only">
       {bereich === 'schriftlich' ? 'Schriftlicher' : 'Mündlicher'} Anteil
     </span>
@@ -71,7 +84,7 @@ const ShareField = ({
 const listeDescription =
   'Jede Note zählt mit ihrem Gewicht; wie viel schriftlich und mündlich ausmachen, ergibt sich aus der Zahl der Noten. Typisch: „Klausuren zählen doppelt“.';
 const verhaeltnisDescription =
-  'Schriftlich und mündlich werden getrennt gemittelt und dann im verkündeten Verhältnis verrechnet — egal, wie viele Noten es jeweils gibt. Typisch: „60:40“.';
+  'Schriftlich und mündlich werden getrennt gemittelt und dann im verkündeten Verhältnis verrechnet – egal, wie viele Noten es jeweils gibt. Typisch: „60:40“.';
 
 export const VerhaeltnisChoice = ({
   verhaeltnis,
@@ -86,7 +99,7 @@ export const VerhaeltnisChoice = ({
     verhaeltnis.schriftlich + verhaeltnis.muendlich <= 0;
   const describedBy = invalid ? errorId : undefined;
   return (
-    <div className="space-y-3">
+    <div className="space-y-3.5">
       <Radio
         checked={verhaeltnis === null}
         description={listeDescription}
@@ -95,7 +108,7 @@ export const VerhaeltnisChoice = ({
       >
         Alle Noten in einer Liste
       </Radio>
-      <div className="space-y-2">
+      <div className="space-y-3">
         <Radio
           checked={verhaeltnis !== null}
           description={verhaeltnisDescription}
@@ -107,7 +120,7 @@ export const VerhaeltnisChoice = ({
           Festes Verhältnis schriftlich : mündlich
         </Radio>
         {verhaeltnis === null ? null : (
-          <div className="ml-6 space-y-2">
+          <div className="@container ml-[1.75rem] animate-eases-in space-y-3">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <ShareField
                 bereich="schriftlich"
@@ -116,7 +129,7 @@ export const VerhaeltnisChoice = ({
                 onAction={onAction}
                 value={verhaeltnis.schriftlich}
               />
-              <span aria-hidden={true} className="text-ink-muted">
+              <span aria-hidden={true} className="font-bold">
                 :
               </span>
               <ShareField
@@ -128,31 +141,44 @@ export const VerhaeltnisChoice = ({
               />
               {invalid ? (
                 <span
-                  className="text-ink-muted text-sm"
+                  className="font-bold text-critical text-sm"
                   id={errorId}
                   role="alert"
                 >
                   Mindestens ein Bereich muss zählen.
                 </span>
               ) : (
-                <span className="text-ink-muted text-sm">
+                <span className={hintClass}>
                   ≙ {verhaeltnisProzentText(verhaeltnis)}
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 text-sm">
-              <span className="text-ink-faint">Häufig:</span>
-              {quickChoices.map((choice) => (
-                <button
-                  className={quietButtonClass}
-                  key={formatVerhaeltnis(choice)}
-                  onClick={() =>
-                    onAction({ type: 'ratio', verhaeltnis: choice })
-                  }
-                  type="button"
+            <div className="max-w-[20rem]">
+              <VerhaeltnisBar verhaeltnis={verhaeltnis} />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* Where the choices need two lines, their label stands above them. */}
+              <span className={`${hintClass} mr-1 @max-[24rem]:basis-full`}>
+                Häufig:
+              </span>
+              {quickChoices.map((group) => (
+                <span
+                  className="flex gap-1.5"
+                  key={group.map(formatVerhaeltnis).join(' ')}
                 >
-                  {formatVerhaeltnis(choice)}
-                </button>
+                  {group.map((choice) => (
+                    <button
+                      className={buttonClass('secondary', 'compact')}
+                      key={formatVerhaeltnis(choice)}
+                      onClick={() =>
+                        onAction({ type: 'ratio', verhaeltnis: choice })
+                      }
+                      type="button"
+                    >
+                      {formatVerhaeltnis(choice)}
+                    </button>
+                  ))}
+                </span>
               ))}
             </div>
           </div>

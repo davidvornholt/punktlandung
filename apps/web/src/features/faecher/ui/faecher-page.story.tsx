@@ -63,7 +63,8 @@ const FaecherPageScenario = ({ scenario }: { readonly scenario: Scenario }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <main className="p-4">
+      {/* The room the app's shell gives a page. */}
+      <main className="mx-auto w-full max-w-[78rem] desk:px-6 px-4 pb-10">
         <FaecherPage operations={operations} />
       </main>
       <div hidden={true}>

@@ -1,85 +1,223 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
-
+import { Plus } from 'lucide-react';
+import type { ReactNode, RefObject } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { nbsp } from '#/shared/date/date-text.ts';
+import { notensystemText } from '#/shared/noten/notensystem-text.ts';
 import type { Notensystem } from '#/shared/noten/notenwert.ts';
 import { faecherKey } from '#/shared/query/query-keys.ts';
 import { actionErrorText } from '#/shared/ui/action-error.ts';
+import { EmptyState } from '#/shared/ui/empty-state.tsx';
 import {
-  inputClass,
-  labelClass,
   primaryButtonClass,
+  secondaryButtonClass,
 } from '#/shared/ui/form-classes.ts';
 import { useFormFocus } from '#/shared/ui/form-focus.ts';
+import { buttonIconSize, iconStroke } from '#/shared/ui/icon.ts';
 import { ListQueryHints } from '#/shared/ui/query-state.tsx';
 import { determineQueryState } from '#/shared/ui/query-state-model.ts';
 import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
+import type { FachFields } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
+import { useArchiving } from './fach-archiving.ts';
 import { FachForm } from './fach-form.tsx';
 import { FachList } from './fach-list.tsx';
 import { fachMutationOptions } from './fach-mutations.ts';
 import type { FachOperations } from './fach-operations.ts';
-import { changeSchoolYear } from './school-year-change.ts';
 
-const editKey = (editTarget: Fach | 'create' | null) => {
+type EditTarget = Fach | 'create' | null;
+
+const editKey = (editTarget: EditTarget) => {
   if (editTarget === null || editTarget === 'create') {
     return editTarget;
   }
   return editTarget.id;
 };
 
-const fachFormError = (
-  createMutation: { readonly error: unknown; readonly isError: boolean },
-  updateMutation: { readonly error: unknown; readonly isError: boolean },
-): string | null => {
-  if (createMutation.isError) {
+type FormMutation<Values> = {
+  readonly error: unknown;
+  readonly isError: boolean;
+  readonly isPending: boolean;
+  readonly mutate: (values: Values) => void;
+  readonly reset: () => void;
+};
+
+type FormMutations = {
+  readonly create: FormMutation<FachFields>;
+  readonly update: FormMutation<FachFields & { readonly id: string }>;
+};
+
+const fachFormError = ({ create, update }: FormMutations): string | null => {
+  if (create.isError) {
     return actionErrorText(
-      createMutation.error,
+      create.error,
       'Das Fach konnte nicht angelegt werden. Prüfe die Verbindung und versuche es erneut.',
     );
   }
-  if (updateMutation.isError) {
+  if (update.isError) {
     return actionErrorText(
-      updateMutation.error,
+      update.error,
       'Das Fach konnte nicht geändert werden. Die Eingaben bleiben erhalten; versuche es erneut.',
     );
   }
   return null;
 };
 
-/** Ein Schuljahr, das es nicht mehr gibt (etwa in einem anderen Tab gelöscht), rechnet in Sechsern. */
-const notensystemOf = (
-  notensystemBySchoolYear: ReadonlyMap<string, Notensystem>,
-  schoolYear: string,
-): Notensystem => notensystemBySchoolYear.get(schoolYear) ?? 'sechser';
+const faecherCountText = (count: number): string =>
+  count === 1 ? '1 Fach' : `${count} Fächer`;
 
-const NoHalbjahr = () => (
-  <section className="border border-border bg-surface-sunken p-6">
-    <h2 className="font-display text-2xl text-ink tracking-tight">Fächer</h2>
-    <p className="mt-2 text-ink-muted">
-      Lege zuerst ein Halbjahr an. Danach verwaltest du die Fächer für das
-      zugehörige Schuljahr.
-    </p>
-  </section>
+/**
+ * "Fach anlegen" stands in the empty page until the first Fach is there and
+ * in the head of the list from then on. When the button that leaves has the
+ * keyboard focus, the one that takes its place in the same step gets it, so
+ * saving the first Fach does not drop the focus.
+ */
+const CreateButton = ({
+  buttonRef,
+  handover,
+  onClick,
+  primary,
+}: {
+  readonly buttonRef: RefObject<HTMLButtonElement | null>;
+  /** Whether the button that just left had the keyboard focus. */
+  readonly handover: RefObject<boolean>;
+  readonly onClick: (trigger: HTMLButtonElement) => void;
+  /** The one action of an empty page is drawn as such. */
+  readonly primary: boolean;
+}) => {
+  useLayoutEffect(() => {
+    const button = buttonRef.current;
+    if (handover.current) {
+      button?.focus();
+    }
+    return () => {
+      handover.current = document.activeElement === button;
+      // Only a button that appears in the same step takes the focus over.
+      queueMicrotask(() => {
+        handover.current = false;
+      });
+    };
+  }, [buttonRef, handover]);
+  return (
+    <button
+      className={primary ? primaryButtonClass : secondaryButtonClass}
+      onClick={(event) => onClick(event.currentTarget)}
+      ref={buttonRef}
+      type="button"
+    >
+      <Plus aria-hidden={true} size={buttonIconSize} strokeWidth={iconStroke} />
+      Fach anlegen
+    </button>
+  );
+};
+
+/** The form for a new Fach or for the one being changed. */
+const Editor = ({
+  editTarget,
+  formRef,
+  mutations,
+  onClose,
+  schoolYear,
+  system,
+}: {
+  readonly editTarget: Fach | 'create';
+  readonly formRef: RefObject<HTMLFormElement | null>;
+  readonly mutations: FormMutations;
+  readonly onClose: () => void;
+  readonly schoolYear: string;
+  readonly system: Notensystem;
+}) => (
+  <FachForm
+    error={fachFormError(mutations)}
+    fach={editTarget === 'create' ? null : editTarget}
+    formRef={formRef}
+    onCancel={onClose}
+    onSave={(values) => {
+      if (editTarget === 'create') {
+        mutations.create.reset();
+        mutations.create.mutate(values);
+      } else {
+        mutations.update.reset();
+        mutations.update.mutate({ ...values, id: editTarget.id });
+      }
+    }}
+    pending={mutations.create.isPending || mutations.update.isPending}
+    scope={`Gilt für das Schuljahr ${schoolYear}.`}
+    system={system}
+    title={
+      editTarget === 'create' ? 'Neues Fach' : `${editTarget.name} bearbeiten`
+    }
+  />
 );
 
-/** Schuljahre, neuestes zuerst, mit dem Notensystem ihrer Halbjahre. */
-export const FaecherManagement = ({
-  notensystemBySchoolYear,
-  operations,
+const SectionHead = ({
+  children,
+  count,
+  schoolYear,
+  system,
 }: {
-  readonly notensystemBySchoolYear: ReadonlyMap<string, Notensystem>;
+  /** The action at the right end. */
+  readonly children: ReactNode;
+  /** `null` while the Fächer are not there to be counted. */
+  readonly count: number | null;
+  readonly schoolYear: string;
+  readonly system: Notensystem;
+}) => (
+  <div className="flex min-h-10 flex-wrap items-center justify-between gap-x-4 gap-y-3">
+    <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5">
+      <h2 className="font-bold text-2xl">Schuljahr {schoolYear}</h2>
+      <p className="text-ink-soft text-sm">
+        {count === null
+          ? notensystemText(system)
+          : `${faecherCountText(count)} · ${notensystemText(system)}`}
+      </p>
+    </div>
+    {children}
+  </div>
+);
+
+/** A Schuljahr without a Fach: what a Fach is for, and the one action. */
+const NoFaecher = ({
+  children,
+  schoolYear,
+}: {
+  /** "Fach anlegen". */
+  readonly children: ReactNode;
+  readonly schoolYear: string;
+}) => (
+  <div className="mt-5">
+    <EmptyState
+      text="Lege dein erstes Fach an, mit der Gewichtung, die die Lehrkraft zu Schuljahresbeginn verkündet hat. Danach kannst du Noten in diesem Fach eintragen."
+      title={`Noch keine Fächer im Schuljahr${nbsp}${schoolYear}`}
+    >
+      {children}
+    </EmptyState>
+  </div>
+);
+
+/**
+ * Die Fächer eines Schuljahrs. Die Seite setzt die Verwaltung für jedes
+ * Schuljahr neu auf (`key`), damit ein offenes Formular und laufende
+ * Rückmeldungen nicht in ein anderes Schuljahr mitwandern.
+ */
+export const FaecherManagement = ({
+  operations,
+  schoolYear,
+  system,
+}: {
   readonly operations: FachOperations;
+  readonly schoolYear: string;
+  /** Das Notensystem, in dem die Halbjahre des Schuljahrs rechnen. */
+  readonly system: Notensystem;
 }) => {
   const queryClient = useQueryClient();
-  const schoolYears = [...notensystemBySchoolYear.keys()];
-  const [schoolYear, setSchoolYear] = useState(schoolYears[0] ?? '');
   const faecherQuery = useQuery({
-    enabled: schoolYear !== '',
     queryFn: () => operations.list(schoolYear),
     queryKey: faecherKey(schoolYear),
   });
   const sectionRef = useRef<HTMLElement>(null);
-  const [editTarget, setEditTarget] = useState<Fach | 'create' | null>(null);
+  const createFocusHandoverRef = useRef(false);
+  const [editTarget, setEditTarget] = useState<EditTarget>(null);
   const formKey = editKey(editTarget);
   const focus = useFormFocus(formKey);
 
@@ -89,120 +227,103 @@ export const FaecherManagement = ({
     queryClient,
     schoolYear,
   });
-  const createMutation = useMutation(mutationOptions.create);
-  const updateMutation = useMutation(mutationOptions.update);
-  const archiveMutation = useMutation(mutationOptions.archive);
-  const faecher = faecherQuery.data;
+  const mutations = {
+    create: useMutation(mutationOptions.create),
+    update: useMutation(mutationOptions.update),
+  };
+  const archiving = useArchiving({
+    faecher: faecherQuery.data,
+    fallbackRef: focus.fallbackTriggerRef,
+    options: mutationOptions.archive,
+    regionRef: sectionRef,
+  });
   const queryState = determineQueryState({
-    data: faecher,
+    data: faecherQuery.data,
     isError: faecherQuery.isError,
     isPending: faecherQuery.isPending,
     isEmpty: (values) => values.length === 0,
   });
-  const formError = fachFormError(createMutation, updateMutation);
-  const retry = retryWithFocus(() => faecherQuery.refetch(), sectionRef);
+  const faecher = queryState === 'success' ? faecherQuery.data : undefined;
+  const isEmpty = queryState === 'empty' && editTarget === null;
+  const saving = mutations.create.isPending || mutations.update.isPending;
 
-  if (schoolYear === '') {
-    return <NoHalbjahr />;
-  }
+  const edit = (target: Fach | 'create', trigger: HTMLButtonElement) => {
+    focus.rememberTrigger(trigger);
+    mutations.create.reset();
+    mutations.update.reset();
+    setEditTarget(target);
+  };
+  const createButton = (
+    <CreateButton
+      buttonRef={focus.fallbackTriggerRef}
+      handover={createFocusHandoverRef}
+      onClick={(trigger) => edit('create', trigger)}
+      primary={isEmpty}
+    />
+  );
+  const form =
+    editTarget === null ? null : (
+      <Editor
+        editTarget={editTarget}
+        formRef={focus.formRef}
+        key={formKey}
+        mutations={mutations}
+        onClose={() => setEditTarget(null)}
+        schoolYear={schoolYear}
+        system={system}
+      />
+    );
+  // Ein Fach wird in seiner Zeile geändert. Steht die Zeile nicht da, etwa
+  // weil das Fach inzwischen in einem anderen Tab archiviert wurde, bleibt
+  // das Formular mit den Eingaben über der Liste stehen.
+  const editedId = faecher?.find((fach) => fach.id === formKey)?.id;
 
   return (
-    <section aria-label="Fächer" ref={sectionRef} tabIndex={-1}>
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h2 className="font-display text-2xl text-ink tracking-tight">
-            Fächer {schoolYear}
-          </h2>
-          <label className={`${labelClass} mt-3 max-w-xs`}>
-            Schuljahr
-            <select
-              className={inputClass}
-              onChange={(event) => {
-                changeSchoolYear(event.currentTarget, focus, {
-                  setEditTarget,
-                  setSchoolYear,
-                });
-              }}
-              value={schoolYear}
-            >
-              {schoolYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {editTarget === null ? (
-          <button
-            className={primaryButtonClass}
-            onClick={(event) => {
-              focus.rememberTrigger(event.currentTarget);
-              createMutation.reset();
-              updateMutation.reset();
-              setEditTarget('create');
-            }}
-            ref={focus.fallbackTriggerRef}
-            type="button"
-          >
-            Fach anlegen
-          </button>
-        ) : null}
-      </div>
-      {editTarget === null ? null : (
-        <div className="mt-4">
-          <FachForm
-            pending={createMutation.isPending || updateMutation.isPending}
-            error={formError}
-            fach={editTarget === 'create' ? null : editTarget}
-            formRef={focus.formRef}
-            key={formKey}
-            onCancel={() => setEditTarget(null)}
-            onSave={(values) => {
-              if (editTarget === 'create') {
-                createMutation.reset();
-                createMutation.mutate(values);
-              } else {
-                updateMutation.reset();
-                updateMutation.mutate({ ...values, id: editTarget.id });
-              }
-            }}
-            system={notensystemOf(notensystemBySchoolYear, schoolYear)}
-            title={editTarget === 'create' ? 'Neues Fach' : 'Fach bearbeiten'}
-          />
-        </div>
-      )}
+    <section
+      aria-label="Fächer"
+      className="border-line border-t pt-6"
+      ref={sectionRef}
+      tabIndex={-1}
+    >
+      <SectionHead
+        count={faecher?.length ?? null}
+        schoolYear={schoolYear}
+        system={system}
+      >
+        {editTarget === null && !isEmpty ? createButton : null}
+      </SectionHead>
+      {editedId === undefined && form !== null ? (
+        <div className="mt-5">{form}</div>
+      ) : null}
       <ListQueryHints
         errorText="Die Fächer konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
         isError={faecherQuery.isError}
-        onRetry={retry}
+        onRetry={retryWithFocus(() => faecherQuery.refetch(), sectionRef)}
         pendingText="Fächer werden geladen …"
         refreshErrorText="Die Fächer konnten nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
         state={queryState}
       />
-      {queryState === 'success' && faecher !== undefined ? (
-        <FachList
-          archiveMutation={archiveMutation}
-          faecher={faecher}
-          onArchive={(id) => {
-            archiveMutation.reset();
-            archiveMutation.mutate(id);
-          }}
-          onEdit={(fach, trigger) => {
-            focus.rememberTrigger(trigger);
-            createMutation.reset();
-            updateMutation.reset();
-            setEditTarget(fach);
-          }}
-        />
-      ) : null}
-      {queryState === 'empty' && editTarget === null ? (
-        <div className="mt-4 border border-border bg-surface-sunken p-6">
-          <p className="text-ink-muted">
-            Noch keine Fächer. Lege dein erstes Fach an — mit der Gewichtung,
-            die die Lehrkraft verkündet hat.
-          </p>
+      {faecher === undefined ? null : (
+        <div className="mt-3">
+          <FachList
+            archiveMutation={archiving.mutation}
+            editor={editedId === undefined ? undefined : { id: editedId, form }}
+            faecher={faecher}
+            onArchive={archiving.archive}
+            onEdit={(fach, trigger) => {
+              // Der Stift schließt das Formular, das er geöffnet hat, wie
+              // „Abbrechen“ und wie dieses nicht, während gespeichert wird.
+              if (fach.id !== formKey) {
+                edit(fach, trigger);
+              } else if (!saving) {
+                setEditTarget(null);
+              }
+            }}
+          />
         </div>
+      )}
+      {isEmpty ? (
+        <NoFaecher schoolYear={schoolYear}>{createButton}</NoFaecher>
       ) : null}
     </section>
   );

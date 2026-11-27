@@ -3,10 +3,13 @@ import { useReducer } from 'react';
 
 import type { Fachgewichtung, Notensystem } from '#/shared/noten/notenwert.ts';
 import {
+  errorBoxClass,
+  hintClass,
   inputClass,
   labelClass,
   primaryButtonClass,
   secondaryButtonClass,
+  sheetClass,
 } from '#/shared/ui/form-classes.ts';
 import type { FachFields } from '../schemas/fach-schema.ts';
 import { fachLimits } from '../schemas/fach-schema.ts';
@@ -34,6 +37,7 @@ const readValues = (
 
 export const FachForm = ({
   title,
+  scope,
   fach,
   system,
   pending,
@@ -43,6 +47,8 @@ export const FachForm = ({
   onCancel,
 }: {
   readonly title: string;
+  /** Says under the title what the entries apply to, such as the Schuljahr. */
+  readonly scope?: string;
   readonly fach: Fach | null;
   readonly system: Notensystem;
   readonly pending: boolean;
@@ -60,7 +66,7 @@ export const FachForm = ({
   const valid = isVerhaeltnisValid(state.gewichtung);
   return (
     <form
-      className="border border-border bg-surface p-5 shadow-card"
+      className={`${sheetClass} animate-eases-in desk:p-7 p-4`}
       onSubmit={(event) => {
         event.preventDefault();
         if (valid && !pending) {
@@ -69,8 +75,11 @@ export const FachForm = ({
       }}
       ref={formRef}
     >
-      <h3 className="font-display text-ink text-xl tracking-tight">{title}</h3>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
+      <h3 className="font-bold text-xl">{title}</h3>
+      {scope === undefined ? null : (
+        <p className={`mt-1 ${hintClass}`}>{scope}</p>
+      )}
+      <div className="mt-4 grid max-w-[36rem] grid-cols-[minmax(0,1fr)_6.5rem] gap-4">
         <label className={labelClass}>
           Name
           <input
@@ -92,16 +101,15 @@ export const FachForm = ({
           />
         </label>
       </div>
-      <GewichtungField onAction={dispatch} state={state} system={system} />
+      <div className="mt-7 border-line border-t pt-6">
+        <GewichtungField onAction={dispatch} state={state} system={system} />
+      </div>
       {error === null ? null : (
-        <p
-          className="mt-4 border border-critical bg-critical-subtle px-3 py-2 text-ink"
-          role="alert"
-        >
+        <p className={`${errorBoxClass} mt-6`} role="alert">
           {error}
         </p>
       )}
-      <div className="mt-5 flex gap-3">
+      <div className="mt-6 flex flex-wrap gap-2">
         <button
           className={primaryButtonClass}
           aria-disabled={pending || !valid}

@@ -1,27 +1,19 @@
 import { useMutation } from '@tanstack/react-query';
 import {
   createFileRoute,
-  Link,
   Outlet,
   redirect,
   useRouter,
 } from '@tanstack/react-router';
-import { LogOut } from 'lucide-react';
 import { authClient } from '#/shared/auth/auth-client.ts';
 import { rejectAuthError } from '#/shared/auth/auth-response.ts';
 import { getSessionFn } from '#/shared/auth/session-fn.ts';
-import { iconSize, iconStroke } from '#/shared/ui/icon.ts';
-
-const navItems = [
-  { to: '/', label: 'Übersicht' },
-  { to: '/noten', label: 'Noten' },
-  { to: '/zeugnis', label: 'Zeugnis' },
-  { to: '/faecher', label: 'Fächer' },
-  { to: '/einstellungen', label: 'Einstellungen' },
-] as const;
-
-const navLinkClass =
-  'border-b-2 border-transparent px-1 pb-1 text-ink-muted text-sm transition-colors duration-150 ease-standard hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+import { ShellFrame } from '#/shared/ui/shell-frame.tsx';
+import {
+  NotFoundNotice,
+  StandaloneLoadError,
+  StandalonePending,
+} from '#/shared/ui/shell-states.tsx';
 
 const AppShell = () => {
   const router = useRouter();
@@ -31,75 +23,15 @@ const AppShell = () => {
   });
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
-      <header className="border-border border-b bg-surface">
-        <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-6">
-          <p className="font-display text-2xl text-ink tracking-tight">
-            <Link
-              className="focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-              to="/"
-            >
-              Punktlandung
-            </Link>
-          </p>
-        </div>
-        <nav
-          aria-label="Hauptnavigation"
-          className="mx-auto max-w-4xl overflow-x-auto px-4 sm:px-6"
-        >
-          <ul className="flex gap-5 pt-3 pb-2">
-            {navItems.map((point) => (
-              <li className="shrink-0" key={point.to}>
-                <Link
-                  activeOptions={{ exact: point.to === '/' }}
-                  activeProps={{
-                    className: `${navLinkClass} border-primary font-medium text-ink`,
-                  }}
-                  className={navLinkClass}
-                  to={point.to}
-                >
-                  {point.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </header>
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
-        <Outlet />
-      </main>
-      {/*
-       * Abmelden gehört ans Ende: es ist die seltenste Handlung der App und
-       * soll im Kopf nicht mit der Navigation um Aufmerksamkeit ringen.
-       */}
-      <footer className="border-border border-t">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-x-6 gap-y-2 p-4 text-ink-faint text-sm sm:px-6">
-          <p>Punktlandung</p>
-          <button
-            className="inline-flex items-center gap-2 text-ink-muted transition-colors duration-150 ease-standard hover:text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            disabled={signOutMutation.isPending}
-            onClick={() => signOutMutation.mutate()}
-            type="button"
-          >
-            <LogOut
-              aria-hidden={true}
-              size={iconSize}
-              strokeWidth={iconStroke}
-            />
-            {signOutMutation.isPending ? 'Wird abgemeldet …' : 'Abmelden'}
-          </button>
-          {signOutMutation.isError ? (
-            <p
-              className="basis-full border border-critical bg-critical-subtle px-3 py-2 text-ink text-sm"
-              role="alert"
-            >
-              Die Abmeldung ist fehlgeschlagen. Du bleibst angemeldet; prüfe die
-              Verbindung und versuche es erneut.
-            </p>
-          ) : null}
-        </div>
-      </footer>
-    </div>
+    <ShellFrame
+      signOut={{
+        failed: signOutMutation.isError,
+        pending: signOutMutation.isPending,
+        run: () => signOutMutation.mutate(),
+      }}
+    >
+      <Outlet />
+    </ShellFrame>
   );
 };
 
@@ -112,4 +44,10 @@ export const Route = createFileRoute('/_app')({
     return { session };
   },
   component: AppShell,
+  // A page under the shell that does not exist keeps the shell around it.
+  notFoundComponent: NotFoundNotice,
+  // When the shell itself cannot be loaded, there is no shell to show the error in.
+  errorComponent: StandaloneLoadError,
+  // Shown when checking the session takes long. Pages load their data inside the shell and say so there.
+  pendingComponent: StandalonePending,
 });

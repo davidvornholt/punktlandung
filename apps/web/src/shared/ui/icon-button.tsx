@@ -5,32 +5,35 @@ import type { ComponentProps } from 'react';
 import { iconButtonClass, iconSize, iconStroke } from './icon.ts';
 
 /**
- * Ein quadratischer Knopf, der nur ein Symbol zeigt. Der Name steht im
- * `aria-label` und erscheint als Hinweis beim Verweilen; Text gibt es hier
- * nicht, damit Zeilen mit drei Aktionen nicht zu Sätzen werden.
+ * A square button that shows only an icon. Its name is the `aria-label` and
+ * appears as a tooltip; there is no text, so a row with two actions does not
+ * turn into a sentence.
  */
 export const IconButton = ({
   className,
   icon: Icon,
   label,
   pending = false,
+  tip = label,
   ...rest
 }: Omit<
   ComponentProps<'button'>,
   'aria-label' | 'children' | 'title' | 'type'
 > & {
   readonly icon: LucideIcon;
-  /** Zugänglicher Name; wird auch als Hinweis beim Verweilen gezeigt. */
+  /** Accessible name. */
   readonly label: string;
-  /** Zeigt statt des Symbols einen Kreisel und meldet den Vorgang. */
+  /** Shows a spinner instead of the icon and reports the action as busy. */
   readonly pending?: boolean;
+  /** Tooltip text where the accessible name is longer than a tooltip should be. */
+  readonly tip?: string;
 }) => (
   <button
     {...rest}
     aria-busy={pending || undefined}
     aria-label={label}
     className={`${iconButtonClass} ${className ?? ''}`}
-    title={label}
+    data-tip={tip}
     type="button"
   >
     {pending ? (

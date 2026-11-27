@@ -1,0 +1,374 @@
+/*
+ * The ruler and what lies on it. These are the inner parts of SVG figures:
+ * their look depends on the state of a parent group, which utilities in the
+ * markup would hide.
+ */
+
+@layer components {
+  /* ---------- the bar ---------- */
+  [data-part="ruler"] {
+    overflow: visible;
+  }
+
+  [data-part="ruler-body"] {
+    fill: var(--pl-ruler);
+  }
+
+  [data-part="ruler-band"] {
+    fill: var(--pl-ruler-band);
+  }
+
+  [data-part="ruler-rim"] {
+    fill: none;
+    stroke: var(--pl-edge);
+    stroke-width: 1.25;
+  }
+
+  [data-part="ruler-ticks"] {
+    fill: none;
+    stroke: var(--pl-ruler-ink);
+    stroke-width: 1;
+  }
+
+  [data-part="ruler-numeral"] {
+    fill: var(--pl-ruler-ink);
+    font-weight: 700;
+    text-anchor: middle;
+  }
+
+  [data-part="ruler-grade"] {
+    fill: var(--pl-ruler-note);
+    font-weight: 700;
+    text-anchor: middle;
+  }
+
+  /* ---------- the fulcrum ---------- */
+  [data-part="fulcrum-body"] {
+    fill: var(--pl-ink);
+  }
+
+  [data-part="fulcrum-ground"] {
+    fill: none;
+    stroke: var(--pl-ink);
+    stroke-width: 1.5;
+  }
+
+  [data-part="fulcrum-hatch"] {
+    fill: none;
+    stroke: var(--pl-ink);
+    stroke-width: 1;
+    opacity: 0.7;
+  }
+
+  [data-part="fulcrum-value"] {
+    font-size: 21px;
+    font-weight: 700;
+    text-anchor: middle;
+  }
+
+  /* The Zeugnis figure sets the size of its value itself: it depends on the room. */
+  [data-part="fulcrum-value-big"] {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-anchor: middle;
+  }
+
+  [data-part="fulcrum-caption"] {
+    fill: var(--pl-ink-soft);
+    font-size: 12.5px;
+    text-anchor: middle;
+  }
+
+  /* ---------- discs ---------- */
+
+  /*
+   * A disc's look sets the variables its body is drawn with, so a state such
+   * as hover or dim changes one variable instead of competing for the body.
+   * Parts, looks and states are all data attributes: the linter takes every
+   * class in the markup for one a stylesheet must declare, so a stylesheet
+   * that declared its own would make it reject each utility class.
+   */
+  [data-part="disc"] {
+    transition:
+      transform 0.5s var(--ease-standard),
+      opacity 0.25s;
+  }
+
+  [data-part="disc-hit"] {
+    fill: transparent;
+    stroke: none;
+  }
+
+  [data-part="disc-body"] {
+    stroke: var(--disc-stroke, none);
+    stroke-dasharray: var(--disc-dash, none);
+    stroke-width: var(--disc-stroke-width, 0);
+    transition:
+      r 0.5s var(--ease-standard),
+      fill 0.25s,
+      stroke 0.25s,
+      stroke-width 0.15s;
+  }
+
+  /* A missing Note brings its fill as an attribute: the stripe pattern of its own figure. */
+  [data-part="disc-body"]:not([fill]) {
+    fill: var(--disc-fill, none);
+  }
+
+  [data-part="disc-text"] {
+    fill: var(--pl-paper);
+    font-weight: 700;
+    pointer-events: none;
+    text-anchor: middle;
+    transition: fill 0.25s;
+  }
+
+  /* Schriftlich is a filled disc, mündlich a ring: told apart without colour. */
+  [data-look="s"] {
+    --disc-fill: var(--pl-note);
+    --disc-stroke: var(--pl-edge);
+    --disc-stroke-width: 1.25;
+  }
+
+  [data-look="m"] {
+    --disc-fill: var(--pl-sheet);
+    --disc-stroke: var(--pl-note);
+    --disc-stroke-width: 3;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    [data-look="m"] {
+      --disc-fill: var(--pl-paper);
+    }
+  }
+
+  [data-look="pending"] {
+    --disc-dash: 4 3.2;
+    --disc-fill: var(--pl-paper);
+    --disc-stroke: var(--pl-ink);
+    --disc-stroke-width: 1.5;
+  }
+
+  /* A small disc has too little rim for those dashes; finer ones still close to a circle. */
+  [data-part="disc"][data-look="pending"][data-small] {
+    --disc-dash: 1.7 1.5;
+    --disc-stroke-width: 1.25;
+  }
+
+  [data-look="missing"] {
+    --disc-stroke: var(--pl-ink);
+    --disc-stroke-width: 1.5;
+  }
+
+  [data-look="fach"] {
+    --disc-fill: var(--pl-ink);
+  }
+
+  /* The small disc that stands for a Leistung in a list. */
+  [data-part="disc-glyph"] {
+    flex: none;
+    overflow: visible;
+  }
+
+  [data-part="disc-glyph"][data-look="m"] {
+    --disc-stroke-width: 2.25;
+  }
+
+  [data-part="disc-glyph"][data-look="pending"],
+  [data-part="disc-glyph"][data-look="missing"] {
+    --disc-stroke-width: 1.25;
+  }
+
+  /* Beside the disc a page is about, the others step back: paler, still drawn. */
+  [data-part="disc"][data-look="s"][data-dim] {
+    --disc-fill: color-mix(in oklab, var(--pl-note) 30%, var(--pl-paper));
+  }
+
+  [data-part="disc"][data-look="m"][data-dim] {
+    --disc-stroke: color-mix(in oklab, var(--pl-note) 42%, var(--pl-paper));
+  }
+
+  [data-part="disc"][data-look="pending"][data-dim],
+  [data-part="disc"][data-look="missing"][data-dim] {
+    opacity: 0.5;
+  }
+
+  [data-part="disc"][data-hover],
+  [data-part="disc"][data-focus],
+  [data-part="disc"][data-link]:hover {
+    --disc-stroke: var(--pl-ink);
+    --disc-stroke-width: 2.5;
+  }
+
+  [data-part="disc"][data-look="m"][data-hover],
+  [data-part="disc"][data-look="m"][data-focus],
+  [data-part="disc"][data-look="m"][data-link]:hover {
+    --disc-stroke: var(--pl-note);
+    --disc-stroke-width: 4.5;
+  }
+
+  [data-part="disc"][data-look="fach"][data-hover] {
+    --disc-fill: var(--pl-note);
+  }
+
+  /* Paper is too light to read on the red, so the Kürzel turns dark with it. */
+  [data-part="disc"][data-look="fach"][data-hover] [data-part="disc-text"] {
+    fill: var(--pl-note-ink);
+  }
+
+  /*
+   * A disc that is a link shows keyboard focus as a ring around its own round
+   * shape, not as a box. The ring is cased in paper, which is light where the
+   * focus colour is dark and dark where it is light, so the ring stands out
+   * on the paper, on the yellow bar and on a neighbouring disc alike.
+   */
+  [data-part="disc"] a:focus-visible {
+    outline: none;
+  }
+
+  [data-part="disc-focus"],
+  [data-part="disc-focus-casing"] {
+    fill: none;
+    pointer-events: none;
+    stroke: none;
+  }
+
+  [data-part="disc"] a:focus-visible [data-part="disc-focus-casing"] {
+    stroke: var(--pl-paper);
+    stroke-width: 6.5;
+  }
+
+  [data-part="disc"] a:focus-visible [data-part="disc-focus"] {
+    stroke: var(--pl-focus);
+    stroke-width: 2.5;
+  }
+
+  /* A disc that has left lifts off the way it came. */
+  [data-part="disc"][data-leaving] {
+    pointer-events: none;
+  }
+
+  [data-part="disc"][data-leaving] [data-part="disc-motion"] {
+    animation: disc-leave 0.26s cubic-bezier(0.4, 0, 0.9, 0.4) forwards;
+  }
+
+  @keyframes disc-leave {
+    to {
+      opacity: 0;
+      transform: translateY(-46px);
+    }
+  }
+
+  /* While the figure changes its size, nothing eases: bar and discs move as one. */
+  [data-part="ruler"][data-still] [data-part="disc"],
+  [data-part="ruler"][data-still] [data-part="disc-body"] {
+    transition: none;
+  }
+
+  [data-part="warn-stripe-a"] {
+    fill: var(--pl-ruler);
+  }
+
+  [data-part="warn-stripe-b"] {
+    fill: var(--pl-ruler-ink);
+  }
+
+  /* ---------- figure labels with leader lines ---------- */
+  [data-part="figure-labels"] {
+    transition: opacity 0.2s;
+  }
+
+  [data-part="figure-label-line"] {
+    fill: none;
+    stroke: var(--pl-ink);
+    stroke-width: 0.9;
+    opacity: 0.55;
+  }
+
+  [data-part="figure-label-text"] {
+    fill: var(--pl-ink-soft);
+    font-size: 12.5px;
+  }
+
+  [data-part="figure-label"][data-focus] [data-part="figure-label-text"],
+  [data-part="figure-label"][data-hover] [data-part="figure-label-text"] {
+    fill: var(--pl-ink);
+    font-weight: 700;
+  }
+
+  [data-part="figure-label"][data-hover] [data-part="figure-label-line"],
+  [data-part="figure-label"][data-focus] [data-part="figure-label-line"] {
+    opacity: 1;
+  }
+
+  /* ---------- the dimension line of the disc a page is about ---------- */
+  [data-part="dimension-axis"] {
+    fill: none;
+    stroke: var(--pl-ink);
+    stroke-dasharray: 9 3 2 3;
+    stroke-width: 0.9;
+    opacity: 0.75;
+  }
+
+  [data-part="dimension-ext"] {
+    fill: none;
+    stroke: var(--pl-ink);
+    stroke-width: 0.9;
+    opacity: 0.75;
+  }
+
+  [data-part="dimension-line"] {
+    fill: none;
+    stroke: var(--pl-ink);
+    stroke-width: 1.25;
+  }
+
+  [data-part="dimension-head"] {
+    fill: var(--pl-ink);
+  }
+
+  [data-part="dimension-text"] {
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+
+  /* ---------- entering a Note: the held disc and where the bar would balance ---------- */
+  [data-part="plumb"] {
+    fill: none;
+    stroke: var(--pl-ink);
+    stroke-dasharray: 2 3;
+    stroke-width: 1;
+  }
+
+  [data-part="held-text"] {
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+
+  [data-part="disc"][data-held] {
+    transition: transform 0.16s var(--ease-standard);
+  }
+
+  [data-part="ruler-preview"] {
+    transition: transform 0.22s var(--ease-standard);
+  }
+
+  [data-part="ruler-preview-body"] {
+    fill: var(--pl-paper);
+    stroke: var(--pl-ink);
+    stroke-dasharray: 3 2.5;
+    stroke-width: 1.5;
+  }
+
+  [data-part="ruler"][data-entering] [data-part="figure-labels"] {
+    opacity: 0;
+  }
+
+  [data-part="ruler-waiting"] {
+    transition: opacity 0.2s;
+  }
+
+  [data-part="ruler"][data-entering] [data-part="ruler-waiting"] {
+    opacity: 0.3;
+  }
+}

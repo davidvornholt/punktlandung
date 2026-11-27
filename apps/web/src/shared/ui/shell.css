@@ -1,0 +1,257 @@
+/* The shell: top bar, phone tab bar and the sign-in page. Inner parts whose look depends on a parent, which utilities in the markup would hide. */
+
+@layer components {
+  /* The bars stay where they are while one page leaves and the next arrives. */
+  [data-part="top-bar"] {
+    view-transition-name: top-bar;
+  }
+
+  [data-part="tab-bar"] {
+    view-transition-name: tab-bar;
+  }
+
+  /*
+   * The mark in the bar is drawn live while the page changes, never as the
+   * picture of how it stood before: a press on the name makes its disc hop
+   * and leads to the Übersicht at once, and the picture would show a second
+   * disc at rest under the one in the air.
+   */
+  [data-part="top-bar"] [data-part="brand-mark"] {
+    view-transition-name: brand-mark;
+  }
+
+  ::view-transition-old(brand-mark) {
+    display: none;
+  }
+
+  ::view-transition-new(brand-mark) {
+    animation: none;
+  }
+
+  /* The bars answer a press themselves, so the grey box a phone lays over a pressed link is left out. */
+  [data-part="top-bar"],
+  [data-part="tab-bar"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * The page you are on is where the disc has landed: it rests on the line
+   * under the bar. Over another page it hovers, smaller, before it lands.
+   */
+  [data-part="nav-link"]::after {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-start: 50%;
+    inline-size: 11px;
+    block-size: 11px;
+    margin-inline-start: -5.5px;
+    border: 1.5px solid var(--pl-edge);
+    border-radius: 50%;
+    background-color: var(--pl-note);
+    content: "";
+    opacity: 0;
+    transform: translateY(-140%) scale(0.4);
+    transition:
+      transform 0.2s var(--ease-standard),
+      opacity 0.15s;
+  }
+
+  [data-part="nav-link"]:hover::after {
+    opacity: 0.5;
+    transform: translateY(-50%) scale(0.7);
+  }
+
+  /* A page that was asked for and is not there yet: the disc stays in the air over its link. */
+  [data-part="nav-link"][data-pending]::after {
+    opacity: 1;
+    transform: translateY(-50%) scale(0.7);
+  }
+
+  /* Its own name lets the disc travel from the page that is left to the next. */
+  [data-part="nav-link"][data-open]::after {
+    opacity: 1;
+    transform: none;
+    view-transition-name: nav-disc;
+  }
+
+  /* While it travels it is one disc: it does not also shrink where it was and grow where it lands. */
+  :root:active-view-transition [data-part="nav-link"]::after {
+    transition: none;
+  }
+
+  /*
+   * On a phone the disc rests on the line above the tab, where the page
+   * scrolls past. So the strip it stands in belongs to the bar: the bar's
+   * paper reaches above its line as high as the disc, and the page fades out
+   * into it. Nothing of the page can stand beside the disc, and what the paper
+   * hides cannot be pressed.
+   */
+  [data-part="tab-bar"]::before,
+  [data-part="tab-bar"]::after {
+    position: absolute;
+    inset-inline: 0;
+    content: "";
+  }
+
+  [data-part="tab-bar"]::before {
+    inset-block-end: calc(100% + 1.5px);
+    block-size: 15px;
+    background-color: var(--pl-paper);
+  }
+
+  [data-part="tab-bar"]::after {
+    inset-block-end: calc(100% + 16.5px);
+    block-size: 14px;
+    background-image: linear-gradient(to top, var(--pl-paper), transparent);
+    pointer-events: none;
+  }
+
+  [data-part="tab"][data-open]::before,
+  [data-part="tab"][data-pending]::before {
+    position: absolute;
+    inset-block-start: -12.5px;
+    inset-inline-start: 50%;
+    inline-size: 11px;
+    block-size: 11px;
+    margin-inline-start: -5.5px;
+    border: 1.5px solid var(--pl-edge);
+    border-radius: 50%;
+    background-color: var(--pl-note);
+    content: "";
+  }
+
+  [data-part="tab"][data-open]::before {
+    view-transition-name: tab-disc;
+  }
+
+  /* As in the top bar: over a page that is on its way the disc is smaller and in the air. */
+  [data-part="tab"][data-pending]::before {
+    transform: translateY(-3px) scale(0.7);
+  }
+
+  /* The ruler turns about the tip of its wedge. */
+  [data-part="brand-beam"] {
+    transform-box: view-box;
+    transform-origin: 18.5px 18px;
+  }
+
+  /*
+   * Signing in opens with what the app is named after, once: the disc drops
+   * onto the ruler, and the ruler sways and comes to rest level on its wedge.
+   * While something loads, the ruler has not come to rest yet.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-part="brand-mark"][data-motion="lands"] [data-part="brand-disc"] {
+      animation: brand-disc-lands 0.42s cubic-bezier(0.55, 0, 1, 0.55) 0.25s
+        both;
+    }
+
+    [data-part="brand-mark"][data-motion="lands"] [data-part="brand-beam"] {
+      animation: brand-beam-settles 1s ease-in-out 0.67s both;
+    }
+
+    /*
+     * A press on the name: the disc jumps off the ruler and lands on it again,
+     * and the ruler sways as after every landing.
+     */
+    [data-part="brand-mark"][data-motion="hops"] [data-part="brand-disc"] {
+      animation: brand-disc-hops 0.46s both;
+    }
+
+    [data-part="brand-mark"][data-motion="hops"] [data-part="brand-beam"] {
+      animation: brand-beam-settles 0.9s ease-in-out 0.44s both;
+    }
+
+    /* It starts level and only after a moment, so a page that is there at once does not make the mark twitch. */
+    [data-part="brand-mark"][data-motion="sways"] [data-part="brand-beam"] {
+      animation: brand-beam-sways 1.8s ease-in-out 0.25s infinite;
+    }
+
+    /* The disc over a page that is on its way bobs for as long as the page takes. */
+    [data-part="nav-link"][data-pending]::after {
+      animation: nav-disc-waits 0.7s ease-in-out 0.25s infinite alternate;
+    }
+
+    [data-part="tab"][data-pending]::before {
+      animation: tab-disc-waits 0.7s ease-in-out 0.25s infinite alternate;
+    }
+
+    @keyframes nav-disc-waits {
+      to {
+        transform: translateY(-130%) scale(0.7);
+      }
+    }
+
+    @keyframes tab-disc-waits {
+      to {
+        transform: translateY(-9px) scale(0.7);
+      }
+    }
+
+    @keyframes brand-disc-lands {
+      from {
+        opacity: 0;
+        transform: translateY(-18px);
+      }
+
+      25% {
+        opacity: 1;
+      }
+    }
+
+    /* Up it slows, down it speeds up, as a thrown thing does. */
+    /* The two curves are those of a thrown ball: it slows evenly to the top and speeds up evenly on the way down. */
+    @keyframes brand-disc-hops {
+      0% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0.33, 0.67, 0.67, 1);
+      }
+
+      50% {
+        transform: translateY(-8px);
+        animation-timing-function: cubic-bezier(0.33, 0, 0.67, 0.33);
+      }
+
+      100% {
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes brand-beam-settles {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      20% {
+        transform: rotate(3deg);
+      }
+
+      45% {
+        transform: rotate(-1.7deg);
+      }
+
+      70% {
+        transform: rotate(0.7deg);
+      }
+
+      100% {
+        transform: rotate(0deg);
+      }
+    }
+
+    @keyframes brand-beam-sways {
+      0%,
+      100% {
+        transform: rotate(0deg);
+      }
+
+      25% {
+        transform: rotate(2.4deg);
+      }
+
+      75% {
+        transform: rotate(-2.4deg);
+      }
+    }
+  }
+}

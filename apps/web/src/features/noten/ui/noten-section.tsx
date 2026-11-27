@@ -1,62 +1,35 @@
 import { Link } from '@tanstack/react-router';
 
-import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { NoteEntryBar } from './note-entry-bar.tsx';
+import { EmptyState } from '#/shared/ui/empty-state.tsx';
+import { primaryButtonClass } from '#/shared/ui/form-classes.ts';
 import { NotenList } from './noten-list.tsx';
-import type { NotenOperations } from './noten-operations.ts';
-
-type Halbjahr = {
-  readonly id: string;
-  readonly system: Notensystem;
-  readonly startsOn: string;
-  readonly endsOn: string;
-};
+import type { NotenListProps } from './noten-list-state.ts';
 
 /**
- * Der Notenteil eines Halbjahrs: Eintragsleiste und Notenliste. Steht ohne
- * eigenen Zustand da, damit sich die Entscheidung, was bei welchem Fachstand
- * erscheint, ohne Renderer prüfen lässt.
+ * Der Notenteil eines Halbjahrs. Steht ohne eigenen Zustand da, damit sich
+ * die Entscheidung, was bei welchem Fachstand erscheint, ohne Renderer prüfen
+ * lässt.
  */
-export const NotenSection = ({
-  halbjahr,
-  faecher,
-  operations,
-}: {
-  readonly halbjahr: Halbjahr;
-  readonly faecher: ReadonlyArray<{
-    readonly id: string;
-    readonly name: string;
-  }>;
-  readonly operations: NotenOperations;
-}) => (
+export const NotenSection = (props: NotenListProps) => (
   <>
     {/*
-     * Ohne wählbares Fach lässt sich keine Note eintragen — die Eintragsleiste
-     * weicht dem Hinweis. Die Notenliste bleibt trotzdem stehen: sind alle
-     * Fächer des Schuljahrs archiviert, hängen die eingetragenen Noten weiter
-     * an ihnen und müssen korrigierbar bleiben.
+     * Ohne wählbares Fach lässt sich keine Note eintragen. Die Notenliste
+     * bleibt trotzdem stehen: sind alle Fächer des Schuljahrs archiviert,
+     * hängen die eingetragenen Noten weiter an ihnen und müssen korrigierbar
+     * bleiben.
      */}
-    {faecher.length === 0 ? (
-      <div className="mt-6 border border-border bg-surface-sunken p-8">
-        <p className="text-ink">Keine wählbaren Fächer.</p>
-        <p className="mt-2 text-ink-muted">
-          Lege unter{' '}
-          <Link className="underline underline-offset-4" to="/faecher">
-            Fächer
-          </Link>{' '}
-          ein Fach samt Gewichtung an, dann kannst du hier Noten eintragen.
-          Noten an archivierten Fächern bleiben unten sichtbar und korrigierbar.
-        </p>
+    {props.faecher.length === 0 ? (
+      <div className="mb-8">
+        <EmptyState
+          text="Eine Note gehört zu einem Fach. Lege ein Fach samt Gewichtung an, dann kannst du hier Noten eintragen. Noten an archivierten Fächern bleiben unten sichtbar und korrigierbar."
+          title="Noch kein Fach in diesem Schuljahr"
+        >
+          <Link className={primaryButtonClass} to="/faecher">
+            Fach anlegen
+          </Link>
+        </EmptyState>
       </div>
-    ) : (
-      <div className="mt-4">
-        <NoteEntryBar
-          faecher={faecher}
-          halbjahr={halbjahr}
-          operations={operations}
-        />
-      </div>
-    )}
-    <NotenList faecher={faecher} halbjahr={halbjahr} operations={operations} />
+    ) : null}
+    <NotenList {...props} />
   </>
 );
