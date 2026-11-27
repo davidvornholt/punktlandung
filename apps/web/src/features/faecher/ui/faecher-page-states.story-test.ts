@@ -169,7 +169,6 @@ it('keeps the form and its entries when saving fails, and the Fach when archivin
   await expect(
     component.getByRole('heading', { name: 'Mathematik' }),
   ).toBeVisible();
-  // The Fach is still there, and so is the keyboard.
   await expect(archive).toBeFocused();
 });
 
