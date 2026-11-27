@@ -72,7 +72,13 @@ const inEnglisch = {
   fachName: 'Englisch',
 } as const;
 
-type Scenario = 'ausstehend' | 'benotet' | 'fehlt' | 'allein' | 'sechser';
+type Scenario =
+  | 'ausstehend'
+  | 'benotet'
+  | 'fehlt'
+  | 'allein'
+  | 'ohneAnteil'
+  | 'sechser';
 
 /** The Leistung the page is about. */
 const own: Readonly<Record<Scenario, Leistung>> = {
@@ -107,6 +113,18 @@ const own: Readonly<Record<Scenario, Leistung>> = {
     status: 'graded',
     wert: 8,
   },
+  ohneAnteil: {
+    ...inMathe,
+    gewichtung: {
+      ...standardgewichtung,
+      verhaeltnis: { schriftlich: 0, muendlich: 1 },
+    },
+    id: 'k-1',
+    kind: 'klausur',
+    datum: '2026-11-16',
+    status: 'graded',
+    wert: 12,
+  },
   sechser: {
     ...inMathe,
     id: 'k-1',
@@ -125,7 +143,7 @@ const noten = {
 
 /** The other Leistungen of the Halbjahr: three with a Note and one that waits in Mathematik, one in Englisch. */
 const othersOf = (scenario: Scenario): ReadonlyArray<Leistung> => {
-  if (scenario === 'allein') {
+  if (scenario === 'allein' || scenario === 'ohneAnteil') {
     return [];
   }
   const wert = noten[scenario === 'sechser' ? 'sechser' : 'punkte'];
@@ -375,6 +393,11 @@ export const NoteFehlt = (props: ServerBehaviour) => (
 /** The only Leistung of its Fach. */
 export const Allein = (props: ServerBehaviour) => (
   <LeistungDetailScenario {...props} scenario="allein" />
+);
+
+/** The only Leistung of its Fach, in a Wertungsbereich that counts 0. */
+export const OhneAnteil = (props: ServerBehaviour) => (
+  <LeistungDetailScenario {...props} scenario="ohneAnteil" />
 );
 
 /** A Halbjahr with Noten from 1 to 6, where less is better. */

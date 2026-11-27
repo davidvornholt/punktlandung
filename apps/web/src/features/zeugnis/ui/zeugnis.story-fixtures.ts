@@ -103,6 +103,7 @@ const kursstufe = {
 /*
  * Klasse 10, zweites Halbjahr: Viertelnoten und eine Jahresvorschau.
  * Mathematik liegt genau zwischen 1-2 und 2+ und bekommt die schlechtere Note.
+ * Musik hat eine Note in einem Wertungsbereich ohne Anteil, die nicht zählt.
  */
 const mittelstufe = {
   faecher: [
@@ -139,6 +140,7 @@ const mittelstufe = {
       noten: 2,
     },
     ohneNote('Kunst', 'Ku'),
+    { ...ohneNote('Musik', 'Mu'), noten: 1 },
     {
       name: 'Latein',
       kuerzel: 'L',

@@ -169,6 +169,42 @@ describe('standingSentence', () => {
 });
 
 describe('standingSentence mit einem Verhältnis der Wertungsbereiche', () => {
+  const nurMuendlich: Fachgewichtung = {
+    ...standardgewichtung,
+    verhaeltnis: { schriftlich: 0, muendlich: 1 },
+  };
+
+  it('sagt für die einzige Note eines Bereichs ohne Anteil, dass sie nicht zählt', () => {
+    const result = sentenceFor({
+      gewichtung: nurMuendlich,
+      leistung: graded('k1', 'klausur', 12),
+      others: [],
+    });
+    expect(result.standing).toEqual({ kind: 'weightless' });
+    expect(result.sentence).toBe(
+      'Die Klausur zählt nach der Gewichtung von Physik nicht zum Fachschnitt.',
+    );
+    expect(result.dimension).toBeNull();
+  });
+
+  it('sagt es auch, wenn andere Noten den Fachschnitt tragen', () => {
+    const result = sentenceFor({
+      gewichtung: nurMuendlich,
+      leistung: graded('k1', 'klausur', 4),
+      others: [graded('m1', 'muendlich', 12)],
+    });
+    expect(result.standing).toEqual({ kind: 'weightless' });
+  });
+
+  it('nennt die einzige zählende Note neben einer ohne Anteil den Fachschnitt allein', () => {
+    const result = sentenceFor({
+      gewichtung: nurMuendlich,
+      leistung: graded('m1', 'muendlich', 12),
+      others: [graded('k1', 'klausur', 4)],
+    });
+    expect(result.standing).toEqual({ kind: 'alone' });
+  });
+
   /*
    * With a Verhältnis the Bereiche are weighed against each other. Schriftlich
    * 2 and 6 average 4, mündlich 14: the Fach stands at 9. The 6 lies under

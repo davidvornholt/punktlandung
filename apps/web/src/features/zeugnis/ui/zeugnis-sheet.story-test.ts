@@ -117,6 +117,15 @@ it('zeigt im Sechsersystem Viertelnoten und die Jahresvorschau mit Grenzfällen'
   // Genau zwischen zwei Viertelnoten zählt die schlechtere.
   await expect(rowOf(table, 'Mathematik')).toContainText('1,63');
   await expect(rowOf(table, 'Mathematik')).toContainText('2+');
+  // Noten that carry no weight are told apart from no Noten at all.
+  await expect(rowOf(table, 'Kunst').getByRole('cell')).toHaveText([
+    '0',
+    'noch keine Note',
+  ]);
+  await expect(rowOf(table, 'Musik').getByRole('cell')).toHaveText([
+    '1',
+    'keine Note zählt',
+  ]);
   await expect(
     component.getByText('genau auf einer Grenze zählt die schlechtere Note', {
       exact: false,
