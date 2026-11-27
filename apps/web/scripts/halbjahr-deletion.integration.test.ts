@@ -172,3 +172,28 @@ describe('Halbjahr-Löschfolge bestätigen', () => {
       expect(await fachstandMarker(pool)).toBe(1);
     }));
 });
+
+describe('Halbjahre mit ihren Noten auflisten', () => {
+  it('zählt eine Leistung ohne Note mit, aber nicht als benotet', () =>
+    withFach(async (provided) => {
+      await provided(createHalbjahr(firstHalbjahr));
+      const [halbjahr] = await provided(listHalbjahre);
+      if (halbjahr === undefined) {
+        throw new Error('Angelegtes Halbjahr fehlt.');
+      }
+      const note = {
+        termId: halbjahr.id,
+        subjectId: 'mathe',
+        kind: 'test' as const,
+        gewicht: 1,
+        notiz: null,
+        datum: firstHalbjahr.startsOn,
+      };
+      await provided(createNote({ ...note, id: 'note-benotet', wert: 2 }));
+      await provided(createNote({ ...note, id: 'note-geplant', wert: null }));
+
+      const [listed] = await provided(listHalbjahre);
+      expect(listed?.notenCount).toBe(2);
+      expect(listed?.gradedCount).toBe(1);
+    }));
+});

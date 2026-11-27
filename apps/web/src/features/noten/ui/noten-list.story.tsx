@@ -4,7 +4,9 @@ import { useMemo, useRef, useState } from 'react';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { notenKey } from '#/shared/query/query-keys.ts';
 import type { Leistung } from '../services/noten-service.ts';
+import { PlainLeistungLink } from './noten-links.story-fixtures.tsx';
 import { NotenList } from './noten-list.tsx';
+import type { NotenListSearch } from './noten-list-model.ts';
 import type { NotenOperations } from './noten-operations.ts';
 
 type Outcome = 'failure' | 'success';
@@ -12,10 +14,13 @@ type Outcome = 'failure' | 'success';
 type Scenario =
   | 'letzte-note'
   | 'neuladen-scheitert'
+  | 'ohne-fach-letzte-note'
   | 'ohne-fach-ohne-note'
   | 'ohne-fach'
   | 'standard'
   | 'retry';
+
+const today = '2026-11-26';
 
 const halbjahr = {
   endsOn: '2027-01-31',
@@ -24,10 +29,12 @@ const halbjahr = {
   system: 'sechser',
 } as const;
 
+/** Kunst hat keine Leistung: so sieht ein Fach aus, in dem noch nichts eingetragen ist. */
 const faecher = [
-  { id: 'latein', kuerzel: 'L', name: 'Latein' },
-  { id: 'mathe', kuerzel: 'M', name: 'Mathematik' },
-];
+  { id: 'latein', shortName: 'L', name: 'Latein' },
+  { id: 'mathe', shortName: 'M', name: 'Mathematik' },
+  { id: 'kunst', shortName: 'Ku', name: 'Kunst' },
+].map((fach) => ({ ...fach, gewichtung: standardgewichtung }));
 
 /**
  * Das Fach der Note kommt aus dem gespeicherten Fach, nicht aus der Eingabe:
@@ -42,7 +49,7 @@ const mitFach = (entry: Leistung, subjectId: string): Leistung => {
     : {
         ...entry,
         fachId: fach.id,
-        fachKuerzel: fach.kuerzel,
+        fachKuerzel: fach.shortName,
         fachName: fach.name,
       };
 };
@@ -61,58 +68,83 @@ const note = (id: string, wert: number, datum: string): Leistung => ({
   wert,
 });
 
-/* Zwei unterschiedliche Noten, damit die Zeilen auseinanderzuhalten sind. */
-const zwei = 2;
-const drei = 3;
-const noteA = note('note-a', zwei, '2026-09-14');
-const noteB = note('note-b', drei, '2026-11-02');
+/* Unterschiedliche Noten, damit die Zeilen auseinanderzuhalten sind. */
+const werte = { a: 2, b: 3, c: 2.5 } as const;
+const noteA = note('note-a', werte.a, '2026-09-14');
+const noteB = note('note-b', werte.b, '2026-11-02');
+/** Eine Note in einem zweiten Fach: ihr Eintrag lässt sich öffnen, während der einer Lateinnote noch läuft. */
+const noteC = mitFach(note('note-c', werte.c, '2026-10-05'), 'mathe');
 
-const initialNoten = (scenario: Scenario) => {
+const initialNoten = (scenario: Scenario): ReadonlyArray<Leistung> => {
   if (scenario === 'ohne-fach-ohne-note') {
     return [];
   }
-  return scenario === 'letzte-note' ? [noteA] : [noteA, noteB];
+  if (scenario === 'letzte-note' || scenario === 'ohne-fach-letzte-note') {
+    return [noteA];
+  }
+  return [noteA, noteB, noteC];
 };
 
 const waehlbareFaecher = (scenario: Scenario) =>
-  scenario === 'ohne-fach' || scenario === 'ohne-fach-ohne-note' ? [] : faecher;
+  scenario.startsWith('ohne-fach') ? [] : faecher;
+
+type Hooks = {
+  readonly settle: (outcome: Outcome) => void;
+  readonly settleById: (id: string, outcome: Outcome) => void;
+  readonly finishRead: () => void;
+};
 
 /**
- * Die Notenliste mit erfundenen Serveraufrufen. Ändern und Löschen hängen an
- * den verborgenen Knöpfen, damit ein Test den Zustand während des laufenden
- * Vorgangs prüfen und den Ausgang selbst bestimmen kann.
+ * Erfundene Serveraufrufe. Schreiben wartet, bis ein Test den Ausgang
+ * bestimmt, damit sich der Zustand während des laufenden Vorgangs prüfen
+ * lässt.
  */
-const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
-  const notenRef = useRef<ReadonlyArray<Leistung>>(initialNoten(scenario));
-  const settleRef = useRef<((outcome: Outcome) => void) | null>(null);
+const useOperations = (
+  scenario: Scenario,
+): { readonly operations: NotenOperations; readonly hooks: Hooks } => {
+  const notenRef = useRef(initialNoten(scenario));
+  const lastRef = useRef<((outcome: Outcome) => void) | null>(null);
   const pendingByIdRef = useRef(new Map<string, (outcome: Outcome) => void>());
   const readsRef = useRef(0);
   const finishReadRef = useRef<(() => void) | null>(null);
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          mutations: { retry: false },
-          queries: { retry: false },
-        },
-      }),
-  );
   const operations = useMemo<NotenOperations>(() => {
-    const awaitOutcome = async (id: string) => {
+    const succeeds = async (id: string): Promise<void> => {
       const outcome = await new Promise<Outcome>((resolve) => {
-        settleRef.current = resolve;
+        lastRef.current = resolve;
         pendingByIdRef.current.set(id, resolve);
       });
-      settleRef.current = null;
+      lastRef.current = null;
       pendingByIdRef.current.delete(id);
-      return outcome;
+      if (outcome === 'failure') {
+        throw new Error('Verbindung weg');
+      }
+    };
+    const written = (
+      id: string,
+      { subjectId, wert, ...fields }: Parameters<NotenOperations['update']>[0],
+    ): Leistung => {
+      const base = {
+        ...fields,
+        fachId: 'latein',
+        fachKuerzel: 'L',
+        fachName: 'Latein',
+        gewichtung: standardgewichtung,
+        id,
+      };
+      return mitFach(
+        wert === null
+          ? { ...base, status: 'planned' }
+          : { ...base, status: 'graded', wert },
+        subjectId,
+      );
     };
     return {
-      create: () => Promise.resolve(),
+      create: async (values) => {
+        await succeeds(values.id);
+        notenRef.current = [...notenRef.current, written(values.id, values)];
+      },
       delete: async (id) => {
-        if ((await awaitOutcome(id)) === 'failure') {
-          throw new Error('Verbindung weg');
-        }
+        await succeeds(id);
         notenRef.current = notenRef.current.filter((entry) => entry.id !== id);
       },
       list: () => {
@@ -132,86 +164,141 @@ const NotenListScenario = ({ scenario }: { readonly scenario: Scenario }) => {
         return Promise.resolve(notenRef.current);
       },
       update: async (values) => {
-        if ((await awaitOutcome(values.id)) === 'failure') {
-          throw new Error('Verbindung weg');
-        }
-        const { wert, ...fields } = values;
+        await succeeds(values.id);
         notenRef.current = notenRef.current.map((entry) =>
-          entry.id === values.id
-            ? mitFach(
-                wert === null
-                  ? { ...entry, ...fields, status: 'planned' }
-                  : { ...entry, ...fields, status: 'graded', wert },
-                values.subjectId,
-              )
-            : entry,
+          entry.id === values.id ? written(values.id, values) : entry,
         );
       },
     };
   }, [scenario]);
+  return {
+    operations,
+    hooks: {
+      settle: (outcome) => lastRef.current?.(outcome),
+      settleById: (id, outcome) => pendingByIdRef.current.get(id)?.(outcome),
+      finishRead: () => finishReadRef.current?.(),
+    },
+  };
+};
 
+/** Was ein Test auslöst, ohne dass es auf der Seite zu sehen ist. */
+const Controls = ({
+  hooks,
+  onRefetch,
+}: {
+  readonly hooks: Hooks;
+  readonly onRefetch: () => void;
+}) => (
+  <div hidden={true}>
+    {(['note-a', 'note-c'] as const).map((id) => (
+      <button
+        data-testid={`complete-${id.slice(-1)}`}
+        key={id}
+        onClick={() => hooks.settleById(id, 'success')}
+        type="button"
+      >
+        Complete {id}
+      </button>
+    ))}
+    <button
+      aria-label="Complete save"
+      data-testid="complete"
+      onClick={() => hooks.settle('success')}
+      type="button"
+    />
+    <button
+      aria-label="Fail save"
+      data-testid="fail"
+      onClick={() => hooks.settle('failure')}
+      type="button"
+    />
+    <button
+      aria-label="Finish list read"
+      data-testid="finish-read"
+      onClick={hooks.finishRead}
+      type="button"
+    />
+    <button
+      aria-label="Refetch list"
+      data-testid="refetch"
+      onClick={onRefetch}
+      type="button"
+    />
+  </div>
+);
+
+const noSearch: NotenListSearch = {};
+
+/**
+ * Die Notenliste mit erfundenen Serveraufrufen. Die Adresse der Seite ist ein
+ * Zustand der Geschichte; `data-testid="search"` zeigt, was in ihr stünde.
+ */
+const NotenListScenario = ({
+  scenario,
+  search: initialSearch = noSearch,
+}: {
+  readonly scenario: Scenario;
+  readonly search?: NotenListSearch;
+}) => {
+  const [search, setSearch] = useState(initialSearch);
+  const { hooks, operations } = useOperations(scenario);
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          mutations: { retry: false },
+          queries: { retry: false },
+        },
+      }),
+  );
   return (
     <QueryClientProvider client={queryClient}>
-      <main className="p-4">
+      <main className="mx-auto max-w-[75rem] p-4 desk:px-6">
         <NotenList
           faecher={waehlbareFaecher(scenario)}
           halbjahr={halbjahr}
+          link={PlainLeistungLink}
+          onSearch={setSearch}
           operations={operations}
+          search={search}
+          today={today}
         />
       </main>
-      <div hidden={true}>
-        <button
-          type="button"
-          data-testid="complete-a"
-          onClick={() => pendingByIdRef.current.get('note-a')?.('success')}
-        >
-          Complete A
-        </button>
-        <button
-          type="button"
-          data-testid="complete-b"
-          onClick={() => pendingByIdRef.current.get('note-b')?.('success')}
-        >
-          Complete B
-        </button>
-        <button
-          aria-label="Complete save"
-          data-testid="complete"
-          onClick={() => settleRef.current?.('success')}
-          type="button"
-        />
-        <button
-          aria-label="Fail save"
-          data-testid="fail"
-          onClick={() => settleRef.current?.('failure')}
-          type="button"
-        />
-        <button
-          aria-label="Finish list read"
-          data-testid="finish-read"
-          onClick={() => finishReadRef.current?.()}
-          type="button"
-        />
-        <button
-          aria-label="Refetch list"
-          data-testid="refetch"
-          onClick={() =>
-            queryClient.refetchQueries({
-              queryKey: notenKey(halbjahr.id),
-            })
-          }
-          type="button"
-        />
-      </div>
+      <output data-testid="search" hidden={true}>
+        {JSON.stringify(search)}
+      </output>
+      <button
+        data-testid="ask-new"
+        hidden={true}
+        onClick={() => setSearch({ neu: true })}
+        type="button"
+      >
+        Neue Note
+      </button>
+      <Controls
+        hooks={hooks}
+        onRefetch={() =>
+          queryClient.refetchQueries({ queryKey: notenKey(halbjahr.id) })
+        }
+      />
     </QueryClientProvider>
   );
 };
 
 export const Standard = () => <NotenListScenario scenario="standard" />;
 
+/** Die Adresse verlangt eine neue Note, ohne ein Fach zu nennen. */
+export const Neu = () => (
+  <NotenListScenario scenario="standard" search={{ neu: true }} />
+);
+
 export const LetzteNote = () => <NotenListScenario scenario="letzte-note" />;
 
 export const OhneFach = () => <NotenListScenario scenario="ohne-fach" />;
+
+export const OhneFachLetzteNote = () => (
+  <NotenListScenario scenario="ohne-fach-letzte-note" />
+);
 
 export const OhneFachOhneNote = () => (
   <NotenListScenario scenario="ohne-fach-ohne-note" />

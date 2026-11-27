@@ -1,20 +1,21 @@
 import { describe, expect, it } from 'bun:test';
 
 import type { TrendEntry } from '../services/trend-calculation.ts';
-import {
-  createTrendPointText,
-  createTrendTextModel,
-} from './trend-text-model.ts';
+import { createTrendTextModel } from './trend-text-model.ts';
 
 const entry = (overrides: Partial<TrendEntry> = {}): TrendEntry => ({
+  id: 'm1',
   datum: '2026-09-14',
+  fachId: 'mathematik',
   fachKuerzel: 'M',
   fachName: 'Mathematik',
   punkte: 7,
   schnitt: 7,
+  mass: 0.5,
   notenwert: 7,
   notensystem: 'punkte',
   leistungsart: 'klausur',
+  halbjahrId: 'j11',
   klassenstufe: 'J1',
   half: 1,
   ...overrides,
@@ -25,6 +26,7 @@ describe('createTrendTextModel', () => {
     const model = createTrendTextModel([
       entry(),
       entry({
+        id: 'd1',
         datum: '2026-10-02',
         fachKuerzel: 'D',
         punkte: 13,
@@ -32,6 +34,7 @@ describe('createTrendTextModel', () => {
         notenwert: 13,
       }),
       entry({
+        id: 'm2',
         datum: '2026-11-20',
         punkte: 11,
         schnitt: 10.33,
@@ -48,27 +51,58 @@ describe('createTrendTextModel', () => {
       })),
     ).toEqual([
       {
-        id: '0-2026-09-14-M',
+        id: 'm1',
         date: '14.09.2026',
         notenpunkte: '7 P.',
         average: '7 P.',
       },
       {
-        id: '1-2026-10-02-D',
+        id: 'd1',
         date: '02.10.2026',
         notenpunkte: '13 P.',
         average: '10 P.',
       },
       {
-        id: '2-2026-11-20-M',
+        id: 'm2',
         date: '20.11.2026',
         notenpunkte: '11 P.',
         average: '10,33 P.',
       },
     ]);
     expect(model.summary).toContain('gestiegen');
-    expect(model.summary).toContain('Niedrigster Einzelwert: 7 P.');
-    expect(model.summary).toContain('höchster Einzelwert: 13 P.');
+    expect(model.summary).toContain(
+      'Die niedrigste Note liegt bei 7\u00a0P., die höchste bei 13\u00a0P.',
+    );
+    // Der Punkt von „P.“ schließt den Satz.
+    expect(model.summary).toEndWith(
+      'der Gesamtschnitt heute bei 10,33\u00a0P.',
+    );
+  });
+
+  it('verortet die Note im Halbjahr und stellt der Sechsernote ihren Punktwert zur Seite', () => {
+    const [row] = createTrendTextModel([
+      entry({
+        fachKuerzel: 'D',
+        fachName: 'Deutsch',
+        punkte: 11,
+        notenwert: 2,
+        notensystem: 'sechser',
+        leistungsart: 'gfs',
+        klassenstufe: '10',
+        half: 2,
+      }),
+    ]).rows;
+
+    expect(row).toEqual({
+      id: 'm1',
+      halbjahr: '10.2',
+      leistungsart: 'GFS',
+      date: '14.09.2026',
+      fach: 'Deutsch',
+      note: '2',
+      notenpunkte: '11 P.',
+      average: '7 P.',
+    });
   });
 });
 
@@ -86,7 +120,7 @@ describe('createTrendTextModel ohne Schnitt', () => {
       '10 P.',
     ]);
     expect(model.summary).toContain('gestiegen');
-    expect(model.summary).toContain('aktueller Schnitt: 10 P.');
+    expect(model.summary).toEndWith('der Gesamtschnitt heute bei 10\u00a0P.');
   });
 
   it('sagt, dass noch kein Schnitt feststeht', () => {
@@ -95,44 +129,7 @@ describe('createTrendTextModel ohne Schnitt', () => {
     expect(model.summary).toStartWith(
       'Noch geht keine Note in einen Fachschnitt ein.',
     );
-    expect(model.summary).toContain('aktueller Schnitt: —.');
+    expect(model.summary).not.toContain('Gesamtschnitt heute');
     expect(model.summary).not.toContain('NaN');
-  });
-});
-
-describe('createTrendPointText', () => {
-  it('zeigt in einem Punkte-Halbjahr nur den Punktwert', () => {
-    expect(createTrendPointText(entry({ punkte: 11, notenwert: 11 }))).toEqual({
-      halbjahr: 'J1.1',
-      leistungsart: 'Klausur',
-      date: '14.09.2026',
-      fach: 'Mathematik',
-      note: '11 P.',
-      notenpunkte: null,
-    });
-  });
-
-  it('stellt der eingetragenen Sechsernote den Punktwert der Kurve zur Seite', () => {
-    expect(
-      createTrendPointText(
-        entry({
-          fachKuerzel: 'D',
-          fachName: 'Deutsch',
-          punkte: 11,
-          notenwert: 2,
-          notensystem: 'sechser',
-          leistungsart: 'gfs',
-          klassenstufe: '10',
-          half: 2,
-        }),
-      ),
-    ).toEqual({
-      halbjahr: '10.2',
-      leistungsart: 'GFS',
-      date: '14.09.2026',
-      fach: 'Deutsch',
-      note: '2',
-      notenpunkte: '11 P.',
-    });
   });
 });

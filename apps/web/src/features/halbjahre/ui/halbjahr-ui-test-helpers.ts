@@ -9,6 +9,7 @@ export const createHalbjahr = (
   notenCount = 0,
 ): HalbjahrWithNotenCount => ({
   endsOn: '2027-01-31',
+  gradedCount: notenCount,
   half,
   id,
   klassenstufe: '10',

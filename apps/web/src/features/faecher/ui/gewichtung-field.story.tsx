@@ -17,7 +17,7 @@ export const Standardgewichtung = ({
     gewichtungStateFrom,
   );
   return (
-    <main className="max-w-2xl p-4">
+    <main className="mx-auto max-w-[78rem] p-4">
       <GewichtungField onAction={dispatch} state={state} system={system} />
     </main>
   );

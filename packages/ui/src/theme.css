@@ -1,108 +1,356 @@
 /*
- * Punktlandung theme — warm, valuable, enduring.
+ * Punktlandung theme. Light is a school exercise book: pale blue paper,
+ * fountain-pen ink, the red of a teacher's pen for every Note of the current
+ * Halbjahr and the yellow of a folding rule for the scale. Dark is the
+ * blackboard: slate, chalk and the same yellow bar.
  * Single source of design values. Semantic names only.
  */
 
 @layer overrides {
   :root {
-    /* Warm neutrals — cream ground, warm ink. Never pure white or black. */
-    --pl-background: oklch(0.965 0.012 85);
-    --pl-surface: oklch(0.985 0.009 88);
-    --pl-surface-sunken: oklch(0.945 0.014 84);
-    --pl-ink: oklch(0.26 0.02 55);
-    --pl-ink-muted: oklch(0.45 0.022 58);
-    /* Dunkel genug für WCAG-AA-Kontrast (4,5:1) auf background und surface. */
-    --pl-ink-faint: oklch(0.51 0.02 62);
+    /* Ground and the sheet lying on it. Never pure white or black. */
+    --pl-paper: oklch(0.955 0.02 240);
+    --pl-sheet: oklch(0.992 0.004 240);
+    --pl-ink: oklch(0.27 0.075 268);
+    /* Dark enough for WCAG AA (4.5:1) on paper and sheet. */
+    --pl-ink-soft: oklch(0.44 0.06 265);
+    --pl-line: oklch(0.78 0.045 252);
+    --pl-line-soft: oklch(0.885 0.03 246);
 
-    /* Primary accent — forest green with depth and dignity. */
-    --pl-primary: oklch(0.42 0.09 155);
-    --pl-primary-strong: oklch(0.35 0.09 155);
-    --pl-on-primary: oklch(0.97 0.012 85);
-    --pl-primary-subtle: oklch(0.93 0.025 152);
+    /* The ruler: its body, the shaded Note blocks, its print and the Note numerals. */
+    --pl-ruler: oklch(0.89 0.17 96);
+    --pl-ruler-band: oklch(0.845 0.165 88);
+    --pl-ruler-ink: oklch(0.25 0.07 268);
+    --pl-ruler-note: oklch(0.43 0.17 30);
 
-    /* Warm secondary accent — aged brass, for contrast moments only. */
-    --pl-accent: oklch(0.58 0.11 75);
-    --pl-accent-subtle: oklch(0.92 0.035 80);
+    /* A Note of the current Halbjahr. A graphic colour, too light for text. */
+    --pl-note: oklch(0.62 0.21 32);
+    --pl-focus: oklch(0.5 0.25 272);
 
-    /* Judgement colors for grades and deltas. */
-    --pl-positive: oklch(0.5 0.1 155);
-    --pl-critical: oklch(0.5 0.15 30);
-    --pl-critical-subtle: oklch(0.93 0.03 30);
+    /* Older Halbjahre are ink that has faded: the further back, the paler. */
+    --pl-stratum-0: oklch(0.89 0.04 250);
+    --pl-stratum-1: oklch(0.82 0.065 254);
+    --pl-stratum-2: oklch(0.74 0.09 258);
+    --pl-stratum-3: oklch(0.65 0.12 262);
+    --pl-stratum-edge: oklch(0.27 0.075 268 / 0.5);
 
-    /* Hairlines and material depth. */
-    --pl-border: oklch(0.87 0.018 82);
-    --pl-border-strong: oklch(0.76 0.022 78);
-    --pl-shadow-card: 0 1px 2px oklch(0.3 0.02 60 / 0.08);
-    --pl-shadow-featured: 0 2px 12px oklch(0.3 0.02 60 / 0.14);
+    /* Something failed. Dark enough to carry text on paper and sheet. */
+    --pl-critical: oklch(0.48 0.19 28);
+    --pl-critical-soft: oklch(0.935 0.04 30);
+
+    /* The edge that sets a filled shape off from pale paper; slate needs none. */
+    --pl-edge: var(--pl-ink);
   }
 }
 
 @media (prefers-color-scheme: dark) {
   @layer overrides {
     :root {
-      /* Warm anthracite ground; depth from lightness steps, not glow. */
-      --pl-background: oklch(0.22 0.012 60);
-      --pl-surface: oklch(0.26 0.014 60);
-      --pl-surface-sunken: oklch(0.19 0.011 60);
-      --pl-ink: oklch(0.93 0.015 85);
-      --pl-ink-muted: oklch(0.75 0.018 80);
-      /* Hell genug für WCAG-AA-Kontrast auf den dunklen Flächen. */
-      --pl-ink-faint: oklch(0.68 0.016 75);
+      --pl-paper: oklch(0.262 0.03 252);
+      --pl-sheet: oklch(0.318 0.032 252);
+      --pl-ink: oklch(0.955 0.012 245);
+      --pl-ink-soft: oklch(0.79 0.03 250);
+      --pl-line: oklch(0.5 0.04 252);
+      --pl-line-soft: oklch(0.37 0.033 252);
 
-      /* Brightened emerald so the accent keeps its dignity on dark ground. */
-      --pl-primary: oklch(0.68 0.1 155);
-      --pl-primary-strong: oklch(0.76 0.1 152);
-      --pl-on-primary: oklch(0.2 0.02 60);
-      --pl-primary-subtle: oklch(0.31 0.035 155);
+      --pl-ruler: oklch(0.87 0.16 96);
+      --pl-ruler-band: oklch(0.815 0.155 88);
+      --pl-ruler-ink: oklch(0.24 0.06 268);
+      --pl-ruler-note: oklch(0.41 0.17 30);
 
-      --pl-accent: oklch(0.72 0.1 78);
-      --pl-accent-subtle: oklch(0.31 0.03 78);
+      --pl-note: oklch(0.74 0.165 35);
+      --pl-focus: oklch(0.84 0.12 240);
 
-      --pl-positive: oklch(0.7 0.1 155);
-      --pl-critical: oklch(0.68 0.13 32);
-      --pl-critical-subtle: oklch(0.3 0.04 30);
+      /* On the blackboard the older Halbjahre are chalk that has been wiped: dimmer. */
+      --pl-stratum-0: oklch(0.55 0.035 252);
+      --pl-stratum-1: oklch(0.63 0.04 250);
+      --pl-stratum-2: oklch(0.72 0.04 248);
+      --pl-stratum-3: oklch(0.82 0.035 246);
+      --pl-stratum-edge: transparent;
 
-      --pl-border: oklch(0.33 0.014 62);
-      --pl-border-strong: oklch(0.42 0.016 65);
-      --pl-shadow-card: none;
-      --pl-shadow-featured: none;
+      --pl-critical: oklch(0.8 0.12 30);
+      --pl-critical-soft: oklch(0.34 0.06 28);
+
+      --pl-edge: transparent;
     }
+  }
+}
+
+/*
+ * Light and dark follow the system. When the system changes while the app is
+ * open, the page is recoloured over a moment instead of swapped. A script
+ * cannot do that: the browser has drawn the new colours before it tells a
+ * script that the scheme changed. So every colour token above is registered
+ * as a colour, which lets the root element ease the tokens themselves, and
+ * each colour derived from them follows. A token that is added without being
+ * registered and listed here still works; it changes at once.
+ */
+@property --pl-paper {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-sheet {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-ink-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-line {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-line-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-ruler {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-ruler-band {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-ruler-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-ruler-note {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-note {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-focus {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-stratum-0 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-stratum-1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-stratum-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-stratum-3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-stratum-edge {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-critical {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-critical-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --pl-edge {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+/* Easing the colours is motion too, so it is left out where motion is reduced. */
+@media (prefers-reduced-motion: no-preference) {
+  @layer base {
+    :root {
+      transition-duration: 0.6s;
+      transition-property:
+        --pl-paper,
+        --pl-sheet,
+        --pl-ink,
+        --pl-ink-soft,
+        --pl-line,
+        --pl-line-soft,
+        --pl-ruler,
+        --pl-ruler-band,
+        --pl-ruler-ink,
+        --pl-ruler-note,
+        --pl-note,
+        --pl-focus,
+        --pl-stratum-0,
+        --pl-stratum-1,
+        --pl-stratum-2,
+        --pl-stratum-3,
+        --pl-stratum-edge,
+        --pl-critical,
+        --pl-critical-soft,
+        --pl-edge;
+      transition-timing-function: ease;
+    }
+  }
+}
+
+/*
+ * While the tokens ease, nothing eases on its own. A button or link with its
+ * own colour transition would start it again on every frame, towards a colour
+ * that keeps moving, and so stay behind the page for the whole change. The
+ * app marks the document for as long as the change takes.
+ */
+@layer overrides {
+  :root[data-recolouring] *,
+  :root[data-recolouring] *::before,
+  :root[data-recolouring] *::after {
+    transition-duration: 0s;
   }
 }
 
 @theme {
   /* Default palette off — semantic tokens below are the only colors. */
   --color-*: initial;
-  /* Square corners everywhere: the radius scale does not exist. */
+  --shadow-*: initial;
+
+  /*
+   * Corners are square. Only what stands for a Note is round, so there is no
+   * radius token: `rounded-full` is the one radius utility left.
+   */
   --radius-*: initial;
 
-  --font-display: "Spectral", "Iowan Old Style", Georgia, serif;
-  --font-sans:
-    "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+  /* One family for words and figures: B612 was drawn to be read off instruments. */
+  --font-*: initial;
+  --font-sans: "B612", "Helvetica Neue", Arial, sans-serif;
+
+  /* The type scale. Body text is `base`; controls use `ui`. */
+  --text-*: initial;
+  --text-2xs: 0.71875rem;
+  --text-2xs--line-height: 1.3;
+  --text-xs: 0.78125rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.84375rem;
+  --text-sm--line-height: 1.45;
+  --text-ui: 0.9375rem;
+  --text-ui--line-height: 1.2;
+  --text-base: 0.96875rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.25;
+  --text-xl: 1.1875rem;
+  --text-xl--line-height: 1.25;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 2.125rem;
+  --text-3xl--line-height: 1.1;
+  --text-4xl: 2.875rem;
+  --text-4xl--line-height: 1.1;
+  --text-5xl: 4.75rem;
+  --text-5xl--line-height: 0.82;
+
+  /* One breakpoint: below it the app is laid out for a phone. */
+  --breakpoint-*: initial;
+  --breakpoint-desk: 51.3125rem;
 
   /* The single easing curve. */
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-*: initial;
+  --ease-standard: cubic-bezier(0.3, 0, 0.1, 1);
 
-  --shadow-card: var(--pl-shadow-card);
-  --shadow-featured: var(--pl-shadow-featured);
+  --animate-*: initial;
+  /* Something is being sent or fetched. */
+  --animate-spin: spin 1s linear infinite;
+  /* A row that was just saved is marked the way a Heft marks it: with the yellow marker. */
+  --animate-marked: marked 1.6s var(--ease-standard);
+  /* A panel that opens in place eases in instead of appearing. */
+  --animate-eases-in: eases-in 0.22s var(--ease-standard) backwards;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes marked {
+    0%,
+    30% {
+      background-color: var(--pl-ruler);
+      color: var(--pl-ruler-ink);
+    }
+
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes eases-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
 }
 
 @theme inline {
-  --color-background: var(--pl-background);
-  --color-surface: var(--pl-surface);
-  --color-surface-sunken: var(--pl-surface-sunken);
+  --color-paper: var(--pl-paper);
+  --color-sheet: var(--pl-sheet);
   --color-ink: var(--pl-ink);
-  --color-ink-muted: var(--pl-ink-muted);
-  --color-ink-faint: var(--pl-ink-faint);
-  --color-primary: var(--pl-primary);
-  --color-primary-strong: var(--pl-primary-strong);
-  --color-on-primary: var(--pl-on-primary);
-  --color-primary-subtle: var(--pl-primary-subtle);
-  --color-accent: var(--pl-accent);
-  --color-accent-subtle: var(--pl-accent-subtle);
-  --color-positive: var(--pl-positive);
+  --color-ink-soft: var(--pl-ink-soft);
+  --color-line: var(--pl-line);
+  --color-line-soft: var(--pl-line-soft);
+  --color-ruler: var(--pl-ruler);
+  --color-ruler-band: var(--pl-ruler-band);
+  --color-ruler-ink: var(--pl-ruler-ink);
+  --color-ruler-note: var(--pl-ruler-note);
+  --color-note: var(--pl-note);
+  --color-focus: var(--pl-focus);
+  --color-stratum-0: var(--pl-stratum-0);
+  --color-stratum-1: var(--pl-stratum-1);
+  --color-stratum-2: var(--pl-stratum-2);
+  --color-stratum-3: var(--pl-stratum-3);
+  --color-stratum-edge: var(--pl-stratum-edge);
   --color-critical: var(--pl-critical);
-  --color-critical-subtle: var(--pl-critical-subtle);
-  --color-border: var(--pl-border);
-  --color-border-strong: var(--pl-border-strong);
+  --color-critical-soft: var(--pl-critical-soft);
+  --color-edge: var(--pl-edge);
 }

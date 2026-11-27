@@ -11,8 +11,9 @@ import { calculateTrend } from './trend-calculation.ts';
 
 /**
  * Alle benoteten Leistungen über alle Halbjahre, mit toNotenpunkte
- * normalisiert und mit laufendem gewichtetem Gesamtschnitt — die Datenreihe
- * der Verlaufslinie. Ausstehende Leistungen haben noch keinen Punkt.
+ * normalisiert, mit laufendem gewichtetem Gesamtschnitt und ihrem Anteil am
+ * heutigen: die Punkte auf der Skala der Übersicht und ihr Verlauf.
+ * Ausstehende Leistungen haben noch keinen Punkt.
  */
 export const loadTrend = Effect.gen(function* () {
   const db = yield* PgDrizzle;
@@ -42,16 +43,19 @@ export const loadTrend = Effect.gen(function* () {
         ? []
         : [
             {
+              id: note.id,
               date: note.takenOn,
               notenpunkte: toNotenpunkte(Number(note.value), halbjahr.system),
               notenwert: Number(note.value),
               notensystem: halbjahr.system,
               individualGewichtung: Number(note.weight),
+              fachId: fach.id,
               fachSnapshotId: `${halbjahr.schoolYear}:${fach.id}`,
               fachShortName: fach.shortName,
               fachName: fach.name,
               leistungsart: note.kind,
               fachGewichtung: fach.gewichtung,
+              halbjahrId: halbjahr.id,
               klassenstufe: halbjahr.klassenstufe,
               half: halbjahr.half,
             },

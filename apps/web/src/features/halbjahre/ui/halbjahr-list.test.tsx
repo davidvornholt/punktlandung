@@ -15,6 +15,18 @@ import {
   textOf,
 } from './halbjahr-ui-test-helpers.ts';
 
+const today = '2026-11-26';
+
+/** What a list needs beside the Halbjahre and the deletion under test. */
+const listProps = {
+  highlightId: null,
+  looks: new Map(),
+  onDelete: () => undefined,
+  onEdit: () => undefined,
+  onHighlight: () => undefined,
+  today,
+} as const;
+
 const rowProps = (
   halbjahr: HalbjahrWithNotenCount,
   decision: HalbjahrDeletionDecision,
@@ -28,12 +40,17 @@ const rowProps = (
   decision,
   halbjahr,
   isFinalInSchoolYear: true,
+  keepsDeletePlace: true,
   deletionError: null,
   isDeleting: false,
   isDeletionInProgress: false,
+  highlighted: false,
+  look: 'current',
+  today,
   onEdit: () => undefined,
   onDecisionChange,
   onDelete,
+  onHighlight: () => undefined,
 });
 
 const renderRow = (
@@ -89,7 +106,7 @@ describe('HalbjahrList deletion interaction', () => {
       decisionChange,
     );
     const buttons = collectElements(confirmedRow, 'button');
-    const cancel = buttons.find((button) => textOf(button) === 'Abbrechen');
+    const cancel = buttons.find((button) => textOf(button) === 'Behalten');
     if (cancel === undefined) {
       throw new Error('Expected the cancel button');
     }
@@ -163,8 +180,7 @@ describe('HalbjahrList deletion rendering', () => {
           isPending: true,
           variables: 'first',
         }}
-        onEdit={() => undefined}
-        onDelete={() => undefined}
+        {...listProps}
       />,
     );
 
@@ -188,15 +204,18 @@ describe('HalbjahrList deletion rendering', () => {
         <HalbjahrList
           halbjahre={[createHalbjahr('target', 1, notenCount)]}
           deletion={mutation}
-          onEdit={() => undefined}
-          onDelete={() => undefined}
+          {...listProps}
         />,
       );
 
-    expect(render(0)).toContain('aria-label="Löschen"');
+    const reason = 'Löschen lässt sich nur ein leeres Halbjahr.';
+    const empty = render(0);
+    expect(empty).toContain('aria-label="Löschen"');
+    expect(empty).not.toContain(reason);
     const refreshed = render(2);
     expect(refreshed).not.toContain('aria-label="Löschen"');
-    expect(refreshed).toContain('Enthält 2 Noten');
+    expect(refreshed).toContain('2 Noten');
+    expect(refreshed).toContain(reason);
     expect(refreshed).toContain('role="alert"');
   });
 });

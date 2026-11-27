@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import type { UpcomingLeistung } from '../services/upcoming-calculation.ts';
-import {
-  fachschnittText,
-  overdueHeading,
-  tageBisText,
-} from './upcoming-text.ts';
+import { sinceText, whenText } from './upcoming-text.ts';
 
 const leistung = (
   overrides: Partial<UpcomingLeistung> = {},
@@ -13,7 +9,9 @@ const leistung = (
   id: 'k1',
   kind: 'klausur',
   datum: '2026-09-19',
+  notiz: null,
   tageBis: 6,
+  anteil: 1 / 3,
   fachId: 'mathe',
   fachName: 'Mathematik',
   fachKuerzel: 'M',
@@ -24,29 +22,15 @@ const leistung = (
   ...overrides,
 });
 
-describe('tageBisText', () => {
-  it('nennt nahe Tage beim Namen und zählt sonst', () => {
-    expect(tageBisText(0)).toBe('heute');
-    expect(tageBisText(1)).toBe('morgen');
-    expect(tageBisText(6)).toBe('in 6 Tagen');
-    expect(tageBisText(-1)).toBe('gestern');
-    expect(tageBisText(-10)).toBe('vor 10 Tagen');
-  });
-});
+const overdue = leistung({ datum: '2026-09-03', tageBis: -10 });
 
 describe('Texte einer ausstehenden Leistung', () => {
-  it('zeigt den Fachschnitt im System des Halbjahrs oder sagt, dass er fehlt', () => {
-    expect(fachschnittText(leistung())).toBe('Schnitt 11 P.');
-    expect(
-      fachschnittText(leistung({ system: 'sechser', fachschnitt: 2.25 })),
-    ).toBe('Schnitt 2,25');
-    expect(fachschnittText(leistung({ fachschnitt: null }))).toBe(
-      'noch kein Schnitt',
-    );
+  it('nennt Wochentag, Datum und den Anteil am Fachschnitt', () => {
+    expect(whenText(leistung())).toBe('Sa 19.09. · zählt 33 %');
   });
 
-  it('beugt die Nachfrage nach fehlenden Noten', () => {
-    expect(overdueHeading(1)).toBe('Eine Note fehlt noch');
-    expect(overdueHeading(3)).toBe('3 Noten fehlen noch');
+  it('sagt, seit wann eine Note fehlt', () => {
+    expect(sinceText(overdue)).toBe('seit 10 Tagen');
+    expect(sinceText(leistung({ tageBis: -1 }))).toBe('seit gestern');
   });
 });

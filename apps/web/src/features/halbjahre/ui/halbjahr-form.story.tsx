@@ -100,3 +100,23 @@ export const KlassenstufeCorrection = () => {
     </div>
   );
 };
+
+/** A Halbjahr whose dates leave the official ones: both date fields are open. */
+export const AbweichenderZeitraum = () => {
+  const formRef = useRef<HTMLFormElement>(null);
+  return (
+    <main className="p-4">
+      <HalbjahrForm
+        error={null}
+        formRef={formRef}
+        halbjahr={{ ...erstesHalbjahr, startsOn: '2026-09-14' }}
+        halbjahre={[{ ...erstesHalbjahr, startsOn: '2026-09-14' }]}
+        onCancel={() => undefined}
+        onSave={() => undefined}
+        pending={false}
+        title="Halbjahr bearbeiten"
+        today="2026-11-26"
+      />
+    </main>
+  );
+};

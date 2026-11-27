@@ -1,8 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <title>Punktlandung</title>
-  <!-- A dot landing on a line, in the pl-primary and pl-on-primary colors of packages/ui/src/theme.css. -->
-  <!-- favicon.ico (16 and 32 px) and apple-touch-icon.png (180 px) are rendered from this file. -->
-  <rect width="32" height="32" fill="#185b37"/>
-  <circle cx="16" cy="14" r="6" fill="#f9f5ec"/>
-  <path fill="#f9f5ec" d="M4 20h24v2H4z"/>
+  <!-- The mark of shared/ui/brand-mark.tsx, drawn heavier and on whole pixels of a 16 px grid: a Note has landed on the ruler, over the wedge the ruler balances on. -->
+  <!-- The colours are note, ruler and ink of packages/ui/src/theme.css in sRGB: light as attributes, dark in the style. -->
+  <!-- favicon.ico (16 and 32 px) cannot follow the colour scheme, and ink vanishes on dark browser chrome. So it carries its own ground: a square tile of paper (rect 32x32, #e5f2fd; corners are square, as everywhere in the app) with this drawing in its light colours one pixel smaller on each side (circle 20 8 r 6, rect 3 15 26x6, path M20 22l6 8h-12z). apple-touch-icon.png (180 px) is the brand mark on paper. -->
+  <style>
+    @layer scheme {
+      @media (prefers-color-scheme: dark) {
+        circle {
+          fill: rgb(255 127 95);
+        }
+
+        rect {
+          fill: rgb(244 211 64);
+          stroke: rgb(244 211 64);
+        }
+
+        path {
+          fill: rgb(234 241 248);
+        }
+      }
+    }
+  </style>
+  <circle cx="21" cy="7" r="7" fill="#e94024"/>
+  <rect x="1" y="15" width="30" height="6" fill="#fcd936" stroke="#17234b" stroke-width="2"/>
+  <path fill="#17234b" d="M21 22l6 10h-12z"/>
 </svg>

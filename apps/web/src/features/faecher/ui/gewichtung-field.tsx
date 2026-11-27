@@ -15,8 +15,9 @@ import {
   bereichDerLeistungsart,
   wertungsbereiche,
 } from '#/shared/noten/notenwert.ts';
-import { labelClass } from '#/shared/ui/form-classes.ts';
+import { hintClass } from '#/shared/ui/form-classes.ts';
 import { CalculationExample } from './calculation-example.tsx';
+import { artDisc } from './gewichtung-figure-model.ts';
 import type { GewichtungAction, GewichtungState } from './gewichtung-model.ts';
 import { gewichtungAffectsAverage } from './gewichtung-model.ts';
 import type { RowControl } from './gewichtung-row.tsx';
@@ -49,6 +50,8 @@ const controlFor = (kind: Leistungsart, state: GewichtungState): RowControl => {
   };
 };
 
+const groupTitleClass = 'pt-5 pb-2 font-bold text-ink-soft text-sm';
+
 const LeistungsartList = ({
   arten,
   state,
@@ -63,6 +66,7 @@ const LeistungsartList = ({
       <GewichtungRow
         art={state.gewichtung.arten[kind]}
         control={controlFor(kind, state)}
+        disc={artDisc(state.gewichtung, kind)}
         key={kind}
         kind={kind}
         onAction={onAction}
@@ -82,9 +86,9 @@ const WertungsbereichGroup = ({
   readonly state: GewichtungState;
   readonly onAction: (action: GewichtungAction) => void;
 }) => (
-  <div className="mt-5">
-    <p className={labelClass}>
-      {bereichTitel[bereich]} · {percent} %
+  <div>
+    <p className={groupTitleClass}>
+      {bereichTitel[bereich]} · {percent}&nbsp;%
     </p>
     <LeistungsartList
       arten={leistungsartReihenfolge.filter(
@@ -96,7 +100,11 @@ const WertungsbereichGroup = ({
   </div>
 );
 
-/** Das Gewichtungsfeld des Fachformulars — die verkündete Regel als Eingabe. */
+/**
+ * Das Gewichtungsfeld des Fachformulars: links die verkündete Regel als
+ * Eingabe, rechts das Rechenbeispiel, an dem jede Änderung sofort zu sehen
+ * ist. In einer schmalen Spalte steht das Beispiel unter der Eingabe.
+ */
 export const GewichtungField = ({
   state,
   system,
@@ -109,39 +117,47 @@ export const GewichtungField = ({
   const { verhaeltnis } = state.gewichtung;
   const percent = verhaeltnis === null ? null : verhaeltnisProzent(verhaeltnis);
   return (
-    <fieldset className="mt-5 border border-border p-4">
-      <legend className={`${labelClass} px-1`}>Gewichtung</legend>
-      <p className="text-ink-muted text-sm">
-        Trage ein, was die Lehrkraft verkündet hat — etwa „60:40
-        schriftlich:mündlich“ oder „alle Tests zusammen zählen wie eine
-        Klausur“.
-      </p>
-      <div className="mt-3">
-        <VerhaeltnisChoice onAction={onAction} verhaeltnis={verhaeltnis} />
-      </div>
-      {percent === null ? (
-        <div className="mt-5">
-          <LeistungsartList
-            arten={leistungsartReihenfolge}
-            onAction={onAction}
-            state={state}
-          />
+    <div className="@container">
+      <div className="grid @min-[60rem]:grid-cols-[minmax(0,1fr)_34.5rem] @min-[60rem]:gap-x-8 gap-y-7">
+        <fieldset className="@container min-w-0">
+          <legend className="font-bold text-lg">Gewichtung</legend>
+          <p className={`mt-1 max-w-[60ch] ${hintClass}`}>
+            Trage ein, was die Lehrkraft verkündet hat, etwa „60:40
+            schriftlich:mündlich“ oder „alle Tests zusammen zählen wie eine
+            Klausur“.
+          </p>
+          <div className="mt-4">
+            <VerhaeltnisChoice onAction={onAction} verhaeltnis={verhaeltnis} />
+          </div>
+          {percent === null ? (
+            <div>
+              <p className={groupTitleClass}>Was eine Note wiegt</p>
+              <LeistungsartList
+                arten={leistungsartReihenfolge}
+                onAction={onAction}
+                state={state}
+              />
+            </div>
+          ) : (
+            wertungsbereiche.map((bereich) => (
+              <WertungsbereichGroup
+                bereich={bereich}
+                key={bereich}
+                onAction={onAction}
+                percent={percent[bereich]}
+                state={state}
+              />
+            ))
+          )}
+          <p className="border-line-soft border-t pt-3 text-ink-soft text-sm">
+            <span className="font-bold text-ink">So zählt das Fach:</span>{' '}
+            {gewichtungsSaetze(state.gewichtung).join(', ')}.
+          </p>
+        </fieldset>
+        <div className="@min-[60rem]:sticky @min-[60rem]:top-24 @min-[60rem]:self-start bg-paper desk:p-5 p-4">
+          <CalculationExample gewichtung={state.gewichtung} system={system} />
         </div>
-      ) : (
-        wertungsbereiche.map((bereich) => (
-          <WertungsbereichGroup
-            bereich={bereich}
-            key={bereich}
-            onAction={onAction}
-            percent={percent[bereich]}
-            state={state}
-          />
-        ))
-      )}
-      <p className="mt-4 text-ink-muted text-sm">
-        {gewichtungsSaetze(state.gewichtung).join(' · ')}
-      </p>
-      <CalculationExample gewichtung={state.gewichtung} system={system} />
-    </fieldset>
+      </div>
+    </div>
   );
 };

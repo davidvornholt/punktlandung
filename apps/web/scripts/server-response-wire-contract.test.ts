@@ -82,6 +82,7 @@ describe('server response wire contract', () => {
       ]);
       expect(keys(halbjahr)).toEqual([
         'endsOn',
+        'gradedCount',
         'half',
         'id',
         'klassenstufe',
@@ -106,11 +107,15 @@ describe('server response wire contract', () => {
       expect(keys(note.gewichtung)).toEqual(['arten', 'verhaeltnis']);
       expect(keys(trend)).toEqual([
         'datum',
+        'fachId',
         'fachKuerzel',
         'fachName',
+        'halbjahrId',
         'half',
+        'id',
         'klassenstufe',
         'leistungsart',
+        'mass',
         'notensystem',
         'notenwert',
         'punkte',
@@ -118,6 +123,7 @@ describe('server response wire contract', () => {
       ]);
       expect(keys(zeugnis)).toEqual([
         'gesamtschnitt',
+        'gesamtschnittWert',
         'jahresvorschau',
         'label',
         'schoolYear',
@@ -130,7 +136,10 @@ describe('server response wire contract', () => {
         'anzeige',
         'archived',
         'fachId',
+        'fachKuerzel',
         'fachName',
+        'halbjahresnote',
+        'schnitt',
       ]);
       expect(
         keys(required(zeugnis.jahresvorschau?.[0], 'Jahresvorschauzeile')),

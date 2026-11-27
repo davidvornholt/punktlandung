@@ -1,8 +1,10 @@
 import { gewichtungLimits } from '#/shared/noten/fach-gewichtung.ts';
 import { leistungsartLabel } from '#/shared/noten/leistungsart-text.ts';
 import type { Artgewichtung, Leistungsart } from '#/shared/noten/notenwert.ts';
-import { inputClass } from '#/shared/ui/form-classes.ts';
+import { hintClass, inputClass } from '#/shared/ui/form-classes.ts';
 import { Checkbox, Radio } from '#/shared/ui/form-controls.tsx';
+import { ArtGlyph } from './gewichtung-figure.tsx';
+import type { ArtDisc } from './gewichtung-figure-model.ts';
 import type { GewichtungAction } from './gewichtung-model.ts';
 
 /**
@@ -23,8 +25,6 @@ export type RowControl =
     }
   | { readonly type: 'collection'; readonly coupled: boolean };
 
-const choiceClass = 'flex items-center gap-2 text-ink text-sm';
-
 const GewichtungInput = ({
   kind,
   art,
@@ -34,9 +34,10 @@ const GewichtungInput = ({
   readonly art: Artgewichtung;
   readonly onAction: (action: GewichtungAction) => void;
 }) => (
-  <label className={`${choiceClass} text-ink-muted`}>
+  <label className="flex items-center gap-2 text-ink-soft text-sm">
     <span aria-hidden={true}>Gewicht ×</span>
-    <span className="block w-20">
+    {/* The shared input class brings the margin that separates a field from its label above; here the label stands beside it. */}
+    <span className="block w-20 [&>input]:mt-0">
       <input
         aria-label={`Gewicht für ${leistungsartLabel[kind]}`}
         className={inputClass}
@@ -69,7 +70,7 @@ const SammlungChoice = ({
   readonly coupled: boolean;
   readonly onAction: (action: GewichtungAction) => void;
 }) => (
-  <fieldset className="space-y-2">
+  <fieldset className="space-y-2.5">
     <legend className="sr-only">Sammlung für Test</legend>
     <Radio
       checked={coupled}
@@ -116,7 +117,13 @@ const Control = ({
   if (control.type === 'weight') {
     return control.effective ? (
       <GewichtungInput art={art} kind={kind} onAction={onAction} />
-    ) : null;
+    ) : (
+      <p className={hintClass}>
+        {kind === 'klausur'
+          ? 'Braucht kein eigenes Gewicht, solange GFS und Tests wie eine Klausur zählen.'
+          : 'Braucht kein eigenes Gewicht, solange Sonstiges wie eine mündliche Note zählt.'}
+      </p>
+    );
   }
   return (
     <>
@@ -135,25 +142,31 @@ const Control = ({
   );
 };
 
-/** Eine Leistungsart im Gewichtungsfeld. */
+/**
+ * Eine Leistungsart im Gewichtungsfeld. Die Scheibe vor ihrem Namen zeigt,
+ * was eine ihrer Noten neben den anderen wiegt, und wächst mit dem Gewicht.
+ */
 export const GewichtungRow = ({
   kind,
   art,
   control,
+  disc,
   onAction,
 }: {
   readonly kind: Leistungsart;
   readonly art: Artgewichtung;
   readonly control: RowControl;
+  readonly disc: ArtDisc | undefined;
   readonly onAction: (action: GewichtungAction) => void;
 }) => (
-  <fieldset className="border-border border-t py-3 first:border-t-0">
+  <fieldset className="border-line-soft border-t py-3">
     <legend className="sr-only">{leistungsartLabel[kind]}</legend>
-    <div className="sm:grid sm:grid-cols-[7rem_1fr] sm:gap-4">
-      <p aria-hidden={true} className="font-semibold text-ink text-sm">
+    <div className="grid @min-[26rem]:grid-cols-[8.25rem_minmax(0,1fr)] gap-x-4 gap-y-2">
+      <p aria-hidden={true} className="flex items-center gap-2 font-bold">
+        {disc === undefined ? null : <ArtGlyph disc={disc} />}
         {leistungsartLabel[kind]}
       </p>
-      <div className="mt-2 space-y-2 sm:mt-0">
+      <div className="flex min-h-[2.625rem] flex-col justify-center gap-2.5">
         <Control art={art} control={control} kind={kind} onAction={onAction} />
       </div>
     </div>

@@ -3,31 +3,141 @@
 /* biome-ignore lint/nursery/useLayeredStyles: The imported stylesheet declares its own cascade layers. */
 @import "@punktlandung/ui/theme.css";
 
-@import "@fontsource/spectral/400.css" layer(base);
-@import "@fontsource/spectral/500.css" layer(base);
-@import "@fontsource/spectral/600.css" layer(base);
-@import "@fontsource/spectral/700.css" layer(base);
-@import "@fontsource-variable/hanken-grotesk" layer(base);
+@import "@fontsource/b612/400.css" layer(base);
+@import "@fontsource/b612/700.css" layer(base);
 
-@layer overrides {
-  * {
-    box-sizing: border-box;
+/* biome-ignore lint/nursery/useLayeredStyles: The imported stylesheet declares its own cascade layer. */
+@import "./shared/ui/ruler/ruler.css";
+/* biome-ignore lint/nursery/useLayeredStyles: The imported stylesheet declares its own cascade layer. */
+@import "./shared/ui/shell.css";
+/* biome-ignore lint/nursery/useLayeredStyles: The imported stylesheet declares its own cascade layer. */
+@import "./features/noten/ui/overview.css";
+
+@layer base {
+  :root {
+    color-scheme: light dark;
   }
-}
 
-@layer overrides {
   html,
   body,
   #app {
     min-block-size: 100%;
   }
-}
 
-@layer overrides {
+  html {
+    /*
+     * What a link, the keyboard focus or a calendar that opens scrolls into
+     * view clears the sticky top bar, and on a phone the tab bar with the
+     * strip of paper above it.
+     */
+    scroll-padding-block: 5rem calc(6.5rem + env(safe-area-inset-bottom));
+  }
+
   body {
     margin: 0;
-    background-color: var(--pl-background);
+    background-color: var(--pl-paper);
     color: var(--pl-ink);
     font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    /* Figures keep their column, so a changing Schnitt does not make the line jump. */
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (width >= 51.3125rem) {
+    html {
+      scroll-padding-block-end: 1rem;
+    }
+
+    body {
+      font-size: 0.96875rem;
+    }
+  }
+
+  :focus-visible {
+    outline: 2.5px solid var(--pl-focus);
+    outline-offset: 2px;
+  }
+
+  svg text {
+    fill: var(--pl-ink);
+    font-family: var(--font-sans);
+  }
+
+  /* The marker a `<details>` draws is replaced by the app's own chevron. */
+  summary {
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+@layer base {
+  /* The page under a transition stays usable: a click is never swallowed by the moving picture. */
+  ::view-transition {
+    pointer-events: none;
+  }
+
+  /*
+   * One page has all but left before the next arrives. Fading both at once
+   * shows two layouts through each other for a moment, which reads as a smear.
+   */
+  ::view-transition-old(root) {
+    animation: page-leaves 0.1s ease-in both;
+  }
+
+  ::view-transition-new(root) {
+    animation: page-arrives 0.24s var(--ease-standard) 0.06s both;
+  }
+
+  @keyframes page-leaves {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes page-arrives {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  ::view-transition-group(nav-disc),
+  ::view-transition-group(tab-disc) {
+    animation-duration: 0.34s;
+    animation-timing-function: var(--ease-standard);
+  }
+
+  /* A disc keeps its identity between pages; see disc-travel.ts. */
+  ::view-transition-group(disc) {
+    animation-duration: 0.48s;
+    animation-timing-function: var(--ease-standard);
+  }
+}
+
+/*
+ * This rule must win over every transition and animation declared above and
+ * by utilities. The `overrides` layer is the last one declared, so it does,
+ * without `!important`.
+ */
+@layer overrides {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms;
+      transition-duration: 0.01ms;
+    }
+
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none;
+    }
   }
 }

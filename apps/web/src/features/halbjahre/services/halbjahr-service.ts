@@ -34,10 +34,13 @@ export type Halbjahr = typeof halbjahrTable.$inferSelect;
 
 /**
  * Ein Halbjahr mit der Anzahl seiner Noten: Sie entscheidet, ob es noch
- * gelöscht werden darf, und gehört deshalb schon in die Liste.
+ * gelöscht werden darf, und gehört deshalb schon in die Liste. `notenCount`
+ * zählt auch geplante Leistungen, deren Note noch aussteht; `gradedCount`
+ * nur die, die ihre Note schon haben.
  */
 export type HalbjahrWithNotenCount = Halbjahr & {
   readonly notenCount: number;
+  readonly gradedCount: number;
 };
 
 const halbjahrOccupancyConstraint = 'term_school_year_half_unique';
@@ -151,6 +154,8 @@ export const listHalbjahre = Effect.gen(function* () {
     .select({
       ...getTableColumns(halbjahrTable),
       notenCount: count(noteTable.id),
+      // `count` of a column leaves out its nulls, and a Note that is still awaited has no value.
+      gradedCount: count(noteTable.value),
     })
     .from(halbjahrTable)
     .leftJoin(noteTable, eq(noteTable.termId, halbjahrTable.id))

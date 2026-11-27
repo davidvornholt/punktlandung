@@ -1,42 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
 
-import type { Notensystem } from '#/shared/noten/notenwert.ts';
-import { notenKey } from '#/shared/query/query-keys.ts';
-import { useFormFocus } from '#/shared/ui/form-focus.ts';
+import { errorPanelClass } from '#/shared/ui/form-classes.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
-import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
-import type { Leistung } from '../services/noten-service.ts';
-import { NoteForm } from './note-form.tsx';
-import { NotenCards } from './noten-cards.tsx';
+import { NotenChooser } from './noten-chooser.tsx';
 import {
-  closeIfSaved,
-  emptyNotenHint,
-  noUpdateErrors,
-  updateErrorText,
-  withNote,
-  withoutNote,
-} from './noten-list-model.ts';
-import { notenMutationOptions } from './noten-mutations.ts';
-import type { NotenOperations } from './noten-operations.ts';
-import { usePendingUpdates } from './use-pending-updates.ts';
-
-type Halbjahr = {
-  readonly id: string;
-  readonly system: Notensystem;
-  readonly startsOn: string;
-  readonly endsOn: string;
-};
-
-type FachList = ReadonlyArray<{
-  readonly id: string;
-  readonly name: string;
-}>;
+  type FachSectionContext,
+  NotenFachSection,
+} from './noten-fach-section.tsx';
+import type { FachGroup } from './noten-list-model.ts';
+import { type NotenListProps, useNotenList } from './noten-list-state.ts';
 
 /**
- * A failed refresh keeps the list already shown, so an open edit stays mounted
- * with its unsaved input; this banner says the list may be out of date.
+ * A failed refresh keeps the list already shown, so an open entry stays
+ * mounted with what was typed; this says the list may be out of date.
  */
 const RefreshError = ({
   show,
@@ -46,7 +22,7 @@ const RefreshError = ({
   readonly onRetry: () => Promise<unknown>;
 }) =>
   show ? (
-    <div className="mt-6">
+    <div className="mb-6">
       <QueryError
         onRetry={onRetry}
         text="Die Notenliste konnte nicht aktualisiert werden. Angezeigt wird der zuletzt geladene Stand; prüfe die Verbindung und versuche es erneut."
@@ -54,146 +30,122 @@ const RefreshError = ({
     </div>
   ) : null;
 
-export const NotenList = ({
-  halbjahr,
-  faecher,
-  operations,
-}: {
-  readonly halbjahr: Halbjahr;
-  readonly faecher: FachList;
-  readonly operations: NotenOperations;
-}) => {
-  const queryClient = useQueryClient();
-  const notenQuery = useQuery({
-    queryFn: () => operations.list(halbjahr.id),
-    queryKey: notenKey(halbjahr.id),
-  });
-  const [editTarget, setEditTarget] = useState<Leistung | null>(null);
-  const [updateErrors, setUpdateErrors] = useState(noUpdateErrors);
-  const [deleteErrors, setDeleteErrors] = useState(noUpdateErrors);
-  const focus = useFormFocus<HTMLElement>(editTarget?.id ?? null);
-
-  const forgetUpdateError = (id: string) =>
-    setUpdateErrors((errors) => withoutNote(errors, id));
-
-  const options = notenMutationOptions({
-    halbjahrId: halbjahr.id,
-    /*
-     * Mit der gelöschten Zeile verschwindet ihr Löschknopf; ohne das
-     * Auffangziel fiele der Fokus auf <body>.
-     */
-    onDeleted: (id) => {
-      forgetUpdateError(id);
-      focus.fallbackTriggerRef.current?.focus();
-    },
-    onUpdated: (id) => setEditTarget(closeIfSaved(id)),
-    onUpdateFailed: (id, error) =>
-      setUpdateErrors((errors) => withNote(errors, id, error)),
-    operations,
-    queryClient,
-  });
-  const deleteMutation = useMutation({
-    ...options.delete,
-    onError: (error: unknown, id: string) =>
-      setDeleteErrors((errors) => withNote(errors, id, error)),
-  });
-  const { updateMutation, editPending } = usePendingUpdates(
-    options.update,
-    editTarget,
+/** A new Note that failed after its entry was closed has no row and no form to say so. */
+const LostCreate = ({ fachName }: { readonly fachName: string | null }) =>
+  fachName === null ? null : (
+    <p className={`${errorPanelClass} mb-6`} role="alert">
+      Die neue Note{fachName === '' ? '' : ` in ${fachName}`} wurde nicht
+      gespeichert. Trage sie noch einmal ein.
+    </p>
   );
 
+/**
+ * On a phone the Fächer stand below each other with bar and list, which is a
+ * long way to scroll. This strip stays under the top bar and goes to a Fach.
+ */
+const FachStrip = ({
+  groups,
+  onJump,
+}: {
+  readonly groups: ReadonlyArray<FachGroup>;
+  readonly onJump: (fachId: string) => void;
+}) => (
+  <nav
+    aria-label="Fächer dieser Seite"
+    className="sticky top-13 z-10 -mx-4 desk:hidden border-line-soft border-b bg-paper"
+  >
+    <ul className="flex gap-1.5 overflow-x-auto px-4 py-2">
+      {groups.map((group) => (
+        <li className="flex-none" key={group.id}>
+          <button
+            // What answers a finger is higher than the button looks, so the strip stays low.
+            className="relative min-h-9 min-w-10 border-[1.5px] border-line px-2 font-bold text-sm transition-colors duration-100 ease-standard after:absolute after:-inset-x-[3px] after:-inset-y-1.5 hover:border-ink active:bg-sheet"
+            onClick={() => onJump(group.id)}
+            type="button"
+          >
+            {group.kuerzel}
+            {/* The name follows the Kürzel, so a voice command that says what is printed still finds the button. */}
+            <span className="sr-only">, {group.name}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  </nav>
+);
+
+/** As many Fächer as fit on a phone's screen without a way to jump between them. */
+const fewFaecher = 2;
+
+/**
+ * The Noten of a Halbjahr, Fach by Fach: each with the bar its Noten lie on
+ * and the list of them. A Note is entered and changed on the bar of its Fach.
+ */
+export const NotenList = (props: NotenListProps) => {
+  const { halbjahr, link, today } = props;
+  const list = useNotenList(props);
   /*
-   * Auffangziel für den Fokus: der Zeilenknopf, der das Formular geöffnet hat,
+   * Auffangziel für den Fokus: der Knopf, der einen Eintrag geöffnet hat,
    * verschwindet mit dem Neuabruf, wenn die Note ihr Fach gewechselt hat oder
    * gelöscht wurde. Ohne dieses Ziel landete der Fokus auf <body>. Der
-   * Abschnitt trägt deshalb jeden Zustand der Liste: wer ihre letzte Note
-   * löscht, sieht danach die leere Liste — und das Auffangziel muss auch dann
-   * noch dastehen.
+   * Abschnitt trägt deshalb jeden Zustand der Liste.
    */
   const shell = (children: ReactNode) => (
-    <section
-      aria-label="Notenliste"
-      ref={focus.fallbackTriggerRef}
-      tabIndex={-1}
-    >
+    <section aria-label="Notenliste" ref={list.regionRef} tabIndex={-1}>
+      <p className="sr-only" role="status">
+        {list.writes.announcement}
+      </p>
       {children}
     </section>
   );
-
-  const noten = notenQuery.data;
-  if (notenQuery.isPending) {
+  if (list.isPending) {
+    return shell(<LoadingHint text="Notenliste wird geladen …" />);
+  }
+  if (list.noten === undefined) {
     return shell(
-      <div className="mt-6">
-        <LoadingHint text="Notenliste wird geladen …" />
-      </div>,
+      <QueryError
+        onRetry={list.retry}
+        text="Die Notenliste konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+      />,
     );
   }
-  const retry = retryWithFocus(
-    () => notenQuery.refetch(),
-    focus.fallbackTriggerRef,
-  );
-  if (noten === undefined) {
-    return shell(
-      <div className="mt-6">
-        <QueryError
-          onRetry={retry}
-          text="Die Notenliste konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
-        />
-      </div>,
-    );
-  }
+  const { open, writes } = list;
+  const context: FachSectionContext = {
+    halbjahr,
+    today,
+    link,
+    deleteErrors: writes.deleteErrors,
+    deleteMutation: writes.deleteMutation,
+    savedErrors: writes.savedErrors,
+    landedId: list.landed,
+    onAdd: list.add,
+    onDelete: writes.remove,
+    onEdit: list.edit,
+  };
   return shell(
     <>
-      <RefreshError onRetry={retry} show={notenQuery.isError} />
-      {noten.length === 0 ? (
-        <div className="mt-6 border border-border bg-surface-sunken p-6">
-          <p className="text-ink-muted">{emptyNotenHint(faecher.length > 0)}</p>
-        </div>
-      ) : (
-        <NotenCards
-          deleteErrors={deleteErrors}
-          deleteMutation={deleteMutation}
-          editNoteId={editTarget?.id ?? null}
-          editPending={editPending}
-          form={
-            editTarget === null ? null : (
-              <NoteForm
-                error={updateErrorText(updateErrors.get(editTarget.id))}
-                faecher={faecher}
-                formRef={focus.formRef}
-                halbjahr={halbjahr}
-                key={editTarget.id}
-                note={editTarget}
-                onCancel={() => setEditTarget(null)}
-                onSave={(values) => {
-                  forgetUpdateError(editTarget.id);
-                  updateMutation.mutate({ ...values, id: editTarget.id });
-                }}
-                pending={editPending}
-              />
-            )
-          }
-          noten={noten}
-          onDelete={(id) => {
-            setDeleteErrors((errors) => withoutNote(errors, id));
-            deleteMutation.mutate(id);
-          }}
-          onEdit={(note, trigger) => {
-            focus.rememberTrigger(trigger);
-            /*
-             * Wer eine gescheiterte Note erneut öffnet, hat den Fehler gesehen;
-             * er darf weder das frische Formular noch die wieder geschlossene
-             * Zeile weiter behaupten.
-             */
-            if (note !== null) {
-              forgetUpdateError(note.id);
-            }
-            setEditTarget(note);
-          }}
+      <RefreshError onRetry={list.retry} show={list.isError} />
+      <LostCreate fachName={writes.lostCreate} />
+      {open?.kind === 'choose' && list.selectable.length > 0 ? (
+        <NotenChooser
+          groups={list.selectable}
+          moving={open.carry?.leistung ?? null}
+          onCancel={list.cancelChoice}
+          onPick={list.pick}
           system={halbjahr.system}
-          updateErrors={updateErrors}
+          today={today}
         />
-      )}
+      ) : null}
+      {list.groups.length > fewFaecher ? (
+        <FachStrip groups={list.groups} onJump={list.jump} />
+      ) : null}
+      {list.groups.map((group) => (
+        <NotenFachSection
+          context={context}
+          entry={list.entryFor(group)}
+          group={group}
+          key={group.id}
+        />
+      ))}
     </>,
   );
 };

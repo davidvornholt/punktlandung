@@ -6,9 +6,10 @@ export const PendingForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [calls, setCalls] = useState(0);
   return (
-    <div>
+    <div className="mx-auto max-w-[78rem] desk:px-6 px-4 py-6">
       <FachForm
-        title="Fach bearbeiten"
+        title="Neues Fach"
+        scope="Gilt für das Schuljahr 2026/27."
         fach={null}
         system="sechser"
         pending={pending}

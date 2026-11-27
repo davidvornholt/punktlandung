@@ -20,6 +20,7 @@ const operations: HalbjahrOperations = {
 
 const halbjahr: HalbjahrWithNotenCount = {
   endsOn: '2027-01-31',
+  gradedCount: 0,
   half: 1,
   id: 'target',
   klassenstufe: '10',

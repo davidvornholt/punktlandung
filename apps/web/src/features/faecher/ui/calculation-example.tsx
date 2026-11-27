@@ -1,84 +1,73 @@
-import type { FachEvaluation } from '#/shared/noten/fach-aggregation.ts';
-import { evaluateFach, sammelnote } from '#/shared/noten/fach-aggregation.ts';
-import { verhaeltnisProzent } from '#/shared/noten/gewichtung-text.ts';
-import {
-  leistungsartPlural,
-  leistungsartReihenfolge,
-} from '#/shared/noten/leistungsart-text.ts';
-import type {
-  Assessment,
-  Fachgewichtung,
-  Leistungsart,
-  Notensystem,
-} from '#/shared/noten/notenwert.ts';
-import { toNotenpunkte } from '#/shared/noten/notenwert.ts';
-import { formatNote } from '#/shared/noten/zeugnisnote.ts';
+import { ArrowRight } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
-const sehrGut = 1;
-const gut = 2;
-const befriedigend = 3;
+import type { Fachgewichtung, Notensystem } from '#/shared/noten/notenwert.ts';
+import { hintClass } from '#/shared/ui/form-classes.ts';
+import { iconStroke } from '#/shared/ui/icon.ts';
+import { flag } from '#/shared/ui/ruler/disc-look.ts';
+import { Ruler } from '#/shared/ui/ruler/ruler.tsx';
+import type { ExampleRow } from './calculation-example-model.ts';
+import { calculationExample } from './calculation-example-model.ts';
+
+/** The example Noten are not dated, so no disc hangs lower for being near. */
+const noDate = '2000-01-01';
+
+const cellClass = 'border-line-soft border-t py-2 align-baseline';
+
+/** The arrow from the Noten of a Sammlung to the one Note they count as, at the size of the text. */
+const arrowSize = 14;
+
+const ExampleRowView = ({
+  highlightId,
+  onHighlight,
+  row,
+}: {
+  readonly highlightId: string | null;
+  readonly onHighlight: (id: string | null) => void;
+  readonly row: ExampleRow;
+}) => (
+  <tr>
+    <th className={`${cellClass} pr-3 text-left font-bold`} scope="row">
+      {row.label}
+    </th>
+    <td className={`${cellClass} pr-3`}>
+      <span className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+        {row.noten.map((note, index) => (
+          <span className="flex items-baseline gap-x-1.5" key={note.id}>
+            {index === 0 ? null : <span aria-hidden="true">·</span>}
+            <span
+              className="-mx-0.5 whitespace-nowrap px-0.5 transition-colors duration-150 ease-standard data-marked:bg-ruler data-marked:text-ruler-ink"
+              data-marked={flag(note.id === highlightId)}
+              onPointerEnter={() => onHighlight(note.id)}
+              onPointerLeave={() => onHighlight(null)}
+            >
+              {note.text}
+            </span>
+          </span>
+        ))}
+        {row.sammelnote === null ? null : (
+          <span className="inline-flex items-center gap-1 self-center whitespace-nowrap text-ink-soft">
+            <ArrowRight
+              aria-hidden={true}
+              size={arrowSize}
+              strokeWidth={iconStroke}
+            />
+            <span className="sr-only">zusammen</span>
+            {row.sammelnote}
+          </span>
+        )}
+      </span>
+    </td>
+    <td className={`${cellClass} whitespace-nowrap text-right`}>{row.share}</td>
+  </tr>
+);
 
 /**
- * Erfundene Noten, an denen die eingestellte Gewichtung sofort sichtbar wird:
- * mehrere Tests gegen wenige Klausuren, damit die Sammelregel etwas ändert.
- * Notiert in der Sechserskala; für die Kursstufe rechnet die amtliche Formel
- * sie um, damit beide Varianten dieselbe Leistung zeigen.
+ * Shows on made-up Noten what the Gewichtung being edited calculates: the
+ * Noten lie on the ruler as they would on the Noten page, a disc's area is
+ * the share its Note counts, and the fulcrum stands under the Schnitt. The
+ * table under the figure says the same in figures.
  */
-const exampleNoten: Readonly<Record<Leistungsart, ReadonlyArray<number>>> = {
-  klausur: [gut, befriedigend],
-  test: [gut, gut, befriedigend],
-  muendlich: [gut],
-  gfs: [sehrGut],
-  sonstige: [befriedigend],
-};
-
-const inSystem = (note: number, system: Notensystem): number =>
-  system === 'punkte' ? toNotenpunkte(note, 'sechser') : note;
-
-const roundingFactor = 100;
-
-const formatNumber = (value: number): string =>
-  `${Math.round(value * roundingFactor) / roundingFactor}`.replace('.', ',');
-
-const assessments = (
-  system: Notensystem,
-  kind: Leistungsart,
-): ReadonlyArray<Assessment> =>
-  exampleNoten[kind].map((note) => ({
-    notenwert: inSystem(note, system),
-    individualGewichtung: 1,
-    leistungsart: kind,
-  }));
-
-const leistungsartLine = (
-  system: Notensystem,
-  kind: Leistungsart,
-  gewichtung: Fachgewichtung,
-): string => {
-  const noten = assessments(system, kind);
-  const list = `${leistungsartPlural[kind]} ${noten.map((note) => formatNumber(note.notenwert)).join(', ')}`;
-  const collected =
-    gewichtung.arten[kind].sammlung === 'gesammelt' && noten.length > 1
-      ? sammelnote(noten)
-      : null;
-  return collected === null ? list : `${list} → ${formatNumber(collected)}`;
-};
-
-const wertungsbereichLine = (
-  gewichtung: Fachgewichtung,
-  evaluation: FachEvaluation,
-  system: Notensystem,
-): string | null => {
-  if (gewichtung.verhaeltnis === null) {
-    return null;
-  }
-  const percent = verhaeltnisProzent(gewichtung.verhaeltnis);
-  const formatPart = (value: number | null) =>
-    value === null ? '—' : formatNote(value, system);
-  return `Schriftlich ${formatPart(evaluation.schriftlichAverage)} (${percent.schriftlich} %) · mündlich ${formatPart(evaluation.muendlichAverage)} (${percent.muendlich} %)`;
-};
-
-/** Zeigt an erfundenen Noten, was die eingestellte Gewichtung ausrechnet. */
 export const CalculationExample = ({
   gewichtung,
   system,
@@ -86,30 +75,64 @@ export const CalculationExample = ({
   readonly gewichtung: Fachgewichtung;
   readonly system: Notensystem;
 }) => {
-  const all = leistungsartReihenfolge.flatMap((kind) => [
-    ...assessments(system, kind),
-  ]);
-  const evaluation = evaluateFach(all, gewichtung);
-  const wertungsbereiche = wertungsbereichLine(gewichtung, evaluation, system);
+  const example = useMemo(
+    () => calculationExample(gewichtung, system),
+    [gewichtung, system],
+  );
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   return (
-    <div className="mt-4 border border-border bg-surface-sunken px-3 py-2 text-sm">
-      <p className="font-semibold text-ink">Rechenbeispiel</p>
-      <p className="mt-1 text-ink-muted">
-        {leistungsartReihenfolge
-          .map((kind) => leistungsartLine(system, kind, gewichtung))
-          .join(' · ')}
+    <section aria-label="Rechenbeispiel">
+      <h4 className="font-bold text-lg">Rechenbeispiel</h4>
+      <p className={`mt-1 ${hintClass}`}>
+        Acht erfundene Noten, gerechnet mit dieser Gewichtung. Die Fläche einer
+        Scheibe zeigt, wie viel die Note zählt.
       </p>
-      {wertungsbereiche === null ? null : (
-        <p className="mt-1 text-ink-muted">{wertungsbereiche}</p>
-      )}
-      <p className="mt-1 text-ink">
-        Schnitt{' '}
-        <span className="font-semibold">
-          {evaluation.average === null
-            ? '—'
-            : formatNote(evaluation.average, system)}
-        </span>
+      <Ruler
+        className="mt-3"
+        highlightId={highlightId}
+        label={example.summary}
+        model={example.ruler}
+        onHighlight={setHighlightId}
+        system={system}
+        today={noDate}
+        variant="bench"
+      />
+      <table className="mt-3 w-full border-collapse text-sm">
+        <caption className="sr-only">
+          Die Noten des Rechenbeispiels und ihr Anteil am Schnitt
+        </caption>
+        <thead>
+          <tr className="text-ink-soft text-xs">
+            <th className="pb-1.5 text-left font-normal" scope="col">
+              Leistungsart
+            </th>
+            <th className="pb-1.5 text-left font-normal" scope="col">
+              Noten
+            </th>
+            <th className="pb-1.5 text-right font-normal" scope="col">
+              Zählt
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {example.rows.map((row) => (
+            <ExampleRowView
+              highlightId={highlightId}
+              key={row.kind}
+              onHighlight={setHighlightId}
+              row={row}
+            />
+          ))}
+        </tbody>
+      </table>
+      <p className="border-line-soft border-t pt-2.5 text-sm">
+        {example.wertungsbereiche === null ? null : (
+          <span className="block text-ink-soft">
+            {example.wertungsbereiche}
+          </span>
+        )}
+        Schnitt <span className="font-bold">{example.schnitt}</span>
       </p>
-    </div>
+    </section>
   );
 };

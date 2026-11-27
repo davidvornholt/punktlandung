@@ -45,6 +45,7 @@ const row = (
   wert: null,
   gewicht: 1,
   datum,
+  notiz: null,
   ...overrides,
 });
 
@@ -64,7 +65,22 @@ describe('calculateUpcoming', () => {
     ]);
   });
 
-  it('ordnet die Klausur mit dem größeren Anteil vor dem Test, obwohl er früher ist', () => {
+  it('reiht Bevorstehendes nach Termin und am selben Tag das Gewichtigere zuerst', () => {
+    const result = upcoming([
+      row('m-k1', 'mathe', '2026-09-19'),
+      row('e-t1', 'englisch', '2026-09-16', { kind: 'test' }),
+      row('e-k3', 'englisch', '2026-09-19'),
+      row('e-k1', 'englisch', '2026-09-01', { wert: 12 }),
+      row('e-k2', 'englisch', '2026-09-05', { wert: 10 }),
+    ]);
+    expect(result.upcoming.map((entry) => entry.id)).toEqual([
+      'e-t1',
+      'm-k1',
+      'e-k3',
+    ]);
+  });
+
+  it('nennt den Anteil, den die Note unter allen Leistungen des Fachs haben wird', () => {
     const result = upcoming([
       row('m-k1', 'mathe', '2026-09-19'),
       row('e-t1', 'englisch', '2026-09-16', { kind: 'test' }),
@@ -72,8 +88,19 @@ describe('calculateUpcoming', () => {
       row('e-k1', 'englisch', '2026-09-01', { wert: 12 }),
       row('e-k2', 'englisch', '2026-09-05', { wert: 10 }),
     ]);
-    // Mathe: 1/(6+1) ≈ 0,143. Englisch-Test: (1/3)/(3+1) ≈ 0,083.
-    expect(result.upcoming.map((entry) => entry.id)).toEqual(['m-k1', 'e-t1']);
+    const anteilOf = (id: string) =>
+      result.upcoming.find((entry) => entry.id === id)?.anteil;
+    expect(anteilOf('m-k1')).toBe(1);
+    expect(anteilOf('e-t1')).toBeCloseTo(1 / 3, 10);
+  });
+
+  it('reicht die Notiz der Leistung durch', () => {
+    const result = upcoming([
+      row('m-k1', 'mathe', '2026-09-19', { notiz: 'Analysis' }),
+      row('m-k0', 'mathe', '2026-09-01'),
+    ]);
+    expect(result.upcoming[0]?.notiz).toBe('Analysis');
+    expect(result.overdue[0]?.notiz).toBeNull();
   });
 
   it('zeigt den Fachschnitt nur aus benoteten Leistungen des Fachs', () => {

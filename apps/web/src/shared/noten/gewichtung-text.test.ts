@@ -33,7 +33,7 @@ describe('gewichtungsZeile', () => {
       ...standardgewichtung,
       verhaeltnis: { schriftlich: 3, muendlich: 1 },
     });
-    expect(zeile).toStartWith('Schriftlich 75 % : mündlich 25 %');
+    expect(zeile).toStartWith('Schriftlich 75\u00a0% : mündlich 25\u00a0%');
   });
 
   it('beschreibt abweichende Gewichte statt sie zu verschweigen', () => {

@@ -3,7 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { ListMutation } from '#/shared/ui/list-mutation.ts';
 import type { Leistung } from '../services/noten-service.ts';
-import { NotenCards } from './noten-cards.tsx';
+import {
+  type FachSectionContext,
+  NotenFachSection,
+} from './noten-fach-section.tsx';
+import { PlainLeistungLink } from './noten-links.story-fixtures.tsx';
+import type { FachGroup } from './noten-list-model.ts';
 
 const delayedRejection = () => {
   let reject: (error: unknown) => void = () => undefined;
@@ -41,54 +46,64 @@ const note = (id: string): Leistung => ({
   wert: 2,
 });
 
-/** Keine Zeile trägt hier einen Änderungsfehler. */
-const noUpdateErrors: ReadonlyMap<string, unknown> = new Map();
+const group: FachGroup = {
+  id: 'mathematik',
+  name: 'Mathematik',
+  kuerzel: 'M',
+  gewichtung: standardgewichtung,
+  archived: false,
+  leistungen: [note('A'), note('B')],
+};
 
-/** Zwei Zeilen; der laufende Vorgang sperrt in jeder Bearbeiten und Löschen. */
-const lockedNoteButtons = 2 * 2;
+const section = (
+  deleteMutation: ListMutation<string>,
+  deleteErrors: ReadonlyMap<string, unknown>,
+) => {
+  const context: FachSectionContext = {
+    halbjahr: {
+      system: 'sechser',
+      startsOn: '2025-08-01',
+      endsOn: '2026-01-31',
+    },
+    today: '2026-01-10',
+    link: PlainLeistungLink,
+    deleteErrors,
+    deleteMutation,
+    savedErrors: new Map(),
+    landedId: null,
+    onAdd: () => undefined,
+    onDelete: () => undefined,
+    onEdit: () => undefined,
+  };
+  return renderToStaticMarkup(
+    <NotenFachSection context={context} entry={null} group={group} />,
+  );
+};
 
-it('NotenCards sperrt B während A und kündigt As verzögerten Fehler an', async () => {
+/**
+ * Was der laufende Vorgang sperrt: in Zeile A das Behalten, denn die Frage
+ * steht dort noch und ließe sich sonst zurücknehmen, während schon gelöscht
+ * wird; in Zeile B Bearbeiten und Löschen.
+ */
+const lockedButtons = 1 + 2;
+
+/** Die Zeile A und ihr Löschknopf, an dem „Wird gelöscht …“ steht. */
+const busyParts = 2;
+
+it('Der Fachabschnitt sperrt B während A und kündigt As verzögerten Fehler an', async () => {
   const delay = delayedRejection();
   const runFromA = delay.result.catch((cause: unknown) => cause);
-  const noten = [note('A'), note('B')];
-  const pendingMarkup = renderToStaticMarkup(
-    <NotenCards
-      deleteErrors={new Map()}
-      deleteMutation={pending}
-      editNoteId={null}
-      editPending={false}
-      form={null}
-      noten={noten}
-      onDelete={() => undefined}
-      onEdit={() => undefined}
-      system="sechser"
-      updateErrors={noUpdateErrors}
-    />,
-  );
+  const pendingMarkup = section(pending, new Map());
 
-  expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(lockedNoteButtons);
-  expect(pendingMarkup.match(/aria-busy="true"/gu)).toHaveLength(1);
+  expect(pendingMarkup.match(/disabled=""/gu)).toHaveLength(lockedButtons);
+  expect(pendingMarkup.match(/aria-busy="true"/gu)).toHaveLength(busyParts);
+  expect(pendingMarkup).toContain('<li aria-busy="true"');
 
   delay.reject(new Error('A ist fehlgeschlagen'));
   const error = await runFromA;
-  const errorMarkup = renderToStaticMarkup(
-    <NotenCards
-      deleteErrors={new Map([['A', error]])}
-      deleteMutation={{
-        error,
-        isError: true,
-        isPending: false,
-        variables: 'A',
-      }}
-      editNoteId={null}
-      editPending={false}
-      form={null}
-      noten={noten}
-      onDelete={() => undefined}
-      onEdit={() => undefined}
-      system="sechser"
-      updateErrors={noUpdateErrors}
-    />,
+  const errorMarkup = section(
+    { error, isError: true, isPending: false, variables: 'A' },
+    new Map([['A', error]]),
   );
   const position = errorPosition(errorMarkup);
   expect(position.targetA).toBeGreaterThanOrEqual(0);

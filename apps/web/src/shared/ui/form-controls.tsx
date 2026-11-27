@@ -2,19 +2,19 @@ import type { ReactNode } from 'react';
 import { useId } from 'react';
 
 /**
- * Auswahlfelder auf Basis nativer Inputs. `appearance-none` ersetzt allein die
- * Zeichnung durch Designsystem-Token — Tastaturbedienung, Gruppensemantik über
- * `name` und die Rolle für Screenreader bleiben die des Browsers. Im
- * erzwungenen Kontrastmodus fällt die Darstellung auf die Systemzeichnung
- * zurück, damit die Felder dort sichtbar bleiben.
+ * Choice fields on native inputs. `appearance-none` replaces only the drawing
+ * with design tokens: keyboard use, grouping by `name` and the role for screen
+ * readers stay the browser's. In forced-colours mode the drawing falls back to
+ * the system's, so the fields stay visible there.
  */
 
-const wahlKlasse = 'flex items-center gap-2 text-ink text-sm';
+/* A line of text is a pixel lower than the 24px a pointer target needs at least. */
+const choiceClass = 'flex min-h-6 items-center gap-2.5 text-ink';
 
 const controlClass =
-  'size-4 shrink-0 appearance-none border border-border-strong transition-colors duration-150 ease-standard checked:border-primary checked:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary forced-colors:appearance-auto';
+  'size-[1.125rem] shrink-0 cursor-pointer appearance-none border-[1.5px] border-ink bg-paper transition-colors duration-150 ease-standard forced-colors:appearance-auto';
 
-/** Eckig und mit Haken — sichtbar verschieden vom gefüllten Radiofeld. */
+/** A square with a tick: visibly different from the round radio button. */
 export const Checkbox = ({
   checked,
   children,
@@ -24,23 +24,24 @@ export const Checkbox = ({
   readonly children: ReactNode;
   readonly onChange: (checked: boolean) => void;
 }) => (
-  <label className={wahlKlasse}>
+  <label className={choiceClass}>
     <span className="relative inline-flex">
       <input
         checked={checked}
-        className={`peer ${controlClass} bg-surface`}
-        onChange={(ereignis) => onChange(ereignis.currentTarget.checked)}
+        className={`peer ${controlClass} checked:bg-ink`}
+        onChange={(event) => onChange(event.currentTarget.checked)}
         type="checkbox"
       />
       <svg
         aria-hidden={true}
-        className="pointer-events-none absolute inset-0 size-4 stroke-on-primary opacity-0 transition-opacity duration-150 ease-standard peer-checked:opacity-100 forced-colors:hidden"
+        className="pointer-events-none absolute inset-0 size-[1.125rem] stroke-paper opacity-0 transition-opacity duration-150 ease-standard peer-checked:opacity-100 forced-colors:hidden"
         fill="none"
-        strokeLinecap="square"
-        strokeWidth={2}
-        viewBox="0 0 16 16"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2.25}
+        viewBox="0 0 18 18"
       >
-        <path d="M4 8.5 7 11.5 12 5" />
+        <path d="M4.5 9.5 7.75 12.5 13.5 5.5" />
       </svg>
     </span>
     {children}
@@ -48,9 +49,9 @@ export const Checkbox = ({
 );
 
 /**
- * Eckiger Rahmen mit kleiner Füllung für die exklusive Auswahl. Eine
- * `description` erklärt die Option unter ihrem Namen und ist dem Feld über
- * `aria-describedby` zugeordnet, damit der Name selbst kurz bleibt.
+ * A ring that fills with a disc, for the exclusive choice. A `description`
+ * explains the option under its name and belongs to the field through
+ * `aria-describedby`, so the name itself stays short.
  */
 export const Radio = ({
   checked,
@@ -68,11 +69,11 @@ export const Radio = ({
   const descriptionId = useId();
   const described = description !== undefined;
   return (
-    <label className={described ? `${wahlKlasse} items-start` : wahlKlasse}>
+    <label className={described ? `${choiceClass} items-start` : choiceClass}>
       <input
         aria-describedby={described ? descriptionId : undefined}
         checked={checked}
-        className={`${controlClass} bg-clip-content p-1 ${described ? 'mt-0.5' : ''}`}
+        className={`${controlClass} rounded-full bg-clip-content p-[3px] checked:bg-ink ${described ? 'mt-0.5' : ''}`}
         name={name}
         onChange={onSelect}
         type="radio"
@@ -80,7 +81,7 @@ export const Radio = ({
       {described ? (
         <span className="flex flex-col gap-0.5">
           <span>{children}</span>
-          <span className="text-ink-muted" id={descriptionId}>
+          <span className="text-ink-soft text-sm" id={descriptionId}>
             {description}
           </span>
         </span>

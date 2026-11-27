@@ -1,179 +1,83 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { type ReactNode, useRef } from 'react';
 
+import { zeugnisKey } from '#/shared/query/query-keys.ts';
 import { LoadingHint, QueryError } from '#/shared/ui/query-state.tsx';
 import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
-import { zeugnisQueryOptions } from '../server/zeugnis-fns.ts';
 import type { Zeugnis } from '../services/zeugnis-service.ts';
-import { fachLabel } from './zeugnis-text.ts';
+import { ZeugnisSheet } from './zeugnis-sheet.tsx';
 
-const Jahresvorschau = ({ zeugnis }: { readonly zeugnis: Zeugnis }) =>
-  zeugnis.jahresvorschau === null ? null : (
-    <section className="mt-8">
-      <h3 className="font-display text-ink text-xl tracking-tight">
-        Jahresvorschau {zeugnis.schoolYear}
-      </h3>
-      <p className="mt-1 text-ink-muted text-sm">
-        Nicht bindende Orientierung aus allen Leistungen beider Halbjahre unter
-        den verkündeten Gewichtungen. Die offizielle Zeugnisnote ist eine
-        pädagogisch-fachliche Gesamtwertung und keine rein mathematische Note.
-      </p>
-      <table className="mt-3 w-full border-collapse">
-        <thead>
-          <tr className="border-border border-b text-left">
-            <th
-              className="py-2 pr-3 text-ink-faint text-xs uppercase tracking-widest"
-              scope="col"
-            >
-              Fach
-            </th>
-            <th
-              className="py-2 text-ink-faint text-xs uppercase tracking-widest"
-              scope="col"
-            >
-              Vorschau
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {zeugnis.jahresvorschau.map((row) => (
-            <tr className="border-border border-b" key={row.fachId}>
-              <th
-                className="py-2 pr-3 text-left font-normal text-ink"
-                scope="row"
-              >
-                {fachLabel(row)}
-              </th>
-              <td className="py-2">
-                <span className="font-display text-ink text-xl">
-                  {row.note}
-                </span>
-                {row.grenzfall ? (
-                  <span className="ml-3 border border-critical bg-critical-subtle px-2 py-0.5 text-ink text-xs uppercase tracking-widest">
-                    * Grenzfall — pädagogisches Ermessen
-                  </span>
-                ) : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
-  );
-
-/** Das Zeugnisblatt: formale Vorschau eines Halbjahreszeugnisses. */
+/**
+ * Loads the Zeugnis of a Halbjahr and shows it. While another Halbjahr is
+ * being loaded the one shown stays, set back, so the page does not jump; the
+ * new one then arrives as a new sheet, with its discs landing.
+ *
+ * The server call comes in as `load`, so the sheet needs no server runtime
+ * and its loading and failing can be shown in a story.
+ */
 export const Zeugnisblatt = ({
   halbjahrId,
+  load,
+  today,
 }: {
   readonly halbjahrId: string;
+  readonly load: (halbjahrId: string) => Promise<Zeugnis>;
+  /** ISO date. */
+  readonly today: string;
 }) => {
-  const zeugnisQuery = useQuery(zeugnisQueryOptions(halbjahrId));
+  const zeugnisQuery = useQuery({
+    queryKey: zeugnisKey(halbjahrId),
+    queryFn: () => load(halbjahrId),
+    placeholderData: keepPreviousData,
+  });
   const zeugnis = zeugnisQuery.data;
+  const loadingNext = zeugnisQuery.isPlaceholderData;
   const sectionRef = useRef<HTMLElement>(null);
   const shell = (children: ReactNode) => (
-    <section aria-label="Zeugnisvorschau" ref={sectionRef} tabIndex={-1}>
+    <section
+      aria-busy={loadingNext}
+      aria-label="Zeugnisvorschau"
+      ref={sectionRef}
+      tabIndex={-1}
+    >
       {children}
     </section>
   );
 
   if (zeugnisQuery.isPending) {
-    return shell(
-      <div className="mt-6">
-        <LoadingHint text="Zeugnis wird berechnet …" />
-      </div>,
-    );
+    return shell(<LoadingHint text="Zeugnis wird berechnet …" />);
   }
   const retry = retryWithFocus(() => zeugnisQuery.refetch(), sectionRef);
-  // Scheitert nur ein Neuladen, bleibt die zuletzt berechnete Vorschau stehen.
+  // When only a reload fails, the Zeugnis computed last stays.
   if (zeugnis === undefined) {
     return shell(
-      <div className="mt-6">
-        <QueryError
-          onRetry={retry}
-          text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
-        />
-      </div>,
+      <QueryError
+        onRetry={retry}
+        text="Das Zeugnis konnte nicht berechnet werden. Prüfe die Verbindung und versuche es erneut."
+      />,
     );
   }
 
   return shell(
     <>
       {zeugnisQuery.isError ? (
-        <div className="mt-6">
+        <div className="mb-6">
           <QueryError
             onRetry={retry}
             text="Das Zeugnis konnte nicht aktualisiert werden. Angezeigt wird die zuletzt berechnete Vorschau; prüfe die Verbindung und versuche es erneut."
           />
         </div>
       ) : null}
-      <article className="mt-6 border border-border-strong bg-surface p-6 shadow-featured sm:p-8">
-        <header className="border-border-strong border-b pb-4 text-center">
-          <p className="text-ink-faint text-xs uppercase tracking-widest">
-            Zeugnisvorschau
-          </p>
-          <h2 className="mt-1 font-display text-2xl text-ink tracking-tight">
-            Halbjahr {zeugnis.label} · {zeugnis.schoolYear}
-          </h2>
-        </header>
-        <table className="mt-4 w-full border-collapse">
-          <thead>
-            <tr className="border-border border-b text-left">
-              <th
-                className="py-2 pr-3 text-ink-faint text-xs uppercase tracking-widest"
-                scope="col"
-              >
-                Fach
-              </th>
-              <th
-                className="py-2 pr-3 text-ink-faint text-xs uppercase tracking-widest"
-                scope="col"
-              >
-                Noten
-              </th>
-              <th
-                className="py-2 text-ink-faint text-xs uppercase tracking-widest"
-                scope="col"
-              >
-                Halbjahresnote
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {zeugnis.zeilen.map((row) => (
-              <tr className="border-border border-b" key={row.fachId}>
-                <th
-                  className="py-2 pr-3 text-left font-normal text-ink"
-                  scope="row"
-                >
-                  {fachLabel(row)}
-                </th>
-                <td className="py-2 pr-3 text-ink-muted text-sm">
-                  {row.anzahlNoten}
-                </td>
-                <td className="py-2 font-display text-ink text-xl">
-                  {row.anzeige ?? '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-6 flex items-baseline justify-between">
-          <span className="text-ink-faint text-xs uppercase tracking-widest">
-            Schnitt aller Halbjahresnoten
-          </span>
-          <span className="font-display text-4xl text-ink tracking-tight">
-            {zeugnis.gesamtschnitt ?? '—'}
-          </span>
+      {loadingNext ? (
+        <p className="sr-only" role="status">
+          Zeugnis wird berechnet …
         </p>
-        {zeugnis.zeilen.length === 0 ? (
-          <div className="mt-4 border border-border bg-surface-sunken p-4">
-            <p className="text-ink-muted">
-              Ohne Fächer bleibt das Zeugnisblatt leer. Lege zuerst Fächer an.
-            </p>
-          </div>
-        ) : null}
-        <Jahresvorschau zeugnis={zeugnis} />
-      </article>
+      ) : null}
+      <div
+        className={`transition-opacity duration-150 ease-standard ${loadingNext ? 'opacity-45' : ''}`}
+      >
+        <ZeugnisSheet key={zeugnis.termId} today={today} zeugnis={zeugnis} />
+      </div>
     </>,
   );
 };

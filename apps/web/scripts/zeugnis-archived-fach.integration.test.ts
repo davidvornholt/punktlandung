@@ -104,26 +104,36 @@ describe('Archivierte Fächer im Zeugnis', () => {
         {
           fachId: 'mathe',
           fachName: 'Mathematik',
+          fachKuerzel: 'mathe',
           archived: false,
+          schnitt: 2,
+          halbjahresnote: 2,
           anzeige: '2',
           anzahlNoten: 1,
         },
         {
           fachId: 'deutsch',
           fachName: 'Deutsch',
+          fachKuerzel: 'deutsch',
           archived: false,
+          schnitt: null,
+          halbjahresnote: null,
           anzeige: null,
           anzahlNoten: 0,
         },
         {
           fachId: 'latein',
           fachName: 'Latein',
+          fachKuerzel: 'latein',
           archived: true,
+          schnitt: 3.5,
+          halbjahresnote: 3.5,
           anzeige: '3-4',
           anzahlNoten: 2,
         },
       ]);
       expect(zeugnis.gesamtschnitt).toBe('2,75');
+      expect(zeugnis.gesamtschnittWert).toBe(2.75);
     }));
 
   it('zeigt ein archiviertes Fach in dem Halbjahr, in dem es Noten hat', () =>
