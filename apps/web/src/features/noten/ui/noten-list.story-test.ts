@@ -187,6 +187,8 @@ it('fragt vor dem Löschen nach und behält die Note auf Wunsch', async ({
   await expect(row).toContainText('Klausur vom 14.09. löschen?');
   const keep = row.getByRole('button', { name: 'Behalten' });
   await expect(keep).toBeFocused();
+  // Wer mit der Tastatur dort landet, hört, was gelöscht würde.
+  await expect(keep).toHaveAccessibleDescription('Klausur vom 14.09. löschen?');
   await keep.click();
 
   await expect(noteValue(row)).toHaveText('2');

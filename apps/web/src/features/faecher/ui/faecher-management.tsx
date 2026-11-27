@@ -19,6 +19,7 @@ import { determineQueryState } from '#/shared/ui/query-state-model.ts';
 import { retryWithFocus } from '#/shared/ui/refresh-retry.ts';
 import type { FachFields } from '../schemas/fach-schema.ts';
 import type { Fach } from '../services/fach-service.ts';
+import { useArchiving } from './fach-archiving.ts';
 import { FachForm } from './fach-form.tsx';
 import { FachList } from './fach-list.tsx';
 import { fachMutationOptions } from './fach-mutations.ts';
@@ -175,6 +176,25 @@ const SectionHead = ({
   </div>
 );
 
+/** A Schuljahr without a Fach: what a Fach is for, and the one action. */
+const NoFaecher = ({
+  children,
+  schoolYear,
+}: {
+  /** "Fach anlegen". */
+  readonly children: ReactNode;
+  readonly schoolYear: string;
+}) => (
+  <div className="mt-5">
+    <EmptyState
+      text="Lege dein erstes Fach an, mit der Gewichtung, die die Lehrkraft zu Schuljahresbeginn verkündet hat. Danach kannst du Noten in diesem Fach eintragen."
+      title={`Noch keine Fächer im Schuljahr${nbsp}${schoolYear}`}
+    >
+      {children}
+    </EmptyState>
+  </div>
+);
+
 /**
  * Die Fächer eines Schuljahrs. Die Seite setzt die Verwaltung für jedes
  * Schuljahr neu auf (`key`), damit ein offenes Formular und laufende
@@ -211,7 +231,12 @@ export const FaecherManagement = ({
     create: useMutation(mutationOptions.create),
     update: useMutation(mutationOptions.update),
   };
-  const archiveMutation = useMutation(mutationOptions.archive);
+  const archiving = useArchiving({
+    faecher: faecherQuery.data,
+    fallbackRef: focus.fallbackTriggerRef,
+    options: mutationOptions.archive,
+    regionRef: sectionRef,
+  });
   const queryState = determineQueryState({
     data: faecherQuery.data,
     isError: faecherQuery.isError,
@@ -281,13 +306,10 @@ export const FaecherManagement = ({
       {faecher === undefined ? null : (
         <div className="mt-3">
           <FachList
-            archiveMutation={archiveMutation}
+            archiveMutation={archiving.mutation}
             editor={editedId === undefined ? undefined : { id: editedId, form }}
             faecher={faecher}
-            onArchive={(id) => {
-              archiveMutation.reset();
-              archiveMutation.mutate(id);
-            }}
+            onArchive={archiving.archive}
             onEdit={(fach, trigger) => {
               // Der Stift schließt das Formular, das er geöffnet hat, wie
               // „Abbrechen“ und wie dieses nicht, während gespeichert wird.
@@ -301,14 +323,7 @@ export const FaecherManagement = ({
         </div>
       )}
       {isEmpty ? (
-        <div className="mt-5">
-          <EmptyState
-            text="Lege dein erstes Fach an, mit der Gewichtung, die die Lehrkraft zu Schuljahresbeginn verkündet hat. Danach kannst du Noten in diesem Fach eintragen."
-            title={`Noch keine Fächer im Schuljahr${nbsp}${schoolYear}`}
-          >
-            {createButton}
-          </EmptyState>
-        </div>
+        <NoFaecher schoolYear={schoolYear}>{createButton}</NoFaecher>
       ) : null}
     </section>
   );

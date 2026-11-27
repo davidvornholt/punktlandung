@@ -213,6 +213,10 @@ it('fragt vor dem Löschen und geht danach zu den Noten des Fachs', async ({
   ).toBeVisible();
   // Keeping is the answer that cannot be regretted, so it is the one at hand.
   await expect(button(component, 'Behalten')).toBeFocused();
+  // Whoever lands there by keyboard hears what would be deleted.
+  await expect(button(component, 'Behalten')).toHaveAccessibleDescription(
+    'Klausur vom 08.12. löschen?',
+  );
 
   await button(component, 'Behalten').click();
   await expect(button(component, 'Löschen')).toBeFocused();

@@ -42,6 +42,8 @@ const DeleteQuestion = ({
           {pending ? 'Wird gelöscht …' : 'Löschen'}
         </button>
         <button
+          // The keyboard lands here, so this button says what is asked too.
+          aria-describedby={questionId}
           className={buttonClass('secondary')}
           // Keeping would not stop a deletion that is on its way.
           disabled={pending}

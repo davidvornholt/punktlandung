@@ -41,7 +41,8 @@ const GewichtungSentence = ({
 /**
  * The app has no way to bring an archived Fach back, so archiving asks first
  * and says what it does. The question opens under the row and takes the
- * keyboard with it; "Behalten" gives it back to the archive button.
+ * keyboard with it, to "Behalten": the answer that cannot be regretted is the
+ * one at hand. "Behalten" gives the keyboard back to the archive button.
  */
 const ArchiveQuestion = ({
   fach,
@@ -53,10 +54,8 @@ const ArchiveQuestion = ({
   readonly onKeep: () => void;
 }) => {
   const textId = useId();
-  const confirmRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    confirmRef.current?.focus();
-  }, []);
+  const keepRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => keepRef.current?.focus(), []);
   return (
     <div className="mt-3 flex animate-eases-in flex-wrap items-center justify-between gap-x-6 gap-y-2">
       <p className="max-w-[62ch] text-pretty text-sm" id={textId}>
@@ -69,14 +68,15 @@ const ArchiveQuestion = ({
           aria-describedby={textId}
           className={buttonClass('danger', 'compact')}
           onClick={onArchive}
-          ref={confirmRef}
           type="button"
         >
           Wirklich archivieren
         </button>
         <button
+          aria-describedby={textId}
           className={buttonClass('quiet', 'compact')}
           onClick={onKeep}
+          ref={keepRef}
           type="button"
         >
           Behalten
@@ -109,7 +109,10 @@ const FachRow = ({
   const [asking, setAsking] = useState(false);
   const archiveRef = useRef<HTMLButtonElement>(null);
   return (
-    <li className="border-line border-t desk:py-5 py-4 first:border-t-0">
+    <li
+      className="border-line border-t desk:py-5 py-4 first:border-t-0"
+      data-fach-row={fach.id}
+    >
       <div className="grid desk:grid-cols-[12.5rem_minmax(0,1fr)_auto] grid-cols-[minmax(0,1fr)_auto] items-start gap-x-6 gap-y-3">
         <div className="min-w-0 desk:pt-1">
           <h3 className="wrap-break-word hyphens-auto font-bold text-lg">
@@ -124,6 +127,7 @@ const FachRow = ({
         <div className="col-start-2 desk:col-start-3 row-start-1 flex items-center gap-0.5">
           <IconButton
             aria-expanded={editor !== null}
+            data-fach-edit=""
             icon={Pencil}
             label={`Bearbeiten: ${fach.name}`}
             onClick={(event) => onEdit(event.currentTarget)}
@@ -131,6 +135,7 @@ const FachRow = ({
           />
           <IconButton
             aria-expanded={asking}
+            data-fach-archive=""
             disabled={isArchiveRunning}
             icon={Archive}
             label={

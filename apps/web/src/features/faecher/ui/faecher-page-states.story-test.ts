@@ -152,20 +152,72 @@ it('keeps the form and its entries when saving fails, and the Fach when archivin
   const confirm = component.getByRole('button', {
     name: 'Wirklich archivieren',
   });
-  await expect(confirm).toBeFocused();
+  const keep = component.getByRole('button', { name: 'Behalten' });
+  // Keeping is the answer that cannot be regretted, so it is the one at hand, and it says what is asked.
+  await expect(keep).toBeFocused();
+  await expect(keep).toHaveAccessibleDescription(noWayBack);
   await expect(confirm).toHaveAccessibleDescription(noWayBack);
-  await component.getByRole('button', { name: 'Behalten' }).click();
+  await keep.click();
   await expect(confirm).toHaveCount(0);
   await expect(archive).toBeFocused();
 
   await archive.click();
-  await confirm.click();
+  await confirm.press('Enter');
   await expect(component.getByRole('alert')).toHaveText(
     'Das Fach konnte nicht archiviert werden. Es bleibt sichtbar; versuche es erneut.',
   );
   await expect(
     component.getByRole('heading', { name: 'Mathematik' }),
   ).toBeVisible();
+  // The Fach is still there, and so is the keyboard.
+  await expect(archive).toBeFocused();
+});
+
+const archiveByKeyboard = async (
+  component: playwright.Locator,
+  fach: string,
+) => {
+  const archive = component.getByRole('button', {
+    name: `Archivieren: ${fach}`,
+  });
+  await archive.focus();
+  await archive.press('Enter');
+  await component
+    .getByRole('button', { name: 'Wirklich archivieren' })
+    .press('Enter');
+  await expect(component.getByRole('heading', { name: fach })).toHaveCount(0);
+};
+
+it('hands the keyboard to a Fach that stays when one is archived', async ({
+  mount,
+}) => {
+  const component = await mount(story('Schuljahre'));
+  await expect(
+    component.getByRole('heading', { name: 'Mathematik' }),
+  ).toBeVisible();
+
+  // The next Fach of the list takes over.
+  await archiveByKeyboard(component, 'Mathematik');
+  await expect(pencil(component, 'Deutsch')).toBeFocused();
+
+  // After the last of the list, the one before it does.
+  await archiveByKeyboard(component, 'Gemeinschaftskunde');
+  await expect(pencil(component, 'Englisch')).toBeFocused();
+});
+
+it('hands the keyboard to "Fach anlegen" when the last Fach is archived', async ({
+  mount,
+}) => {
+  const component = await mount(story('Schuljahre'));
+  await component.getByRole('radio', { name: '2025/26' }).check();
+  await expect(
+    component.getByRole('heading', { name: 'Biologie' }),
+  ).toBeVisible();
+
+  await archiveByKeyboard(component, 'Biologie');
+  await expect(
+    component.getByRole('button', { name: 'Fach anlegen' }),
+  ).toBeFocused();
 });
 
 it('sends to the Einstellungen while there is no Halbjahr', async ({
