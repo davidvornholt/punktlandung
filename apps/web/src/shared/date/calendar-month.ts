@@ -1,3 +1,4 @@
+import { clampIsoDate } from './date-range.ts';
 import { monthNames } from './date-text.ts';
 
 /**
@@ -46,6 +47,27 @@ export const calendarMonth = (month: string): CalendarMonth => {
     leading: (first.getUTCDay() + daysPerWeek - 1) % daysPerWeek,
     days: Array.from({ length }, (_, index) => `${month}-${pad(index + 1)}`),
   };
+};
+
+/**
+ * The day of `month` that takes the place of `isoDate` when the calendar is
+ * turned to that month: the same day of the month, or the month's last where
+ * it is shorter, moved into the range from `min` to `max`. `null` when no day
+ * of the month lies in that range.
+ */
+export const dayInMonth = (
+  month: string,
+  isoDate: string,
+  { max, min }: { readonly max: string; readonly min: string },
+): string | null => {
+  const { days } = calendarMonth(month);
+  const [first] = days;
+  const last = days.at(-1);
+  if (first === undefined || last === undefined || last < min || first > max) {
+    return null;
+  }
+  const same = `${month}${isoDate.slice(monthLength)}`;
+  return clampIsoDate(clampIsoDate(same, first, last), min, max);
 };
 
 /** How far a key moves the day that has focus, in days; `undefined` for any other key. */

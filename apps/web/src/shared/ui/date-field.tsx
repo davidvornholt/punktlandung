@@ -11,6 +11,7 @@ import {
 import {
   calendarKeyStep,
   calendarMonth,
+  dayInMonth,
   monthOf,
   shiftMonth,
   weekdayHeads,
@@ -46,16 +47,21 @@ type CalendarProps = {
   readonly value: string;
 };
 
+/** The day that takes part in the tab order, and whether the keyboard is moved onto it. */
+type DayFocus = { readonly date: string; readonly taken: boolean };
+
 /** Moves keyboard focus to a day once the month that holds it is drawn. */
 const useDayFocus = (
   gridRef: RefObject<HTMLDivElement | null>,
-  focusDate: string,
+  focus: DayFocus,
 ) => {
   useEffect(() => {
-    gridRef.current
-      ?.querySelector<HTMLButtonElement>(`[data-date="${focusDate}"]`)
-      ?.focus();
-  }, [gridRef, focusDate]);
+    if (focus.taken) {
+      gridRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-date="${focus.date}"]`)
+        ?.focus();
+    }
+  }, [gridRef, focus]);
 };
 
 /**
@@ -84,15 +90,18 @@ const Calendar = ({
   today,
   value,
 }: CalendarProps) => {
-  const [focusDate, setFocusDate] = useState(value);
+  const [focus, setFocus] = useState<DayFocus>({ date: value, taken: true });
   const [month, setMonth] = useState(monthOf(value));
   const gridRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  useDayFocus(gridRef, focusDate);
+  useDayFocus(gridRef, focus);
   useKeptInView(dialogRef, month);
   const shown = calendarMonth(month);
   const inRange = (isoDate: string): boolean =>
     isIsoDateInRange(isoDate, min, max);
+  /** The day that takes the place of the one in the tab order `steps` months on; `null` where no day can be chosen. */
+  const dayAfter = (from: string, steps: number): string | null =>
+    dayInMonth(shiftMonth(from, steps), focus.date, { max, min });
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape') {
@@ -106,13 +115,21 @@ const Calendar = ({
       return;
     }
     event.preventDefault();
-    const target = addDays(focusDate, step);
+    const target = addDays(focus.date, step);
     if (inRange(target)) {
       setMonth(monthOf(target));
-      setFocusDate(target);
+      setFocus({ date: target, taken: true });
     }
   };
-  const turn = (steps: number): void => setMonth(shiftMonth(month, steps));
+  const turn = (steps: number): void => {
+    const target = dayAfter(month, steps);
+    if (target !== null) {
+      const turned = monthOf(target);
+      setMonth(turned);
+      // The tab order goes with the month. The keyboard stays on the button, unless this was its last turn: a disabled button cannot keep it.
+      setFocus({ date: target, taken: dayAfter(turned, steps) === null });
+    }
+  };
 
   return (
     // biome-ignore lint/a11y/noNoninteractiveElementInteractions: The dialog listens for Escape and the arrow keys on behalf of the buttons inside it, which are what takes focus.
@@ -125,12 +142,14 @@ const Calendar = ({
     >
       <div className="mb-1 flex items-center justify-between">
         <IconButton
+          disabled={dayAfter(month, -1) === null}
           icon={ChevronLeft}
           label="Vorheriger Monat"
           onClick={() => turn(-1)}
         />
         <strong aria-live="polite">{shown.title}</strong>
         <IconButton
+          disabled={dayAfter(month, 1) === null}
           icon={ChevronRight}
           label="Nächster Monat"
           onClick={() => turn(1)}
@@ -162,7 +181,7 @@ const Calendar = ({
             key={isoDate}
             onClick={() => onPick(isoDate)}
             // One day takes part in the tab order; the arrow keys reach the others.
-            tabIndex={isoDate === focusDate ? 0 : -1}
+            tabIndex={isoDate === focus.date ? 0 : -1}
             type="button"
           >
             {index + 1}
