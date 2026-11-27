@@ -31,7 +31,6 @@ import {
   submitLabel,
 } from './note-entry-model.ts';
 
-/* A finger needs a larger button than a pointer does. */
 const stepClass =
   'grid desk:h-[2.4375rem] h-11 desk:w-[2.375rem] w-11 place-items-center transition-colors duration-100 ease-standard hover:bg-sheet disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent';
 
