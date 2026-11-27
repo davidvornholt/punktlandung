@@ -13,6 +13,8 @@ const fixture = {
   sequenceTimeout: 8000,
   /** Milliseconds into a dot's landing, while it still fades in. */
   fadingAt: 20,
+  /** Milliseconds after which a dot has finished the rest of its fade. */
+  fadedAt: 200,
 } as const;
 
 const dot = '[data-part="hero-dot"]';
@@ -135,6 +137,11 @@ it('lässt einen Punkt weiter einblenden, wenn die nächste Note landet, bevor e
   await page.keyboard.press('ArrowRight');
   await expect(slider).toHaveValue('2');
   expect(await holdAt(0)).toBeCloseTo(fading, 2);
+  await page.keyboard.press('Home');
+  await expect(slider).toHaveValue('0');
+  // The dot leaves from the opacity it was seen with and fades out to the stylesheet's.
+  expect(await holdAt(0)).toBeCloseTo(fading, 2);
+  expect(await holdAt(fixture.fadedAt)).toBe(0);
 });
 
 it('dreht die Zeit auch mit dem Zeiger zurück', async ({ mount, page }) => {
