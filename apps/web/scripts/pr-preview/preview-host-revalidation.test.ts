@@ -51,8 +51,7 @@ exit "$status"
         ...globalThis.Bun.env,
         ...Object.fromEntries([
           ['TEST_PR', JSON.stringify(pullRequest)],
-          // A removal job knows no head, as in the workflow.
-          ['HEAD_SHA', operation === 'destroy' ? '' : headSha],
+          ['HEAD_SHA', reason === 'ineligible' ? '' : headSha],
           ['HOST_COMMAND', 'destroy 35'],
           ['OPERATION', operation],
           ['PREVIOUS_BASE_REF', ''],
