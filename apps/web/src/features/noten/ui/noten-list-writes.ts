@@ -155,7 +155,7 @@ export const useNotenWrites = (input: WritesInput) => {
   const options = notenMutationOptions({
     halbjahrId: halbjahr.id,
     onCreated: (values) => {
-      submissionIds.settle();
+      submissionIds.settle(values.id);
       onSaved(tools, values, 'Eingetragen');
     },
     onDeleted: (id) => onDeleted(tools, id),

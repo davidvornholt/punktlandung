@@ -19,9 +19,15 @@ export const createSubmissionIds = (
       }
       return current.id;
     },
-    /** Dieselbe Note, später noch einmal eingegeben, ist eine neue Note. */
-    settle: (): void => {
-      current = null;
+    /**
+     * Dieselbe Note, später noch einmal eingegeben, ist eine neue Note. Nur die
+     * gespeicherte Abgabe wird vergessen: Kommt eine frühere an, während schon
+     * die nächste unterwegs ist, behält diese ihre ID für einen neuen Versuch.
+     */
+    settle: (id: string): void => {
+      if (current?.id === id) {
+        current = null;
+      }
     },
   };
 };

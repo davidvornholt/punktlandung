@@ -36,8 +36,20 @@ describe('createSubmissionIds', () => {
 
   it('vergibt nach einer gespeicherten Abgabe eine neue ID, auch für gleiche Eingaben', () => {
     const ids = createSubmissionIds(counter());
-    ids.idFor('hj-1', fields);
-    ids.settle();
+    const id = ids.idFor('hj-1', fields);
+    ids.settle(id);
     expect(ids.idFor('hj-1', fields)).toBe('id-2');
+  });
+
+  it('behält die ID einer Abgabe, während eine frühere gespeichert wird', () => {
+    const ids = createSubmissionIds(counter());
+    const other = { ...fields, subjectId: 'fach-2' };
+    const first = ids.idFor('hj-1', fields);
+    const second = ids.idFor('hj-1', other);
+    // Die erste Note kommt an, während die zweite noch unterwegs ist und danach wiederholt wird.
+    ids.settle(first);
+    expect(ids.idFor('hj-1', other)).toBe(second);
+    ids.settle(second);
+    expect(ids.idFor('hj-1', other)).not.toBe(second);
   });
 });
