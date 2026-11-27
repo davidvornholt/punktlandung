@@ -4,7 +4,12 @@ import { RulerBar } from '#/shared/ui/ruler/ruler-bar.tsx';
 import { useHostWidth } from '#/shared/ui/ruler/ruler-hooks.ts';
 import { punkteScale } from '#/shared/ui/ruler/scale.ts';
 import type { TrendEntry } from '../services/trend-calculation.ts';
-import { type HeroLayout, heroLayout } from './hero-layout.ts';
+import {
+  type HeroLayout,
+  heroDayLayout,
+  heroLayout,
+  heroNotesAfter,
+} from './hero-layout.ts';
 import type { HeroDotInfo } from './hero-model.ts';
 import { type Arrival, useHeroMotion, useHeroParts } from './hero-motion.ts';
 
@@ -105,7 +110,14 @@ const HeroSvg = ({
   label,
   width,
 }: HeroFigureProps & { readonly width: number }) => {
-  const layout = useMemo(() => heroLayout(entries, width), [entries, width]);
+  const today = useMemo(
+    () => heroLayout(heroNotesAfter(entries, entries.length), width),
+    [entries, width],
+  );
+  const layout = useMemo(
+    () => heroDayLayout({ count, entries, today, width }),
+    [count, entries, today, width],
+  );
   const parts = useHeroParts();
   useHeroMotion({
     arrival,
@@ -128,7 +140,7 @@ const HeroSvg = ({
         y={layout.beamY}
       />
     ),
-    [layout],
+    [layout.beam, layout.beamY, layout.pitch],
   );
   return (
     <svg
@@ -186,8 +198,8 @@ const HeroSvg = ({
 /**
  * The hero of the Übersicht: every Note as a dot on the bar, piled over its
  * Notenpunkt, and the fulcrum under the Gesamtschnitt. A dot's area is the
- * Note's share of the Gesamtschnitt, so the fulcrum stands where the dots
- * balance. On a phone the bar runs from edge to edge of the screen.
+ * Note's share of the Gesamtschnitt of the day shown, so the fulcrum stands
+ * where the dots balance. On a phone the bar runs from edge to edge of the screen.
  */
 export const HeroFigure = (props: HeroFigureProps) => {
   const hostRef = useRef<HTMLDivElement>(null);

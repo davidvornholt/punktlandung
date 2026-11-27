@@ -1,5 +1,6 @@
 import { tenths } from '#/shared/ui/ruler/geometry.ts';
 import { scaleUnits } from '#/shared/ui/ruler/scale.ts';
+import { massesAfter, type TrendEntry } from '../services/trend-calculation.ts';
 
 /**
  * Where every Note of the Übersicht lies on the bar: each dot drops over its
@@ -165,16 +166,30 @@ const radiusBy = (full: number, heaviest: number) => {
       : Math.max(smallest, full * Math.sqrt(mass / heaviest));
 };
 
+/**
+ * Lays out the Noten that lie on the bar. `beamY` keeps the bar where an
+ * earlier layout put it, so the figure keeps its height: the piles then
+ * shrink until they fit under it instead of making room for themselves.
+ */
 export const heroLayout = (
   notes: ReadonlyArray<HeroNote>,
   hostWidth: number,
+  { beamY: fixedBeamY }: { readonly beamY?: number } = {},
 ): HeroLayout => {
   const width = Math.max(limits.minWidth, Math.floor(hostWidth));
   const phone = width < limits.phoneBelow;
   const pitch = width / scaleUnits;
   const heaviest = notes.reduce((max, note) => Math.max(max, note.mass), 0);
-  const maxPile = phone ? limits.phoneMaxPile : limits.maxPile;
-  let full = pitch * (phone ? limits.phoneRadius : limits.radius);
+  const headroom = phone ? limits.phoneHeadroom : limits.headroom;
+  const room = fixedBeamY === undefined ? null : fixedBeamY - headroom;
+  const maxPile = Math.min(
+    phone ? limits.phoneMaxPile : limits.maxPile,
+    room ?? Number.POSITIVE_INFINITY,
+  );
+  let full = Math.min(
+    pitch * (phone ? limits.phoneRadius : limits.radius),
+    room === null ? Number.POSITIVE_INFINITY : room / 2,
+  );
   let settled = settleAll(notes, pitch, radiusBy(full, heaviest));
   for (
     let attempt = 0;
@@ -185,10 +200,8 @@ export const heroLayout = (
     settled = settleAll(notes, pitch, radiusBy(full, heaviest));
   }
   const beam = phone ? limits.phoneBeam : limits.beam;
-  const beamY = Math.ceil(
-    Math.max(pileHeight(settled), full * 2) +
-      (phone ? limits.phoneHeadroom : limits.headroom),
-  );
+  const beamY =
+    fixedBeamY ?? Math.ceil(Math.max(pileHeight(settled), full * 2) + headroom);
   return {
     width,
     height: beamY + beam + (phone ? limits.phoneFoot : limits.foot),
@@ -202,4 +215,46 @@ export const heroLayout = (
       r: tenths(dot.r),
     })),
   };
+};
+
+/** The Noten of the figure with the masses they have after the first `count` of them. */
+export const heroNotesAfter = (
+  entries: ReadonlyArray<TrendEntry>,
+  count: number,
+): ReadonlyArray<HeroNote> => {
+  const masses = massesAfter(entries, count);
+  return entries.map((entry, index) => ({
+    punkte: entry.punkte,
+    mass: masses[index] ?? 0,
+  }));
+};
+
+/**
+ * The layout of the day the Verlauf shows, after the first `count` Noten:
+ * those on the bar sized by their share of that day's Schnitt, so they
+ * balance where the fulcrum stands, and laid under the bar of `today`, so
+ * the figure keeps its height. A Note that had not been written yet waits,
+ * hidden, at its place of today.
+ */
+export const heroDayLayout = ({
+  count,
+  entries,
+  today,
+  width,
+}: {
+  readonly count: number;
+  readonly entries: ReadonlyArray<TrendEntry>;
+  /** The layout of every Note with today's masses. */
+  readonly today: HeroLayout;
+  readonly width: number;
+}): HeroLayout => {
+  if (count >= entries.length) {
+    return today;
+  }
+  const day = heroLayout(
+    heroNotesAfter(entries, count).slice(0, count),
+    width,
+    { beamY: today.beamY },
+  );
+  return { ...day, dots: [...day.dots, ...today.dots.slice(count)] };
 };

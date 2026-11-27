@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { TrendEntry } from '../services/trend-calculation.ts';
 import {
   heroCaption,
@@ -24,7 +25,9 @@ const entry = (overrides: Partial<TrendEntry>): TrendEntry => ({
   datum: '2026-10-12',
   punkte: 11,
   schnitt: 10.7,
-  mass: 0.1,
+  fachSnapshotId: '2026/27:deutsch',
+  individualGewichtung: 1,
+  fachGewichtung: standardgewichtung,
   fachId: 'deutsch',
   fachKuerzel: 'D',
   fachName: 'Deutsch',

@@ -9,6 +9,9 @@
     stroke: var(--pl-stratum-edge);
     stroke-width: 0.75;
     transition: opacity 0.18s;
+    /* A dot that grows or shrinks with the day shown does so about its centre. */
+    transform-box: fill-box;
+    transform-origin: center;
   }
 
   /* Older Halbjahre are ink that has faded: the further back, the paler. */

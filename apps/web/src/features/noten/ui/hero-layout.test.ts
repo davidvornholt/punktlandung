@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'bun:test';
+import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import { tenths } from '#/shared/ui/ruler/geometry.ts';
 import { punkteScale } from '#/shared/ui/ruler/scale.ts';
-import { type HeroNote, heroLayout } from './hero-layout.ts';
+import { calculateTrend } from '../services/trend-calculation.ts';
+import {
+  type HeroNote,
+  heroDayLayout,
+  heroLayout,
+  heroNotesAfter,
+} from './hero-layout.ts';
 
 /** Three school years: many light Noten in the old ones, a few heavy ones in the current one. */
 const notes: ReadonlyArray<HeroNote> = [
@@ -106,6 +113,34 @@ describe('heroLayout', () => {
     expect(narrow.beamY).toBeLessThan(260);
   });
 
+  it('lässt die Latte, wo sie heute liegt, und die Stapel darunter', () => {
+    for (const width of [desktop, phone]) {
+      const today = heroLayout(wholeNotes, width);
+      // An earlier day: fewer Noten, and every one counts for more.
+      const earlier = wholeNotes
+        .slice(0, 12)
+        .map((note) => ({ ...note, mass: note.mass * 4 }));
+      const day = heroLayout(earlier, width, { beamY: today.beamY });
+      expect(day.beamY).toBe(today.beamY);
+      expect(day.height).toBe(today.height);
+      const above = day.dots.filter((dot) => dot.y - dot.r < 0);
+      expect(above).toEqual([]);
+    }
+  });
+
+  it('schrumpft die Stapel eines Tages, bis sie unter die Latte von heute passen', () => {
+    const low = heroLayout([{ punkte: 9, mass: 1 }], desktop);
+    const tall = Array.from({ length: 40 }, () => ({
+      punkte: 9,
+      mass: 1 / 40,
+    }));
+    const day = heroLayout(tall, desktop, { beamY: low.beamY });
+    expect(day.beamY).toBe(low.beamY);
+    expect(Math.min(...day.dots.map((dot) => dot.y - dot.r))).toBeGreaterThan(
+      -0.5,
+    );
+  });
+
   it('hat auch ohne Noten eine Latte mit Platz darüber', () => {
     const layout = heroLayout([], desktop);
     expect(layout.dots).toEqual([]);
@@ -168,5 +203,69 @@ describe('heroLayout: der Platz eines Punkts', () => {
       { x: 231.6, y: 37.5, r: 10.5 },
       { x: 204.7, y: 20.6, r: 6.1 },
     ]);
+  });
+});
+
+describe('heroDayLayout', () => {
+  /*
+   * Fach A gets 0 Notenpunkte, Fach B 12, then Fach A another 0. On the day
+   * of the second Note the Schnitt is 6, and the two dots must balance there,
+   * not at the 8 that today's sizes of ¼ and ½ would give.
+   */
+  const entries = calculateTrend(
+    (
+      [
+        ['A', '2026-09-01', 0],
+        ['B', '2026-09-02', 12],
+        ['A', '2026-09-03', 0],
+      ] as const
+    ).map(([fach, date, notenpunkte]) => ({
+      id: `${fach}-${date}`,
+      date,
+      notenpunkte,
+      notenwert: notenpunkte,
+      notensystem: 'punkte',
+      individualGewichtung: 1,
+      fachId: fach,
+      fachSnapshotId: fach,
+      fachShortName: fach,
+      fachName: fach,
+      leistungsart: 'klausur',
+      fachGewichtung: standardgewichtung,
+      halbjahrId: 'hj-1',
+      klassenstufe: 'J1',
+      half: 1,
+    })),
+  );
+  const today = heroLayout(heroNotesAfter(entries, entries.length), desktop);
+
+  it('lässt die Punkte jedes Tages dort im Gleichgewicht, wo sein Schnitt steht', () => {
+    for (const [index, entry] of entries.entries()) {
+      const count = index + 1;
+      const layout = heroDayLayout({ count, entries, today, width: desktop });
+      const shown = layout.dots.slice(0, count);
+      const area = shown.reduce((sum, dot) => sum + dot.r ** 2, 0);
+      const balance =
+        shown.reduce(
+          (sum, dot, at) => sum + dot.r ** 2 * (entries[at]?.punkte ?? 0),
+          0,
+        ) / area;
+      expect(balance).toBeCloseTo(entry.schnitt ?? 0, 1);
+    }
+  });
+
+  it('behält die Höhe von heute und legt die späteren Noten auf ihren Platz von heute', () => {
+    const layout = heroDayLayout({ count: 1, entries, today, width: desktop });
+    expect(layout.height).toBe(today.height);
+    expect(layout.beamY).toBe(today.beamY);
+    expect(layout.dots.slice(1)).toEqual(today.dots.slice(1));
+    // Alone, the first Note is the whole Schnitt: it is drawn larger than today.
+    expect(layout.dots[0]?.r).toBeGreaterThan(today.dots[0]?.r ?? 0);
+  });
+
+  it('ist heute die Figur von heute', () => {
+    expect(
+      heroDayLayout({ count: entries.length, entries, today, width: desktop }),
+    ).toBe(today);
   });
 });

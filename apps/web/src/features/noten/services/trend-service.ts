@@ -11,8 +11,7 @@ import { calculateTrend } from './trend-calculation.ts';
 
 /**
  * Alle benoteten Leistungen über alle Halbjahre, mit toNotenpunkte
- * normalisiert, mit laufendem gewichtetem Gesamtschnitt und ihrem Anteil am
- * heutigen: die Punkte auf der Skala der Übersicht und ihr Verlauf.
+ * normalisiert, mit laufendem gewichtetem Gesamtschnitt und ihrer Gewichtung: die Punkte auf der Skala der Übersicht und ihr Verlauf.
  * Ausstehende Leistungen haben noch keinen Punkt.
  */
 export const loadTrend = Effect.gen(function* () {

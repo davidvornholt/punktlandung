@@ -16,12 +16,14 @@ import {
 import { tenths } from '#/shared/ui/ruler/geometry.ts';
 import { punkteScale } from '#/shared/ui/ruler/scale.ts';
 import type { HeroLayout } from './hero-layout.ts';
+import { resize } from './hero-resize.ts';
 
 /**
  * What moves in the hero. React draws the figure; where the fulcrum stands,
  * how far the bar leans and what the big figure says change sixty times a
- * second and are written past it. A Note that arrives drops onto the bar.
- * Only `transform` and `opacity` are animated.
+ * second and are written past it. A Note that arrives drops onto the bar,
+ * and the others grow or shrink to their share of the new Schnitt. Only
+ * `transform` and `opacity` are animated.
  */
 
 /** How a Note that appears arrives: `fall` from the figure's top, `drop` the last bit only. */
@@ -261,6 +263,7 @@ export const useHeroMotion = ({
 
   useLayoutEffect(() => {
     const before = seenRef.current;
+    const previous = frameRef.current.layout;
     seenRef.current = { count, width: layout.width };
     // The first drawing and a figure that changed its size are placed, not moved.
     const still = before === null || before.width !== layout.width;
@@ -272,8 +275,13 @@ export const useHeroMotion = ({
         ? roomBeside(captionRef.current, parts.tilt.current, layout.width)
         : frameRef.current.room,
     };
-    if (!still && count > before.count && !prefersReducedMotion()) {
-      land(parts, layout, { from: before.count, to: count, arrival });
+    if (!(still || prefersReducedMotion())) {
+      if (previous !== layout) {
+        resize(parts.dots.current, previous, layout, before.count);
+      }
+      if (count > before.count) {
+        land(parts, layout, { from: before.count, to: count, arrival });
+      }
     }
     balance.set(schnitt === null ? null : punkteScale.unitOf(schnitt), {
       immediate: still,

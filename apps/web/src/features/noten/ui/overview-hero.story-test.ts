@@ -82,6 +82,27 @@ it('dreht mit der Tastatur die Zeit zurück und mit „Heute“ wieder vor', asy
   await expect(heute).toBeFocused();
 });
 
+it('behält die Höhe der Figur, während die Zeit zurückgedreht wird', async ({
+  mount,
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const component = await mount(story);
+  const slider = component.getByRole('slider');
+  const figure = component.locator('svg[role="img"]');
+  const height = await figure.getAttribute('height');
+  const first = figure.locator(dot).first();
+  const radiusToday = Number(await first.getAttribute('r'));
+
+  await slider.focus();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveValue('1');
+  // Alone, the first Note is the whole Schnitt, so its dot is larger than today.
+  expect(Number(await first.getAttribute('r'))).toBeGreaterThan(radiusToday);
+  await expect(figure).toHaveAttribute('height', height ?? '');
+});
+
 it('dreht die Zeit auch mit dem Zeiger zurück', async ({ mount, page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const component = await mount(story);

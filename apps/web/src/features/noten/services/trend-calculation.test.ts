@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   calculateTrend,
   gesamtschnitt,
+  massesAfter,
   noteMasses,
   type TrendNote,
 } from './trend-calculation.ts';
@@ -79,7 +80,9 @@ describe('calculateTrend', () => {
       datum: '2026-09-20',
       punkte: 11,
       schnitt: 11,
-      mass: 1,
+      fachSnapshotId: 'M',
+      individualGewichtung: 1,
+      fachGewichtung: equallyWeighted,
       fachId: 'mathe',
       fachKuerzel: 'M',
       fachName: 'Mathematik',
@@ -228,10 +231,44 @@ describe('noteMasses', () => {
     expect(gesamtschnitt([])).toBeNull();
   });
 
-  it('trägt den Anteil am heutigen Gesamtschnitt an jedem Punkt ein', () => {
+  it('rechnet aus den Punkten des Verlaufs die Anteile von heute', () => {
     const masses = noteMasses(noten);
-    expect(calculateTrend(noten).map((entry) => entry.mass)).toEqual(
+    expect(massesAfter(calculateTrend(noten), noten.length)).toEqual(
       noten.map((entry) => masses.get(entry.id) ?? 0),
     );
+  });
+});
+
+describe('massesAfter', () => {
+  /*
+   * Fach A gets 0 Notenpunkte, Fach B 12, then Fach A another 0. On the day
+   * of the second Note each Fach has one Note and counts half, so the Schnitt
+   * is 6; today the two Noten of A share their half.
+   */
+  const trend = calculateTrend([
+    note('A', '2026-09-01', 0),
+    note('B', '2026-09-02', 12),
+    note('A', '2026-09-03', 0),
+  ]);
+
+  it('gibt jeder Note ihren Anteil am Schnitt des gezeigten Tages', () => {
+    expect(massesAfter(trend, 1)).toEqual([1, 0, 0]);
+    expect(massesAfter(trend, 2)).toEqual([0.5, 0.5, 0]);
+    expect(massesAfter(trend, 3)).toEqual([0.25, 0.5, 0.25]);
+  });
+
+  it('lässt die Punkte an jedem Tag dort im Gleichgewicht, wo der Schnitt steht', () => {
+    for (const [index, entry] of trend.entries()) {
+      const masses = massesAfter(trend, index + 1);
+      const balance = trend.reduce(
+        (sum, other, at) => sum + (masses[at] ?? 0) * other.punkte,
+        0,
+      );
+      expect(balance).toBeCloseTo(entry.schnitt ?? 0, 10);
+    }
+  });
+
+  it('gibt vor der ersten Note niemandem einen Anteil', () => {
+    expect(massesAfter(trend, 0)).toEqual([0, 0, 0]);
   });
 });
