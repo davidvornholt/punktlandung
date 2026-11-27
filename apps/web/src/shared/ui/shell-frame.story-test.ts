@@ -124,12 +124,14 @@ it('keeps the "Mehr" menu inside a narrow phone at 200 % text size', async ({
   const nav = component.getByRole('navigation', { name: 'Hauptnavigation' });
   await nav.getByRole('button', { name: 'Mehr' }).click();
 
-  for (const entry of [
-    nav.getByRole('link', { name: 'Fächer' }),
-    nav.getByRole('link', { name: 'Einstellungen' }),
-    nav.getByRole('button', { name: 'Abmelden' }),
-  ]) {
-    const box = await entry.boundingBox();
+  const boxes = await Promise.all(
+    [
+      nav.getByRole('link', { name: 'Fächer' }),
+      nav.getByRole('link', { name: 'Einstellungen' }),
+      nav.getByRole('button', { name: 'Abmelden' }),
+    ].map((entry) => entry.boundingBox()),
+  );
+  for (const box of boxes) {
     expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
       narrowPhone.width,

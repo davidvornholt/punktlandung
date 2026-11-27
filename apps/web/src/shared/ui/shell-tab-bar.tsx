@@ -125,7 +125,7 @@ const MoreTab = ({ signOut }: { readonly signOut: ShellSignOut }) => {
       {open ? (
         <div
           // Above the strip of paper the bar lays over the page, which would wash out its lower edge. With enlarged text it may not grow wider than the screen, and its entries wrap instead.
-          className="absolute right-2 bottom-[calc(100%+1.125rem)] z-10 grid w-max min-w-[min(13.125rem,calc(100vw-1rem))] grid-cols-1 max-w-[calc(100vw-1rem)] animate-eases-in border-[1.5px] border-ink bg-sheet p-1.5 text-base"
+          className="absolute right-2 bottom-[calc(100%+1.125rem)] z-10 grid w-max min-w-[min(13.125rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] animate-eases-in grid-cols-1 border-[1.5px] border-ink bg-sheet p-1.5 text-base"
           id={popoverId}
           ref={popoverRef}
         >
