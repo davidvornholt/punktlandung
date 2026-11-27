@@ -697,6 +697,7 @@ jobs:
         run: |
           set -euo pipefail
           echo 'in_scope=false' >>"$GITHUB_OUTPUT"
+          echo 'superseded=false' >>"$GITHUB_OUTPUT"
           pr=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
           test "$(jq -er .number <<<"$pr")" = "$PR_NUMBER"
           base_ref=$(jq -er .base.ref <<<"$pr")
@@ -722,11 +723,25 @@ jobs:
             eligible=true
           fi
 
+          # Eligibility can change between the select job and this step, for
+          # example when an agent converts a pull request to draft and marks it
+          # ready again around a push. Each change starts its own run, which
+          # then does what the new state needs, so this run steps aside without
+          # failing and leaves the status comment to that run.
+          superseded() {
+            echo 'superseded=true' >>"$GITHUB_OUTPUT"
+            echo "::notice::$1"
+            exit 0
+          }
           if [ "$OPERATION" = deploy ]; then
-            test "$eligible" = true
+            if [ "$eligible" != true ]; then
+              superseded "Pull request $PR_NUMBER is no longer eligible for a preview; the run that removes it takes over"
+            fi
             test "$current_head" = "$HEAD_SHA"
           elif [ "$eligible" = true ]; then
-            test "$REASON" != ineligible
+            if [ "$REASON" = ineligible ]; then
+              superseded "Pull request $PR_NUMBER became eligible again before teardown; the preview stays"
+            fi
             test "$current_head" = "$HEAD_SHA"
           fi
 
@@ -763,6 +778,7 @@ jobs:
           HEAD_SHA: ${{ env.PREVIEW_HEAD_SHA }}
           HOST_IN_SCOPE: ${{ steps.host.outputs.in_scope }}
           HOST_OUTCOME: ${{ steps.host.outcome }}
+          HOST_SUPERSEDED: ${{ steps.host.outputs.superseded }}
           OPERATION: ${{ env.PREVIEW_OPERATION }}
           PR_NUMBER: ${{ needs.select.outputs.pull-request-number }}
           REPOSITORY: ${{ github.repository }}
@@ -770,6 +786,10 @@ jobs:
           set -euo pipefail
           if [ "$HOST_IN_SCOPE" = false ]; then
             echo "::notice::No preview comment is needed outside the same-repository main preview lane"
+            exit 0
+          fi
+          if [ "$HOST_SUPERSEDED" = true ]; then
+            echo "::notice::The run for the pull request's new state reports the preview"
             exit 0
           fi
           marker='<!-- punktlandung-pr-preview -->'

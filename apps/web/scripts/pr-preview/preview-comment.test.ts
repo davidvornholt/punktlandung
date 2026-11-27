@@ -15,6 +15,7 @@ const runComment = (
   operation: string,
   outcome: string,
   comments: Array<unknown>,
+  superseded = 'false',
 ) =>
   globalThis.Bun.spawnSync(
     [
@@ -40,6 +41,7 @@ ${script}
           ['TEST_COMMENTS', JSON.stringify(comments)],
           ['HOST_IN_SCOPE', 'true'],
           ['HOST_OUTCOME', outcome],
+          ['HOST_SUPERSEDED', superseded],
           ['OPERATION', operation],
           ['HEAD_SHA', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
           ['PR_NUMBER', '42'],
@@ -82,6 +84,20 @@ describe('preview status comments', () => {
       expect(result.stderr.toString()).toContain(
         '--method POST repos/davidvornholt/punktlandung/issues/42/comments',
       );
+    },
+  );
+
+  it.each(['deploy', 'destroy'])(
+    'leaves the comment to the next run when a %s run was superseded',
+    (operation) => {
+      const result = runComment(
+        operation,
+        'success',
+        [existingComment],
+        'true',
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr.toString()).toBe('');
     },
   );
 
