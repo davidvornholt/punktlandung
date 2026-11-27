@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { eligiblePullRequest, headSha } from './preview-selection-fixtures';
+import {
+  apiRecord,
+  eligiblePullRequest,
+  headSha,
+} from './preview-selection-fixtures';
 import { extractRunScript, readWorkflow } from './workflow-test-helpers';
 
 const script = extractRunScript(
@@ -131,10 +135,10 @@ describe('host step revalidation', () => {
       operation: 'deploy',
       reason: '',
       pullRequest: eligiblePullRequest({
-        head: {
-          repo: { full_name: 'davidvornholt/punktlandung' },
-          sha: '3333333333333333333333333333333333333333',
-        },
+        head: apiRecord([
+          ['repo', apiRecord([['full_name', 'davidvornholt/punktlandung']])],
+          ['sha', '3333333333333333333333333333333333333333'],
+        ]),
       }),
     });
     expect(result.exitCode).not.toBe(0);
