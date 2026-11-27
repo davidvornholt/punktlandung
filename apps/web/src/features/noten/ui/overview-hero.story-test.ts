@@ -11,6 +11,8 @@ const fixture = {
   columns: 7,
   /** Longer than the sequence in which the twelve Noten land. */
   sequenceTimeout: 8000,
+  /** Milliseconds into a dot's landing, while it still fades in. */
+  fadingAt: 20,
 } as const;
 
 const dot = '[data-part="hero-dot"]';
@@ -101,6 +103,38 @@ it('behält die Höhe der Figur, während die Zeit zurückgedreht wird', async (
   // Alone, the first Note is the whole Schnitt, so its dot is larger than today.
   expect(Number(await first.getAttribute('r'))).toBeGreaterThan(radiusToday);
   await expect(figure).toHaveAttribute('height', height ?? '');
+});
+
+it('lässt einen Punkt weiter einblenden, wenn die nächste Note landet, bevor er ganz zu sehen ist', async ({
+  mount,
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const component = await mount(story);
+  const slider = component.getByRole('slider');
+  const first = component.locator(dot).first();
+  // Holds the first dot's animations at `time` and tells the opacity it is seen with.
+  const holdAt = (time: number) =>
+    first.evaluate((node, at) => {
+      for (const animation of node.getAnimations()) {
+        if (!(animation instanceof CSSTransition)) {
+          animation.pause();
+          animation.currentTime = at;
+        }
+      }
+      return Number(getComputedStyle(node).opacity);
+    }, time);
+
+  await slider.focus();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveValue('1');
+  const fading = await holdAt(fixture.fadingAt);
+  expect(fading).toBeLessThan(1);
+
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveValue('2');
+  expect(await holdAt(0)).toBeCloseTo(fading, 2);
 });
 
 it('dreht die Zeit auch mit dem Zeiger zurück', async ({ mount, page }) => {

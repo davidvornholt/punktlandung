@@ -244,7 +244,6 @@ export const heroDayLayout = ({
 }: {
   readonly count: number;
   readonly entries: ReadonlyArray<TrendEntry>;
-  /** The layout of every Note with today's masses. */
   readonly today: HeroLayout;
   readonly width: number;
 }): HeroLayout => {
