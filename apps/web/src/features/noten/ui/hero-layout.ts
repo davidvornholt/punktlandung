@@ -2,11 +2,12 @@ import { tenths } from '#/shared/ui/ruler/geometry.ts';
 import { scaleUnits } from '#/shared/ui/ruler/scale.ts';
 
 /**
- * Where every Note of the Übersicht lies on the bar: one pile per whole
- * Notenpunkt, in which each dot drops to the lowest place its column still
- * has. Noten land in the order they are given, so a later one always rests on
- * earlier ones and can leave again without anything under it moving. All of
- * it is plain arithmetic, so it can be tested without a browser.
+ * Where every Note of the Übersicht lies on the bar: each dot drops over its
+ * own Notenpunkte to the lowest place it still finds there, so whole
+ * Notenpunkte grow into one pile each, and a Note between two of them, such
+ * as the 9,5 of a 2-3, comes to rest between their piles or on their
+ * shoulders. Noten land in the order they are given, so a later one always
+ * rests on earlier ones and can leave again without anything under it moving.
  */
 
 export type HeroNote = {
@@ -81,9 +82,9 @@ const restAt = (x: number, r: number, placed: ReadonlyArray<Settling>) =>
   }, -r);
 
 /**
- * The place in a column where a dot comes to rest lowest. Places are tried
- * from the middle outwards and only a lower one wins, so piles grow from
- * their middle.
+ * The place around `centre` where a dot comes to rest lowest. Places are
+ * tried from the middle outwards and only a lower one wins, so piles grow
+ * from their middle.
  */
 const lowestPlace = (
   centre: number,
@@ -103,23 +104,45 @@ const lowestPlace = (
   return best;
 };
 
-const columnOf = (punkte: number): number =>
-  Math.max(0, Math.min(limits.maxNotenpunkte, Math.round(punkte)));
+/** The middle of a dot's place on the bar, in units: where the fulcrum stands for a Schnitt of the same value. */
+const unitOf = (punkte: number): number =>
+  Math.max(0, Math.min(limits.maxNotenpunkte, punkte)) + limits.half;
+
+/**
+ * The dots that have landed, by the unit of the bar their centre lies in. Two
+ * dots that touch are less than a unit apart, so a dot only has to look at
+ * the units around its own places, not at every dot on the bar.
+ */
+const neighboursOf = (
+  landed: ReadonlyMap<number, ReadonlyArray<Settling>>,
+  from: number,
+  to: number,
+): ReadonlyArray<Settling> => {
+  const near: Array<Settling> = [];
+  for (let unit = Math.floor(from) - 1; unit <= Math.floor(to) + 1; unit += 1) {
+    near.push(...(landed.get(unit) ?? []));
+  }
+  return near;
+};
 
 const settleAll = (
   notes: ReadonlyArray<HeroNote>,
   pitch: number,
   radiusOf: (mass: number) => number,
 ): ReadonlyArray<Settling> => {
-  const columns = new Map<number, Array<Settling>>();
+  const landed = new Map<number, Array<Settling>>();
   return notes.map((note) => {
-    const column = columnOf(note.punkte);
-    const placed = columns.get(column) ?? [];
+    const centre = unitOf(note.punkte) * pitch;
     const r = radiusOf(note.mass);
     const room = Math.max(0, (pitch * limits.columnShare) / 2 - r);
-    const dot = lowestPlace((column + limits.half) * pitch, room, r, placed);
-    placed.push(dot);
-    columns.set(column, placed);
+    const near = neighboursOf(
+      landed,
+      (centre - room) / pitch,
+      (centre + room) / pitch,
+    );
+    const dot = lowestPlace(centre, room, r, near);
+    const unit = Math.floor(dot.x / pitch);
+    landed.set(unit, [...(landed.get(unit) ?? []), dot]);
     return dot;
   });
 };
