@@ -87,19 +87,11 @@ describe('preview status comments', () => {
     },
   );
 
-  it.each(['deploy', 'destroy'])(
-    'leaves the comment to the next run when a %s run was superseded',
-    (operation) => {
-      const result = runComment(
-        operation,
-        'success',
-        [existingComment],
-        'true',
-      );
-      expect(result.exitCode).toBe(0);
-      expect(result.stderr.toString()).toBe('');
-    },
-  );
+  it('keeps the status comment when a removal finds the pull request eligible again', () => {
+    const result = runComment('destroy', 'success', [existingComment], 'true');
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr.toString()).toBe('');
+  });
 
   it('does not treat a user comment as a preview status', () => {
     const result = runComment('destroy', 'success', [

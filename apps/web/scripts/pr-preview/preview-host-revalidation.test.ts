@@ -14,15 +14,9 @@ const script = extractRunScript(
 type HostScenario = {
   readonly operation: 'deploy' | 'destroy';
   readonly reason: string;
-  /** The pull request as the host step reads it again. */
   readonly pullRequest: Record<string, unknown>;
 };
 
-/**
- * Runs the host step with `gh` answering the pull request and an `ssh` that
- * only records that it was called, and returns its exit code, its outputs and
- * whether it reached the host.
- */
 const runHost = ({ operation, pullRequest, reason }: HostScenario) => {
   const result = globalThis.Bun.spawnSync(
     [
@@ -57,7 +51,8 @@ exit "$status"
         ...globalThis.Bun.env,
         ...Object.fromEntries([
           ['TEST_PR', JSON.stringify(pullRequest)],
-          ['HEAD_SHA', headSha],
+          // A removal job knows no head, as in the workflow.
+          ['HEAD_SHA', operation === 'destroy' ? '' : headSha],
           ['HOST_COMMAND', 'destroy 35'],
           ['OPERATION', operation],
           ['PREVIOUS_BASE_REF', ''],
@@ -97,14 +92,13 @@ describe('host step revalidation', () => {
     expect(result.reachedHost).toBe(false);
   });
 
-  it('steps aside without failing when a pull request is no longer eligible before its deployment', () => {
+  it('fails a deployment when the pull request is no longer eligible, so the failed-deploy cleanup removes the older preview', () => {
     const result = runHost({
       operation: 'deploy',
       reason: '',
       pullRequest: eligiblePullRequest({ draft: true }),
     });
-    expect(result.exitCode).toBe(0);
-    expect(result.outputs.superseded).toBe('true');
+    expect(result.exitCode).not.toBe(0);
     expect(result.reachedHost).toBe(false);
   });
 

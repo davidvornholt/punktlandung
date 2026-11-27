@@ -723,24 +723,15 @@ jobs:
             eligible=true
           fi
 
-          # Eligibility can change between the select job and this step, for
-          # example when an agent converts a pull request to draft and marks it
-          # ready again around a push. Each change starts its own run, which
-          # then does what the new state needs, so this run steps aside without
-          # failing and leaves the status comment to that run.
-          superseded() {
-            echo 'superseded=true' >>"$GITHUB_OUTPUT"
-            echo "::notice::$1"
-            exit 0
-          }
           if [ "$OPERATION" = deploy ]; then
-            if [ "$eligible" != true ]; then
-              superseded "Pull request $PR_NUMBER is no longer eligible for a preview; the run that removes it takes over"
-            fi
+            test "$eligible" = true
             test "$current_head" = "$HEAD_SHA"
           elif [ "$eligible" = true ]; then
+            # A pull request that is eligible again before its teardown, for example one marked ready again, keeps its preview and status comment.
             if [ "$REASON" = ineligible ]; then
-              superseded "Pull request $PR_NUMBER became eligible again before teardown; the preview stays"
+              echo 'superseded=true' >>"$GITHUB_OUTPUT"
+              echo "::notice::Pull request $PR_NUMBER became eligible again before teardown; the preview stays"
+              exit 0
             fi
             test "$current_head" = "$HEAD_SHA"
           fi
@@ -789,7 +780,7 @@ jobs:
             exit 0
           fi
           if [ "$HOST_SUPERSEDED" = true ]; then
-            echo "::notice::The run for the pull request's new state reports the preview"
+            echo "::notice::The preview stays, and so does its status comment"
             exit 0
           fi
           marker='<!-- punktlandung-pr-preview -->'
