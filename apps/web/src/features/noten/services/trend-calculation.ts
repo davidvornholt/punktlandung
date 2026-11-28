@@ -40,12 +40,11 @@ export type TrendEntry = {
    * Fach, das schriftlich mit 0 % wertet).
    */
   readonly schnitt: number | null;
-  /**
-   * Der Anteil der Note am heutigen Gesamtschnitt (0–1). Über alle Noten
-   * summiert er sich zu 1, und die Summe aus Anteil mal Notenpunkten ist der
-   * Gesamtschnitt: So groß zeichnet die Übersicht den Punkt der Note.
-   */
-  readonly mass: number;
+  /** Ein Fach in einem Schuljahr: Dafür gibt es je einen Fachschnitt. */
+  readonly fachSnapshotId: string;
+  readonly individualGewichtung: number;
+  /** Dasselbe Objekt für alle Noten eines Fachs im Schuljahr. */
+  readonly fachGewichtung: Fachgewichtung;
   readonly fachId: string;
   readonly fachKuerzel: string;
   readonly fachName: string;
@@ -64,8 +63,19 @@ const roundingFactor = 100;
 const roundToPrecision = (value: number): number =>
   Math.round(value * roundingFactor) / roundingFactor;
 
+/** Was eine Note zu ihrem Fachschnitt und zum Gesamtschnitt beiträgt. */
+type Weighted = Pick<
+  TrendNote,
+  | 'id'
+  | 'notenpunkte'
+  | 'individualGewichtung'
+  | 'fachSnapshotId'
+  | 'leistungsart'
+  | 'fachGewichtung'
+>;
+
 type FachNoten = {
-  readonly noten: Array<TrendNote>;
+  readonly noten: Array<Weighted>;
   readonly fachGewichtung: Fachgewichtung;
 };
 
@@ -80,7 +90,7 @@ const fachschnitt = ({ noten, fachGewichtung }: FachNoten): number | null =>
   );
 
 /** Ordnet die Noten ihrem Fach im Schuljahr zu, in der Reihenfolge ihres ersten Auftretens. */
-const byFach = (noten: ReadonlyArray<TrendNote>): Map<string, FachNoten> => {
+const byFach = (noten: ReadonlyArray<Weighted>): Map<string, FachNoten> => {
   const faecher = new Map<string, FachNoten>();
   for (const note of noten) {
     const fach = faecher.get(note.fachSnapshotId) ?? {
@@ -122,7 +132,7 @@ export const gesamtschnitt = (noten: ReadonlyArray<TrendNote>): number | null =>
  * Notenpunkten ist genau `gesamtschnitt`.
  */
 export const noteMasses = (
-  noten: ReadonlyArray<TrendNote>,
+  noten: ReadonlyArray<Weighted>,
 ): ReadonlyMap<string, number> => {
   const faecher = [...byFach(noten).values()];
   const counted = faecher.filter((fach) => fachschnitt(fach) !== null);
@@ -144,14 +154,32 @@ export const noteMasses = (
 };
 
 /**
+ * Der Anteil jedes Eintrags am Gesamtschnitt nach den ersten `count`
+ * Einträgen (0–1), in der Reihenfolge der Einträge: So groß zeichnet die
+ * Übersicht den Punkt der Note an dem Tag, auf den der Verlauf zeigt. Die
+ * Summe aus Anteil mal Notenpunkten ist der Schnitt dieses Tages; ein
+ * späterer Eintrag trägt nichts.
+ */
+export const massesAfter = (
+  entries: ReadonlyArray<TrendEntry>,
+  count: number,
+): ReadonlyArray<number> => {
+  const masses = noteMasses(
+    entries
+      .slice(0, count)
+      .map((entry) => ({ ...entry, notenpunkte: entry.punkte })),
+  );
+  return entries.map((entry) => masses.get(entry.id) ?? 0);
+};
+
+/**
  * Formt chronologisch sortierte, normalisierte Noten in die Punkte der
  * Übersicht um: Jeder Eintrag trägt den bis dahin laufenden gewichteten
- * Gesamtschnitt und seinen Anteil am heutigen.
+ * Gesamtschnitt und, was es braucht, um seinen Anteil daran zu rechnen.
  */
 export const calculateTrend = (
   noten: ReadonlyArray<TrendNote>,
 ): ReadonlyArray<TrendEntry> => {
-  const masses = noteMasses(noten);
   const faecher = new Map<string, FachNoten>();
   return noten.map((note) => {
     const fach = faecher.get(note.fachSnapshotId) ?? {
@@ -166,7 +194,9 @@ export const calculateTrend = (
       datum: note.date,
       punkte: roundToPrecision(note.notenpunkte),
       schnitt: schnitt === null ? null : roundToPrecision(schnitt),
-      mass: masses.get(note.id) ?? 0,
+      fachSnapshotId: note.fachSnapshotId,
+      individualGewichtung: note.individualGewichtung,
+      fachGewichtung: note.fachGewichtung,
       fachId: note.fachId,
       fachKuerzel: note.fachShortName,
       fachName: note.fachName,

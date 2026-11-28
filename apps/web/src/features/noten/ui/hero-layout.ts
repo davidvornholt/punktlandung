@@ -1,5 +1,6 @@
 import { tenths } from '#/shared/ui/ruler/geometry.ts';
 import { scaleUnits } from '#/shared/ui/ruler/scale.ts';
+import { massesAfter, type TrendEntry } from '../services/trend-calculation.ts';
 
 /**
  * Where every Note of the Übersicht lies on the bar: each dot drops over its
@@ -7,7 +8,7 @@ import { scaleUnits } from '#/shared/ui/ruler/scale.ts';
  * Notenpunkte grow into one pile each, and a Note between two of them, such
  * as the 9,5 of a 2-3, comes to rest between their piles or on their
  * shoulders. Noten land in the order they are given, so a later one always
- * rests on earlier ones and can leave again without anything under it moving.
+ * rests on earlier ones.
  */
 
 export type HeroNote = {
@@ -71,15 +72,59 @@ const limits = {
 /** A dot while it settles; `y` is measured from the bar's top edge, upwards negative. */
 type Settling = { readonly x: number; readonly y: number; readonly r: number };
 
-/** How low a dot at `x` can drop before it rests on the bar or on a dot already there. */
-const restAt = (x: number, r: number, placed: ReadonlyArray<Settling>) =>
-  placed.reduce((y, other) => {
-    const dx = Math.abs(x - other.x);
-    const reach = r + other.r + limits.contactGap;
-    return dx < reach
-      ? Math.min(y, other.y - Math.sqrt(reach * reach - dx * dx))
-      : y;
-  }, -r);
+/**
+ * The dots that landed in one unit of the bar, highest first, and the radius
+ * of the largest of them. A dot rests on its highest contact, so once the
+ * dots left in a unit lie too low to touch it above the place found so far,
+ * none of them can hold it higher. A dot then looks only at the top of the
+ * piles around it, not at every dot under them, which keeps a long Verlauf
+ * fast to lay out on every day it shows.
+ */
+type Unit = { readonly dots: Array<Settling>; maxR: number };
+
+/** Puts a dot that landed into its unit, keeping the unit highest first. */
+const addTo = (unit: Unit, dot: Settling): void => {
+  let low = 0;
+  let high = unit.dots.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if ((unit.dots[middle]?.y ?? 0) <= dot.y) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+  unit.dots.splice(low, 0, dot);
+  unit.maxR = Math.max(unit.maxR, dot.r);
+};
+
+/**
+ * How low a dot at `x` can drop before it rests on the bar or on a dot
+ * already there. Once it is held at `floor` or higher, the place cannot win,
+ * so the dots left are not looked at.
+ */
+const restAt = (
+  x: number,
+  r: number,
+  near: ReadonlyArray<Unit>,
+  floor: number,
+): number => {
+  let y = -r;
+  for (const unit of near) {
+    const farthest = r + unit.maxR + limits.contactGap;
+    for (const other of unit.dots) {
+      if (y <= floor || other.y - farthest >= y) {
+        break;
+      }
+      const dx = Math.abs(x - other.x);
+      const reach = r + other.r + limits.contactGap;
+      if (dx < reach) {
+        y = Math.min(y, other.y - Math.sqrt(reach * reach - dx * dx));
+      }
+    }
+  }
+  return y;
+};
 
 /**
  * The place around `centre` where a dot comes to rest lowest. Places are
@@ -90,12 +135,16 @@ const lowestPlace = (
   centre: number,
   room: number,
   r: number,
-  placed: ReadonlyArray<Settling>,
+  near: ReadonlyArray<Unit>,
 ): Settling => {
-  let best: Settling = { x: centre, y: restAt(centre, r, placed), r };
+  let best: Settling = {
+    x: centre,
+    y: restAt(centre, r, near, Number.NEGATIVE_INFINITY),
+    r,
+  };
   for (let offset = limits.step; offset <= room; offset += limits.step) {
     for (const x of [centre - offset, centre + offset]) {
-      const y = restAt(x, r, placed);
+      const y = restAt(x, r, near, best.y + limits.tolerance);
       if (y > best.y + limits.tolerance) {
         best = { x, y, r };
       }
@@ -109,18 +158,20 @@ const unitOf = (punkte: number): number =>
   Math.max(0, Math.min(limits.maxNotenpunkte, punkte)) + limits.half;
 
 /**
- * The dots that have landed, by the unit of the bar their centre lies in. Two
- * dots that touch are less than a unit apart, so a dot only has to look at
- * the units around its own places, not at every dot on the bar.
+ * The units around a dot's places. Two dots that touch are less than a unit
+ * apart, so a dot only has to look at those, not at every dot on the bar.
  */
 const neighboursOf = (
-  landed: ReadonlyMap<number, ReadonlyArray<Settling>>,
+  landed: ReadonlyMap<number, Unit>,
   from: number,
   to: number,
-): ReadonlyArray<Settling> => {
-  const near: Array<Settling> = [];
+): ReadonlyArray<Unit> => {
+  const near: Array<Unit> = [];
   for (let unit = Math.floor(from) - 1; unit <= Math.floor(to) + 1; unit += 1) {
-    near.push(...(landed.get(unit) ?? []));
+    const dots = landed.get(unit);
+    if (dots !== undefined) {
+      near.push(dots);
+    }
   }
   return near;
 };
@@ -130,7 +181,7 @@ const settleAll = (
   pitch: number,
   radiusOf: (mass: number) => number,
 ): ReadonlyArray<Settling> => {
-  const landed = new Map<number, Array<Settling>>();
+  const landed = new Map<number, Unit>();
   return notes.map((note) => {
     const centre = unitOf(note.punkte) * pitch;
     const r = radiusOf(note.mass);
@@ -141,8 +192,10 @@ const settleAll = (
       (centre + room) / pitch,
     );
     const dot = lowestPlace(centre, room, r, near);
-    const unit = Math.floor(dot.x / pitch);
-    landed.set(unit, [...(landed.get(unit) ?? []), dot]);
+    const index = Math.floor(dot.x / pitch);
+    const unit = landed.get(index) ?? { dots: [], maxR: 0 };
+    addTo(unit, dot);
+    landed.set(index, unit);
     return dot;
   });
 };
@@ -165,16 +218,30 @@ const radiusBy = (full: number, heaviest: number) => {
       : Math.max(smallest, full * Math.sqrt(mass / heaviest));
 };
 
+/**
+ * Lays out the Noten that lie on the bar. `beamY` keeps the bar where an
+ * earlier layout put it, so the figure keeps its height: the piles then
+ * shrink until they fit under it instead of making room for themselves.
+ */
 export const heroLayout = (
   notes: ReadonlyArray<HeroNote>,
   hostWidth: number,
+  { beamY: fixedBeamY }: { readonly beamY?: number } = {},
 ): HeroLayout => {
   const width = Math.max(limits.minWidth, Math.floor(hostWidth));
   const phone = width < limits.phoneBelow;
   const pitch = width / scaleUnits;
   const heaviest = notes.reduce((max, note) => Math.max(max, note.mass), 0);
-  const maxPile = phone ? limits.phoneMaxPile : limits.maxPile;
-  let full = pitch * (phone ? limits.phoneRadius : limits.radius);
+  const headroom = phone ? limits.phoneHeadroom : limits.headroom;
+  const room = fixedBeamY === undefined ? null : fixedBeamY - headroom;
+  const maxPile = Math.min(
+    phone ? limits.phoneMaxPile : limits.maxPile,
+    room ?? Number.POSITIVE_INFINITY,
+  );
+  let full = Math.min(
+    pitch * (phone ? limits.phoneRadius : limits.radius),
+    room === null ? Number.POSITIVE_INFINITY : room / 2,
+  );
   let settled = settleAll(notes, pitch, radiusBy(full, heaviest));
   for (
     let attempt = 0;
@@ -185,10 +252,8 @@ export const heroLayout = (
     settled = settleAll(notes, pitch, radiusBy(full, heaviest));
   }
   const beam = phone ? limits.phoneBeam : limits.beam;
-  const beamY = Math.ceil(
-    Math.max(pileHeight(settled), full * 2) +
-      (phone ? limits.phoneHeadroom : limits.headroom),
-  );
+  const beamY =
+    fixedBeamY ?? Math.ceil(Math.max(pileHeight(settled), full * 2) + headroom);
   return {
     width,
     height: beamY + beam + (phone ? limits.phoneFoot : limits.foot),
@@ -202,4 +267,45 @@ export const heroLayout = (
       r: tenths(dot.r),
     })),
   };
+};
+
+/** The Noten of the figure with the masses they have after the first `count` of them. */
+export const heroNotesAfter = (
+  entries: ReadonlyArray<TrendEntry>,
+  count: number,
+): ReadonlyArray<HeroNote> => {
+  const masses = massesAfter(entries, count);
+  return entries.map((entry, index) => ({
+    punkte: entry.punkte,
+    mass: masses[index] ?? 0,
+  }));
+};
+
+/**
+ * The layout of the day the Verlauf shows, after the first `count` Noten:
+ * those on the bar sized by their share of that day's Schnitt, so they
+ * balance where the fulcrum stands, and laid under the bar of `today`, so
+ * the figure keeps its height. A Note that had not been written yet waits,
+ * hidden, at its place of today.
+ */
+export const heroDayLayout = ({
+  count,
+  entries,
+  today,
+  width,
+}: {
+  readonly count: number;
+  readonly entries: ReadonlyArray<TrendEntry>;
+  readonly today: HeroLayout;
+  readonly width: number;
+}): HeroLayout => {
+  if (count >= entries.length) {
+    return today;
+  }
+  const day = heroLayout(
+    heroNotesAfter(entries, count).slice(0, count),
+    width,
+    { beamY: today.beamY },
+  );
+  return { ...day, dots: [...day.dots, ...today.dots.slice(count)] };
 };

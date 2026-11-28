@@ -107,15 +107,17 @@ describe('server response wire contract', () => {
       expect(keys(note.gewichtung)).toEqual(['arten', 'verhaeltnis']);
       expect(keys(trend)).toEqual([
         'datum',
+        'fachGewichtung',
         'fachId',
         'fachKuerzel',
         'fachName',
+        'fachSnapshotId',
         'halbjahrId',
         'half',
         'id',
+        'individualGewichtung',
         'klassenstufe',
         'leistungsart',
-        'mass',
         'notensystem',
         'notenwert',
         'punkte',

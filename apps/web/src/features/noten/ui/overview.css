@@ -9,6 +9,8 @@
     stroke: var(--pl-stratum-edge);
     stroke-width: 0.75;
     transition: opacity 0.18s;
+    transform-box: fill-box;
+    transform-origin: center;
   }
 
   /* Older Halbjahre are ink that has faded: the further back, the paler. */

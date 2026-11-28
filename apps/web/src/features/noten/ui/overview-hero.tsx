@@ -1,10 +1,10 @@
 import { ChevronRight, Play, Undo2 } from 'lucide-react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import { buttonClass } from '#/shared/ui/form-classes.ts';
 import { buttonIconSize, iconStroke } from '#/shared/ui/icon.ts';
-import { prefersReducedMotion } from '#/shared/ui/motion.ts';
 import { flag } from '#/shared/ui/ruler/disc-look.ts';
 import type { TrendEntry } from '../services/trend-calculation.ts';
+import type { Arrival } from './hero-dots-motion.ts';
 import { HeroFigure } from './hero-figure.tsx';
 import {
   type HeroHalbjahr,
@@ -16,15 +16,9 @@ import {
   heroValueText,
   monthText,
 } from './hero-model.ts';
-import { type Arrival, usePlay } from './hero-motion.ts';
+import { usePlay } from './hero-motion.ts';
 import { createTrendTextModel } from './trend-text-model.ts';
 import { VerlaufBand } from './verlauf-band.tsx';
-
-/**
- * The sequence in which every Note lands plays when the Übersicht is first
- * shown after the app was opened, not again on every return to it.
- */
-const loadSequence = { played: false };
 
 /** Below this Gesamtschnitt the fulcrum stands in the left half, so the caption moves to the right. */
 const middleOfBar = 7.5;
@@ -156,15 +150,12 @@ export const OverviewHero = ({
     [entries, halbjahre, currentHalbjahrId],
   );
   const firstCurrent = dots.findIndex((dot) => dot.stratum === 'now');
-  const [autoPlay] = useState(
-    () => !(loadSequence.played || prefersReducedMotion()),
-  );
-  // `null` is today. While the sequence is still to play the bar starts empty,
-  // so the Noten do not show for a moment and then vanish.
-  const [shown, setShown] = useState<number | null>(autoPlay ? 0 : null);
+  // `null` is today. The Übersicht opens on it, every Note already in its place;
+  // the sequence in which every Note lands plays only when asked for.
+  const [shown, setShown] = useState<number | null>(null);
   const [arrival, setArrival] = useState<Arrival>('fall');
   // While the Noten land one after the other, the caption leaves out the one that landed last.
-  const [playing, setPlaying] = useState(autoPlay);
+  const [playing, setPlaying] = useState(false);
   const captionRef = useRef<HTMLDivElement>(null);
   const { start, stop } = usePlay({
     fastUntil: firstCurrent === -1 ? total : firstCurrent,
@@ -175,14 +166,6 @@ export const OverviewHero = ({
       setPlaying(false);
     },
   });
-  useEffect(() => {
-    loadSequence.played = true;
-    if (!autoPlay) {
-      return;
-    }
-    start();
-    return stop;
-  }, [autoPlay, start, stop]);
 
   const count = shown === null ? total : Math.min(shown, total);
   const live = count === total;

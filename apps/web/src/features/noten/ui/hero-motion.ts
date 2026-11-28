@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import { toSechser } from '#/shared/noten/notenwert.ts';
 import { prefersReducedMotion } from '#/shared/ui/motion.ts';
@@ -15,17 +16,16 @@ import {
 } from '#/shared/ui/ruler/balance.ts';
 import { tenths } from '#/shared/ui/ruler/geometry.ts';
 import { punkteScale } from '#/shared/ui/ruler/scale.ts';
+import { type Arrival, createDotsMotion } from './hero-dots-motion.ts';
 import type { HeroLayout } from './hero-layout.ts';
 
 /**
  * What moves in the hero. React draws the figure; where the fulcrum stands,
  * how far the bar leans and what the big figure says change sixty times a
- * second and are written past it. A Note that arrives drops onto the bar.
- * Only `transform` and `opacity` are animated.
+ * second and are written past it. A Note that arrives drops onto the bar,
+ * and the others grow or shrink to their share of the new Schnitt; how the
+ * dots move is in hero-dots-motion.ts.
  */
-
-/** How a Note that appears arrives: `fall` from the figure's top, `drop` the last bit only. */
-export type Arrival = 'fall' | 'drop';
 
 export type HeroParts = {
   /** The bar and the dots on it: the group that leans. */
@@ -109,6 +109,21 @@ const roomBeside = (
     : { from: 0, to: left - text.captionGap };
 };
 
+/**
+ * How wide the big figure is, by what it says. Measuring it makes the browser
+ * lay out the page first, and while the dots move that is once more per frame.
+ */
+const textLengths = new WeakMap<SVGTextElement, Map<string, number>>();
+
+const lengthOf = (figure: SVGTextElement, phone: boolean): number => {
+  const known = textLengths.get(figure) ?? new Map<string, number>();
+  textLengths.set(figure, known);
+  const key = `${phone}:${figure.textContent}`;
+  const length = known.get(key) ?? figure.getComputedTextLength();
+  known.set(key, length);
+  return length;
+};
+
 /** Shifts the big figure and the line under it, so both stay in their room. */
 const placeText = (parts: HeroParts, frame: Frame, x: number): void => {
   const figure = parts.figure.current;
@@ -117,7 +132,7 @@ const placeText = (parts: HeroParts, frame: Frame, x: number): void => {
     return;
   }
   const half =
-    figure.getComputedTextLength() / 2 +
+    lengthOf(figure, frame.layout.phone) / 2 +
     (frame.layout.phone ? text.phonePadding : text.padding);
   const from = frame.room.from + half;
   const centre = Math.min(
@@ -177,53 +192,6 @@ const paintHero = (
   placeText(parts, frame, x);
 };
 
-const landing = {
-  /** A dot the Verlauf brings back only drops the last bit. */
-  drop: 44,
-  dropDuration: 260,
-  fallDuration: 300,
-  /** A longer fall takes longer, by the root of its height. */
-  perRoot: 14,
-  /** A dot fades in during the first quarter of its way. */
-  fadeUntil: 0.25,
-  easing: 'cubic-bezier(.5,0,1,.55)',
-} as const;
-
-/** Lets the dots `from` to `to` arrive on the bar. */
-const land = (
-  parts: HeroParts,
-  layout: HeroLayout,
-  arriving: {
-    readonly from: number;
-    readonly to: number;
-    readonly arrival: Arrival;
-  },
-): void => {
-  const nodes = parts.dots.current?.children;
-  const fall = arriving.arrival === 'fall';
-  for (let index = arriving.from; index < arriving.to; index += 1) {
-    const node = nodes?.[index];
-    const dot = layout.dots[index];
-    if (node !== undefined && dot !== undefined) {
-      // A falling dot starts at the figure's top edge, so it never crosses the head of the page.
-      const height = fall ? dot.y + dot.r : landing.drop;
-      node.animate(
-        [
-          { transform: `translateY(${tenths(-height)}px)`, opacity: 0 },
-          { opacity: 1, offset: landing.fadeUntil },
-          { transform: 'translateY(0)', opacity: 1 },
-        ],
-        {
-          duration: fall
-            ? landing.fallDuration + Math.sqrt(height) * landing.perRoot
-            : landing.dropDuration,
-          easing: landing.easing,
-        },
-      );
-    }
-  }
-};
-
 /**
  * Keeps the figure in step with what it shows: the fulcrum goes to the
  * Schnitt on its spring, and dots that were added land.
@@ -232,6 +200,7 @@ export const useHeroMotion = ({
   arrival,
   captionRef,
   count,
+  dots: drawing,
   layout,
   parts,
   schnitt,
@@ -241,6 +210,8 @@ export const useHeroMotion = ({
   readonly captionRef: RefObject<HTMLElement | null>;
   /** How many Noten lie on the bar. */
   readonly count: number;
+  /** What React draws the dots from: when it changes, they are drawn anew. */
+  readonly dots: unknown;
   readonly layout: HeroLayout;
   readonly parts: HeroParts;
   /** The Gesamtschnitt of the Noten on the bar, in Notenpunkte. */
@@ -258,6 +229,8 @@ export const useHeroMotion = ({
     readonly count: number;
     readonly width: number;
   } | null>(null);
+  const [dots] = useState(createDotsMotion);
+  useEffect(() => dots.stop, [dots]);
 
   useLayoutEffect(() => {
     const before = seenRef.current;
@@ -272,26 +245,43 @@ export const useHeroMotion = ({
         ? roomBeside(captionRef.current, parts.tilt.current, layout.width)
         : frameRef.current.room,
     };
-    if (!still && count > before.count && !prefersReducedMotion()) {
-      land(parts, layout, { from: before.count, to: count, arrival });
-    }
+    dots.show(parts.dots.current, layout, {
+      drawing,
+      was: before?.count ?? count,
+      count,
+      arrival,
+      animate: !(still || prefersReducedMotion()),
+    });
     balance.set(schnitt === null ? null : punkteScale.unitOf(schnitt), {
       immediate: still,
     });
-  }, [arrival, balance, captionRef, count, layout, parts, schnitt]);
+  }, [
+    arrival,
+    balance,
+    captionRef,
+    count,
+    dots,
+    drawing,
+    layout,
+    parts,
+    schnitt,
+  ]);
 
   // The figure is measured to place it; once the font has loaded it is wider.
   useEffect(() => {
     let current = true;
     document.fonts.ready.then(() => {
       if (current) {
+        if (parts.figure.current !== null) {
+          textLengths.delete(parts.figure.current);
+        }
         balance.repaint();
       }
     });
     return () => {
       current = false;
     };
-  }, [balance]);
+  }, [balance, parts]);
 };
 
 const playing = {

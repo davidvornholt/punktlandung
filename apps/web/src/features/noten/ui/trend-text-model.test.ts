@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
+import { standardgewichtung } from '#/shared/noten/fach-gewichtung.ts';
 import type { TrendEntry } from '../services/trend-calculation.ts';
 import { createTrendTextModel } from './trend-text-model.ts';
 
@@ -11,7 +12,9 @@ const entry = (overrides: Partial<TrendEntry> = {}): TrendEntry => ({
   fachName: 'Mathematik',
   punkte: 7,
   schnitt: 7,
-  mass: 0.5,
+  fachSnapshotId: '2026/27:deutsch',
+  individualGewichtung: 1,
+  fachGewichtung: standardgewichtung,
   notenwert: 7,
   notensystem: 'punkte',
   leistungsart: 'klausur',
