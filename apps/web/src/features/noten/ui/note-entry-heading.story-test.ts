@@ -61,6 +61,32 @@ for (const theme of ['light', 'dark'] as const) {
   }
 }
 
+it('keep the link on screen where it shares a row with a long Fach name', async ({
+  mount,
+  page,
+}) => {
+  const width = 400;
+  await page.setViewportSize({ width, height: 800 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const component = await mount(
+    'features/noten/ui/noten-bench/NeuMitLangemNamen',
+  );
+  await page.addStyleTag({ content: 'html {font-size:20px}' });
+  const heading = component.getByRole('heading', { name: newNote });
+  await expect(heading).toBeVisible();
+  // The fallback font is narrower, so it would fit where the real one doesn't.
+  await page.evaluate(() => document.fonts.ready);
+  const headingBox = await heading.boundingBox();
+  const linkBox = await component
+    .getByRole('button', { name: 'Anderes Fach' })
+    .boundingBox();
+  // Beside the heading, not under it: the row is the layout under test.
+  expect(linkBox?.x).toBeGreaterThanOrEqual(
+    (headingBox?.x ?? 0) + (headingBox?.width ?? 0),
+  );
+  expect((linkBox?.x ?? 0) + (linkBox?.width ?? 0)).toBeLessThanOrEqual(width);
+});
+
 it('keep the link beside the heading at the normal text size', async ({
   mount,
   page,

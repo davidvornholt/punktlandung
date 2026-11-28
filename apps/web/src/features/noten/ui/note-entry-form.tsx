@@ -149,7 +149,10 @@ export const NoteEntryForm = ({
        */}
       <div className="@container">
         <div className="@min-[15.5rem]:flex items-baseline justify-between gap-3">
-          <h3 className="wrap-break-word font-bold text-lg" id={titleId}>
+          <h3
+            className="wrap-break-word min-w-0 font-bold text-lg"
+            id={titleId}
+          >
             {entryTitle(leistung, fach.name)}
           </h3>
           {onOtherFach === undefined ? null : (
