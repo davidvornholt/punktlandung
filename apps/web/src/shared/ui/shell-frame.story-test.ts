@@ -6,6 +6,8 @@ const signIn = 'shared/ui/shell-frame/SignIn';
 const standalone = 'shared/ui/shell-frame/Standalone';
 
 const phone = { width: 390, height: 800 } as const;
+/** The narrowest screen WCAG reflow asks for. */
+const narrowPhone = { width: 320, height: 640 } as const;
 
 it('marks the page that is open and follows to the next', async ({ mount }) => {
   const component = await mount(shell);
@@ -109,6 +111,32 @@ it('keeps the rare pages of a phone behind "Mehr"', async ({ mount, page }) => {
   await expect(nav.getByRole('link', { name: 'Fächer' })).toHaveCount(0);
   await expect(more).toHaveAttribute('data-open', '');
   await expect(more).toBeFocused();
+});
+
+it('keeps the "Mehr" menu inside a narrow phone at 200 % text size', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize(narrowPhone);
+  const component = await mount(shell);
+  // What a browser set to 200 % text size does to the root.
+  await page.addStyleTag({ content: 'html { font-size: 32px; }' });
+  const nav = component.getByRole('navigation', { name: 'Hauptnavigation' });
+  await nav.getByRole('button', { name: 'Mehr' }).click();
+
+  const boxes = await Promise.all(
+    [
+      nav.getByRole('link', { name: 'Fächer' }),
+      nav.getByRole('link', { name: 'Einstellungen' }),
+      nav.getByRole('button', { name: 'Abmelden' }),
+    ].map((entry) => entry.boundingBox()),
+  );
+  for (const box of boxes) {
+    expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
+      narrowPhone.width,
+    );
+  }
 });
 
 it('enters a Note and signs out from the tab bar of a phone', async ({
