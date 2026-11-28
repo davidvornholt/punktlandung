@@ -193,6 +193,17 @@ export const Neu = () => (
   <Harness setup={{ ...physikSetup, otherFach: true }} />
 );
 
+/** A new Note in a Fach whose name is one very long word. */
+export const NeuMitLangemNamen = () => (
+  <Harness
+    setup={{
+      ...physikSetup,
+      fach: { ...physik, name: 'Wirtschaftswissenschaften' },
+      otherFach: true,
+    }}
+  />
+);
+
 /** A Note that is there is changed. */
 export const Aendern = () => (
   <Harness setup={{ ...physikSetup, target: 'klausur-1' }} />
