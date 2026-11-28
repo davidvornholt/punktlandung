@@ -79,13 +79,19 @@ it('lässt einen Punkt nicht weiter landen, wenn die Bewegung mitten im Landen a
 
   await slider.focus();
   await page.keyboard.press('Home');
+  // The first dot's landing is held as soon as it starts, however slow the test runs.
+  await first.evaluate((node) => {
+    const animate = node.animate.bind(node);
+    Object.assign(node, {
+      animate: (...args: Parameters<Element['animate']>) => {
+        const animation = animate(...args);
+        animation.pause();
+        return animation;
+      },
+    });
+  });
   await page.keyboard.press('ArrowRight');
   await expect(slider).toHaveValue('1');
-  await first.evaluate((node) => {
-    for (const animation of node.getAnimations()) {
-      animation.pause();
-    }
-  });
   expect(await landing()).toBeGreaterThan(0);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
