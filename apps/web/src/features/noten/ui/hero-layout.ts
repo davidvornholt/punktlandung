@@ -8,7 +8,7 @@ import { massesAfter, type TrendEntry } from '../services/trend-calculation.ts';
  * Notenpunkte grow into one pile each, and a Note between two of them, such
  * as the 9,5 of a 2-3, comes to rest between their piles or on their
  * shoulders. Noten land in the order they are given, so a later one always
- * rests on earlier ones and can leave again without anything under it moving.
+ * rests on earlier ones.
  */
 
 export type HeroNote = {

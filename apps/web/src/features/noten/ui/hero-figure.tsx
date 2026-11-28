@@ -181,7 +181,7 @@ const HeroSvg = ({
  * The hero of the Übersicht: every Note as a dot on the bar, piled over its
  * Notenpunkt, and the fulcrum under the Gesamtschnitt. A dot's area is the
  * Note's share of the Gesamtschnitt of the day shown, so the fulcrum stands
- * where the dots balance. On a phone the bar runs from edge to edge of the screen.
+ * where their shares balance. On a phone the bar runs from edge to edge of the screen.
  */
 export const HeroFigure = (props: HeroFigureProps) => {
   const hostRef = useRef<HTMLDivElement>(null);

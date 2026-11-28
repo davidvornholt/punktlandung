@@ -23,8 +23,8 @@ import type { HeroLayout } from './hero-layout.ts';
  * What moves in the hero. React draws the figure; where the fulcrum stands,
  * how far the bar leans and what the big figure says change sixty times a
  * second and are written past it. A Note that arrives drops onto the bar,
- * and the others grow or shrink to their share of the new Schnitt. Only
- * `transform` and `opacity` are animated.
+ * and the others grow or shrink to their share of the new Schnitt; how the
+ * dots move is in hero-dots-motion.ts.
  */
 
 export type HeroParts = {

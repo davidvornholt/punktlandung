@@ -199,6 +199,37 @@ const leavingWhileLanding = (
   return leaving;
 };
 
+/** Lets a dot that leaves while it lands fade out from how it is seen, not from fully shown. */
+const fadeOut = (
+  dots: SVGGElement,
+  leaving: ReadonlyArray<Leaving>,
+  landings: Map<number, Animation>,
+): void => {
+  for (const dot of leaving) {
+    dot.landing.cancel();
+    landings.delete(dot.index);
+    // Without an end, the fade ends at the opacity the stylesheet gives the dot now: away.
+    dots.children[dot.index]?.animate([{ opacity: dot.opacity, offset: 0 }], {
+      duration: moving.fadeDuration,
+      easing: 'linear',
+    });
+  }
+};
+
+/** Ends every landing, so a dot put at its place, or hidden, is not held where it was. */
+const endLandings = (landings: Map<number, Animation>): void => {
+  for (const running of landings.values()) {
+    running.cancel();
+  }
+  landings.clear();
+};
+
+const sameDot = (left: HeroDot | undefined, right: HeroDot): boolean =>
+  left !== undefined &&
+  left.x === right.x &&
+  left.y === right.y &&
+  left.r === right.r;
+
 export const createDotsMotion = (): DotsMotion => {
   let group: SVGGElement | null = null;
   let drawing: unknown = null;
@@ -212,7 +243,8 @@ export const createDotsMotion = (): DotsMotion => {
 
   const draw = (index: number, dot: HeroDot): void => {
     const node = group?.children[index];
-    if (node !== undefined) {
+    // Writing a dot's place again, even unchanged, makes the browser work out its style again.
+    if (node !== undefined && !sameDot(drawn[index], dot)) {
       drawAt(node, dot);
       drawn[index] = dot;
     }
@@ -262,19 +294,6 @@ export const createDotsMotion = (): DotsMotion => {
     }
   };
 
-  /** Lets a dot that leaves while it lands fade out from how it is seen, not from fully shown. */
-  const fadeOut = (leaving: ReadonlyArray<Leaving>): void => {
-    for (const dot of leaving) {
-      dot.landing.cancel();
-      landings.delete(dot.index);
-      // Without an end, the fade ends at the opacity the stylesheet gives the dot now: away.
-      group?.children[dot.index]?.animate(
-        [{ opacity: dot.opacity, offset: 0 }],
-        { duration: moving.fadeDuration, easing: 'linear' },
-      );
-    }
-  };
-
   const show: DotsMotion['show'] = (dots, layout, change) => {
     stop();
     const now = performance.now();
@@ -289,10 +308,10 @@ export const createDotsMotion = (): DotsMotion => {
         { length: dots?.children.length ?? 0 },
         () => undefined,
       );
-      landings.clear();
     }
     group = dots;
     if (dots === null || fresh || !change.animate) {
+      endLandings(landings);
       places = layout.dots;
       holds = [];
       paint(now, Number.POSITIVE_INFINITY);
@@ -313,7 +332,7 @@ export const createDotsMotion = (): DotsMotion => {
     });
     places = layout.dots;
     since = now;
-    fadeOut(leaving);
+    fadeOut(dots, leaving, landings);
     land(change.was, change.count, change.arrival);
     // The first frame is drawn now, before the browser shows the change.
     frame = paint(now, moving.perFrame) ? requestAnimationFrame(tick) : 0;
