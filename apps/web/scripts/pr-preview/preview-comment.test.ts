@@ -15,6 +15,7 @@ const runComment = (
   operation: string,
   outcome: string,
   comments: Array<unknown>,
+  superseded = 'false',
 ) =>
   globalThis.Bun.spawnSync(
     [
@@ -40,6 +41,7 @@ ${script}
           ['TEST_COMMENTS', JSON.stringify(comments)],
           ['HOST_IN_SCOPE', 'true'],
           ['HOST_OUTCOME', outcome],
+          ['HOST_SUPERSEDED', superseded],
           ['OPERATION', operation],
           ['HEAD_SHA', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
           ['PR_NUMBER', '42'],
@@ -84,6 +86,12 @@ describe('preview status comments', () => {
       );
     },
   );
+
+  it('keeps the status comment when a removal finds the pull request eligible again', () => {
+    const result = runComment('destroy', 'success', [existingComment], 'true');
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr.toString()).toBe('');
+  });
 
   it('does not treat a user comment as a preview status', () => {
     const result = runComment('destroy', 'success', [

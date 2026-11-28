@@ -697,6 +697,7 @@ jobs:
         run: |
           set -euo pipefail
           echo 'in_scope=false' >>"$GITHUB_OUTPUT"
+          echo 'superseded=false' >>"$GITHUB_OUTPUT"
           pr=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
           test "$(jq -er .number <<<"$pr")" = "$PR_NUMBER"
           base_ref=$(jq -er .base.ref <<<"$pr")
@@ -726,7 +727,12 @@ jobs:
             test "$eligible" = true
             test "$current_head" = "$HEAD_SHA"
           elif [ "$eligible" = true ]; then
-            test "$REASON" != ineligible
+            # A pull request that is eligible again before its teardown, for example one marked ready again, keeps its preview and status comment.
+            if [ "$REASON" = ineligible ]; then
+              echo 'superseded=true' >>"$GITHUB_OUTPUT"
+              echo "::notice::Pull request $PR_NUMBER became eligible again before teardown; the preview stays"
+              exit 0
+            fi
             test "$current_head" = "$HEAD_SHA"
           fi
 
@@ -763,6 +769,7 @@ jobs:
           HEAD_SHA: ${{ env.PREVIEW_HEAD_SHA }}
           HOST_IN_SCOPE: ${{ steps.host.outputs.in_scope }}
           HOST_OUTCOME: ${{ steps.host.outcome }}
+          HOST_SUPERSEDED: ${{ steps.host.outputs.superseded }}
           OPERATION: ${{ env.PREVIEW_OPERATION }}
           PR_NUMBER: ${{ needs.select.outputs.pull-request-number }}
           REPOSITORY: ${{ github.repository }}
@@ -770,6 +777,10 @@ jobs:
           set -euo pipefail
           if [ "$HOST_IN_SCOPE" = false ]; then
             echo "::notice::No preview comment is needed outside the same-repository main preview lane"
+            exit 0
+          fi
+          if [ "$HOST_SUPERSEDED" = true ]; then
+            echo "::notice::The preview stays, and so does its status comment"
             exit 0
           fi
           marker='<!-- punktlandung-pr-preview -->'
