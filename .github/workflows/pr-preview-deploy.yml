@@ -785,7 +785,7 @@ jobs:
           fi
           marker='<!-- punktlandung-pr-preview -->'
           if [ "$HOST_OUTCOME" = success ] && [ "$OPERATION" = deploy ]; then
-            body=$(printf '%s\n\nPreview: https://%s.pr.punktlandung.vornholt.online\n\nSource: %s\n\nState: deployed and healthy\n\nGitHub sign-in is disabled. This preview contains no production data.' \
+            body=$(printf '%s\n\nPreview: https://%s.pr.punktlandung.vornholt.online\n\nSource: %s\n\nState: deployed and healthy\n\nSign in with GitHub through the OAuth app used only by previews. Only the account allowed in production can sign in. This preview contains no production data.' \
               "$marker" "$PR_NUMBER" "$HEAD_SHA")
           elif [ "$HOST_OUTCOME" = success ]; then
             body=$(printf '%s\n\nState: removed' "$marker")
