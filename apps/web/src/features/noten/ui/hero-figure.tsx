@@ -4,14 +4,10 @@ import { RulerBar } from '#/shared/ui/ruler/ruler-bar.tsx';
 import { useHostWidth } from '#/shared/ui/ruler/ruler-hooks.ts';
 import { punkteScale } from '#/shared/ui/ruler/scale.ts';
 import type { TrendEntry } from '../services/trend-calculation.ts';
-import {
-  type HeroLayout,
-  heroDayLayout,
-  heroLayout,
-  heroNotesAfter,
-} from './hero-layout.ts';
+import type { Arrival } from './hero-dots-motion.ts';
+import { heroDayLayout, heroLayout, heroNotesAfter } from './hero-layout.ts';
 import type { HeroDotInfo } from './hero-model.ts';
-import { type Arrival, useHeroMotion, useHeroParts } from './hero-motion.ts';
+import { useHeroMotion, useHeroParts } from './hero-motion.ts';
 
 /** Where the Gesamtschnitt and the line under it stand below the fulcrum, and how big they are. */
 const figureText = {
@@ -32,9 +28,6 @@ const figureText = {
     equivY: 122,
   },
 } as const;
-
-/** A ring is drawn with a thick line; its radius is drawn in, so it takes the room of its dot. */
-const ringInset = 0.75;
 
 export type HeroFigureProps = {
   /** How a Note that appears arrives. */
@@ -59,10 +52,8 @@ const HeroDots = ({
   count,
   dots,
   groupRef,
-  layout,
 }: Pick<HeroFigureProps, 'count' | 'dots'> & {
   readonly groupRef: RefObject<SVGGElement | null>;
-  readonly layout: HeroLayout;
 }) => {
   const [pick, setPick] = useState<string | null>(null);
   return (
@@ -79,24 +70,19 @@ const HeroDots = ({
       }
       ref={groupRef}
     >
-      {dots.map((dot, index) => {
-        const place = layout.dots[index];
-        return place === undefined ? null : (
-          <circle
-            cx={place.x}
-            cy={place.y}
-            data-away={flag(index >= count)}
-            data-fach={dot.fachId}
-            data-part="hero-dot"
-            data-picked={flag(dot.fachId === pick)}
-            data-ring={flag(dot.ring)}
-            data-stratum={dot.stratum}
-            data-tip={index < count ? dot.tip : undefined}
-            key={dot.id}
-            r={dot.ring ? Math.max(1, place.r - ringInset) : place.r}
-          />
-        );
-      })}
+      {/* Where a dot is drawn and how large is written by hero-dots-motion.ts. */}
+      {dots.map((dot, index) => (
+        <circle
+          data-away={flag(index >= count)}
+          data-fach={dot.fachId}
+          data-part="hero-dot"
+          data-picked={flag(dot.fachId === pick)}
+          data-ring={flag(dot.ring)}
+          data-stratum={dot.stratum}
+          data-tip={index < count ? dot.tip : undefined}
+          key={dot.id}
+        />
+      ))}
     </g>
   );
 };
@@ -123,6 +109,7 @@ const HeroSvg = ({
     arrival,
     captionRef,
     count,
+    dots,
     layout,
     parts,
     schnitt: entries[count - 1]?.schnitt ?? null,
@@ -153,12 +140,7 @@ const HeroSvg = ({
     >
       <g ref={parts.tilt}>
         {bar}
-        <HeroDots
-          count={count}
-          dots={dots}
-          groupRef={parts.dots}
-          layout={layout}
-        />
+        <HeroDots count={count} dots={dots} groupRef={parts.dots} />
       </g>
       <g ref={parts.fulcrum}>
         <path data-part="fulcrum-body" d="M0 0l13 22h-26z" />
