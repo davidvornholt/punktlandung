@@ -25,8 +25,9 @@ const notIdCharacters = /[^a-z0-9]/giu;
 
 /**
  * What does not move while the hand does: the grid, the axis with its
- * Halbjahre, a tick per Note and the whole line as a pale trace. Kept apart
- * so that a step of the hand does not draw it again.
+ * Halbjahre, a tick per Note and the whole line as a thin dashed trace in
+ * soft ink, which still reaches 3:1 against the paper where it shows after
+ * the hand. Kept apart so that a step of the hand does not draw it again.
  */
 const VerlaufGround = memo(
   ({
@@ -90,10 +91,11 @@ const VerlaufGround = memo(
         ))}
         <path className="stroke-ink opacity-50" d={layout.rug} />
         <path
-          className="fill-none stroke-[1.5] stroke-line"
+          className="fill-none stroke-[1.5] stroke-ink-soft"
           clipPath={`url(#${clipId}-all)`}
           d={layout.line}
-          strokeLinecap="round"
+          data-part="verlauf-trace"
+          strokeDasharray="4 3"
           strokeLinejoin="round"
         />
       </>
@@ -120,7 +122,7 @@ const VerlaufSvg = ({
       width={layout.width}
     >
       <VerlaufGround clipId={clipId} layout={layout} />
-      {/* The part of the line up to the hand is drawn in ink over the pale trace. */}
+      {/* The part of the line up to the hand is drawn solid and thicker in ink over the dashed trace, so the two tell apart without colour. */}
       <clipPath id={`${clipId}-past`}>
         <rect height={layout.base - layout.top} width={hand.x} y={layout.top} />
       </clipPath>
