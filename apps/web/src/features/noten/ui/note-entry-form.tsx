@@ -144,8 +144,7 @@ export const NoteEntryForm = ({
     >
       {/*
        * The heading and the link share a row only from the width where both
-       * fit; the width is in rem, so it follows the text size. Below it the
-       * link takes its own line, and a word wider than the sheet breaks.
+       * fit; the width is in rem, so it follows the text size.
        */}
       <div className="@container">
         <div className="@min-[15.5rem]:flex items-baseline justify-between gap-3">
