@@ -142,21 +142,28 @@ export const NoteEntryForm = ({
         onSubmit();
       }}
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="font-bold text-lg" id={titleId}>
-          {entryTitle(leistung, fach.name)}
-        </h3>
-        {onOtherFach === undefined ? null : (
-          <button
-            // The words are small; what answers a finger reaches further than they do.
-            className={`${linkClass} relative min-h-7 whitespace-nowrap text-ink-soft text-sm after:absolute after:-inset-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-45`}
-            disabled={pending}
-            onClick={onOtherFach}
-            type="button"
-          >
-            Anderes Fach
-          </button>
-        )}
+      {/*
+       * The heading and the link share a row only from the width where both
+       * fit; the width is in rem, so it follows the text size. Below it the
+       * link takes its own line, and a word wider than the sheet breaks.
+       */}
+      <div className="@container">
+        <div className="@min-[15.5rem]:flex items-baseline justify-between gap-3">
+          <h3 className="wrap-break-word font-bold text-lg" id={titleId}>
+            {entryTitle(leistung, fach.name)}
+          </h3>
+          {onOtherFach === undefined ? null : (
+            <button
+              // The words are small; what answers a finger reaches further than they do.
+              className={`${linkClass} relative @min-[15.5rem]:mt-0 mt-1 min-h-7 whitespace-nowrap text-ink-soft text-sm after:absolute after:-inset-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-45`}
+              disabled={pending}
+              onClick={onOtherFach}
+              type="button"
+            >
+              Anderes Fach
+            </button>
+          )}
+        </div>
       </div>
       <Segmented
         className="mt-4"
