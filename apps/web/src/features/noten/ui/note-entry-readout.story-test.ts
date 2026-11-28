@@ -4,7 +4,6 @@ import { expect, test as it } from '@playwright/test';
 const sentence = /Danach steht Kunst bei/u;
 const phone = { width: 320, height: 640 };
 
-/** Enters a Note in Kunst on the narrowest phone and returns the sentence about it. */
 const enterNote = async (component: playwright.Locator) => {
   await component.locator('[data-add-note="kunst"]').click();
   await component.getByRole('button', { name: 'Ein Notenpunkt mehr' }).click();
